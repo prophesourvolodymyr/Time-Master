@@ -198,18 +198,8 @@ struct PageWidgetTodos {
 /// and the files and links to have first. A page there that needs no skills cannot be learned from its own page, so it
 /// is no step (`SkillMaterial.isLearnable`).
 struct PageWidgetLearnFirst {
-    /// A page or a group to learn first.
-    struct Step {
-        let title: String
-        let isGroup: Bool
-        let status: SkillStatus
-
-        var symbolName: String { isGroup ? "square.grid.2x2" : status.symbolName }
-        var color: Color { isGroup ? Theme.toolbarOrange : status.color }
-    }
-
-    /// The first page or group not learned yet (and not set aside), in the order to learn them.
-    let next: Step?
+    /// The title of the first page or group not learned yet (and not set aside), in the order to learn them.
+    let next: String?
     let steps: Int
     /// Pages completed, and groups whose skills are all completed.
     let stepsDone: Int
@@ -232,7 +222,7 @@ struct PageWidgetLearnFirst {
         let id = page.manifest.id
         guard page.isSkillLike, let material = store.skillMaterial(id: id) else { return nil }
         let dependencies = store.skillDependencies(of: id).filter(\.isLearnable)
-        var next: Step?
+        var next: String?
         var done = 0
         for dependency in dependencies {
             let status: SkillStatus
@@ -245,7 +235,7 @@ struct PageWidgetLearnFirst {
             if status == .completed {
                 done += 1
             } else if next == nil, status != .abandoned {
-                next = Step(title: dependency.title, isGroup: dependency.isGroup, status: status)
+                next = dependency.title
             }
         }
         self.next = next

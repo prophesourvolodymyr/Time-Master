@@ -148,8 +148,8 @@ struct PageCoverHero<Header: View>: View {
             }
             .keyNavBounceButtonStyle(shape: .circle, cornerRadius: 16, inset: 6, lift: 6)
             .disabled(isImportingCover)
-            .help("Add a cover picture")
-            .accessibilityLabel("Add a cover picture")
+            .help("Add a banner")
+            .accessibilityLabel("Add a banner")
         } else {
             TmaxMenu(cornerRadius: 16, inset: 6) {
                 TmaxMenuSection("From this page") {
@@ -179,9 +179,9 @@ struct PageCoverHero<Header: View>: View {
             .menuIndicator(.hidden)
             .fixedSize()
             .disabled(isImportingCover)
-            .help("Change the cover")
-            .accessibilityLabel("Cover")
-            .accessibilityHint("Pick another cover or add a picture")
+            .help("Change the banner")
+            .accessibilityLabel("Banner")
+            .accessibilityHint("Pick another banner or add a picture")
         }
     }
 

@@ -1,8 +1,6 @@
 import SwiftUI
 import TimeMasterCore
 
-/// Learn first: what a skill waits for. The next page or group to learn, how many of them are learned as a bar, and the
-/// files and links to have first. Waiting for nothing (a tile the page chose), it invites the first. A tap opens them.
 struct PageWidgetLearnFirstTile: View {
     let learnFirst: PageWidgetLearnFirst
     let onOpen: (PageWidgetTarget) -> Void
@@ -10,11 +8,7 @@ struct PageWidgetLearnFirstTile: View {
     var body: some View {
         PageWidgetTile(kind: .learnFirst, target: .dependencies, summary: summary, onOpen: onOpen) {
             if learnFirst.total == 0 {
-                VStack(alignment: .leading, spacing: 0) {
-                    PageWidgetHeader(kind: .learnFirst)
-                    PageWidgetEmptyState(systemImage: "plus.circle", title: "Nothing to learn first")
-                }
-                .padding(PageWidgetMetrics.inset)
+                PageWidgetEmptyState(systemImage: "plus.circle", title: "Nothing to learn first")
             } else {
                 content
             }
@@ -22,45 +16,23 @@ struct PageWidgetLearnFirstTile: View {
     }
 
     private var content: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            PageWidgetHeader(kind: .learnFirst, trailing: "\(learnFirst.total)")
+        VStack(alignment: .leading, spacing: 8) {
+            WidgetLabel(text: "Learn first")
             Spacer(minLength: 0)
             if let next = learnFirst.next {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Image(systemName: next.symbolName)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(next.color)
-                    Text(next.title)
-                        .font(TimeMasterFont.black(14, relativeTo: .subheadline))
-                        .foregroundStyle(Theme.textPrimary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.85)
-                }
+                WidgetTitle(text: next, size: 18, lines: 2)
             } else if learnFirst.steps > 0 {
-                Label("All learned", systemImage: "checkmark.seal.fill")
-                    .font(TimeMasterFont.black(14, relativeTo: .subheadline))
-                    .foregroundStyle(Theme.toolbarOrange)
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(Theme.toolbarOrange)
+                    WidgetTitle(text: "All learned", size: 18, lines: 1)
+                }
             } else {
-                Text(learnFirst.materials)
-                    .font(TimeMasterFont.black(14, relativeTo: .subheadline))
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(2)
+                WidgetTitle(text: learnFirst.materials, size: 18, lines: 2)
             }
             if learnFirst.steps > 0 {
-                HStack(spacing: 8) {
-                    PageWidgetBar(fraction: Double(learnFirst.stepsDone) / Double(learnFirst.steps))
-                    Text("\(learnFirst.stepsDone) of \(learnFirst.steps)")
-                        .font(TimeMasterFont.black(11, relativeTo: .caption2).monospacedDigit())
-                        .foregroundStyle(Theme.textSecondary)
-                        .fixedSize()
-                }
-                if !learnFirst.materials.isEmpty {
-                    Text("and \(learnFirst.materials)")
-                        .font(TimeMasterFont.micro())
-                        .foregroundStyle(Theme.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
+                WidgetBar(fraction: Double(learnFirst.stepsDone) / Double(learnFirst.steps))
             }
         }
         .padding(PageWidgetMetrics.inset)
@@ -73,7 +45,7 @@ struct PageWidgetLearnFirstTile: View {
         guard learnFirst.total > 0 else { return "Learn first: nothing yet" }
         var parts = ["Learn first: \(learnFirst.total)"]
         if let next = learnFirst.next {
-            parts.append("next, \(next.title)")
+            parts.append("next, \(next)")
         } else if learnFirst.steps > 0 {
             parts.append("all learned")
         }

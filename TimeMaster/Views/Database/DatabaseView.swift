@@ -1146,6 +1146,7 @@ struct DatabaseView: View {
     }
 
     private var uniqueWorkoutTypes: [FilterTypeChip] {
+        if let known = store.derived.workoutTypeChips { return known }
         var seen = Set<String>()
         var result: [FilterTypeChip] = []
         for page in store.allPagesFlat where page.isExercise {
@@ -1154,7 +1155,9 @@ struct DatabaseView: View {
                 result.append(FilterTypeChip(id: type.id, name: type.name, colorHex: type.colorHex))
             }
         }
-        return result.sorted { $0.name < $1.name }
+        let chips = result.sorted { $0.name < $1.name }
+        store.derived.workoutTypeChips = chips
+        return chips
     }
 
     private var filteredRootPages: [ExercisePage] {

@@ -8,8 +8,7 @@ enum MenuBarIconRenderer {
     private static let ringWidth: CGFloat = 2
 
     private static var orange: NSColor { NSColor(Theme.toolbarOrange) }
-    private static var teal: NSColor { NSColor(Theme.accent) }
-    private static var green: NSColor { NSColor(Color(hex: "34C759")) }
+    private static var peach: NSColor { NSColor(WidgetTint.peach.base) }
 
     static func image(for glyph: MenuBarItemPresentation.Glyph, progress: Double?) -> NSImage {
         switch glyph {
@@ -24,7 +23,7 @@ enum MenuBarIconRenderer {
         case .exercise:
             return ring(progress: progress ?? 0, tint: orange, symbol: "figure.strengthtraining.traditional")
         case .rest:
-            return ring(progress: progress ?? 0, tint: teal, symbol: "moon.zzz.fill")
+            return ring(progress: progress ?? 0, tint: peach, symbol: "moon.zzz.fill")
         case .paused:
             return ring(progress: progress ?? 0, tint: NSColor.systemGray, symbol: "pause.fill")
         case .finished:
@@ -108,7 +107,7 @@ enum MenuBarIconRenderer {
                 width: ringDiameter,
                 height: ringDiameter
             )
-            green.setFill()
+            orange.setFill()
             NSBezierPath(ovalIn: circle).fill()
             drawSymbol("checkmark", in: circle, color: .black, pointSize: 8, weight: .heavy)
             return true

@@ -54,11 +54,17 @@ final class LibraryDerivedCache {
     var skillLibrary: SkillLibrary?
     var pageTree: [ExercisePage]?
     var containerModels: [String: ContainerBrowseModel] = [:]
+    var prerequisiteCandidates: [String: [SkillMaterial]] = [:]
+    var workoutTypeChips: [FilterTypeChip]?
+    var trainersBySkill: [String: [SkillTrainer]]?
 
     func reset() {
         index = nil
         skillLibrary = nil
         pageTree = nil
         containerModels.removeAll(keepingCapacity: true)
+        prerequisiteCandidates.removeAll(keepingCapacity: true)
+        workoutTypeChips = nil
+        trainersBySkill = nil
     }
 }

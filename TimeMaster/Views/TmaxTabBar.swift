@@ -394,18 +394,25 @@ private struct TmaxSwoosh<Value: Equatable>: ViewModifier {
 private struct TmaxTabRowLayout: Layout {
     var fillsWidth: Bool
 
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let ideals = subviews.map { $0.sizeThatFits(.unspecified) }
-        let height = ideals.map(\.height).max() ?? 0
-        let natural = ideals.reduce(0) { $0 + $1.width }
+    func makeCache(subviews: Subviews) -> [CGSize] {
+        subviews.map { $0.sizeThatFits(.unspecified) }
+    }
+
+    func updateCache(_ cache: inout [CGSize], subviews: Subviews) {
+        cache = subviews.map { $0.sizeThatFits(.unspecified) }
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout [CGSize]) -> CGSize {
+        let height = cache.map(\.height).max() ?? 0
+        let natural = cache.reduce(0) { $0 + $1.width }
         guard let width = proposal.width, width.isFinite else {
             return CGSize(width: natural, height: height)
         }
         return CGSize(width: fillsWidth ? width : min(width, natural), height: height)
     }
 
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let ideal = subviews.map { $0.sizeThatFits(.unspecified).width }
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout [CGSize]) {
+        let ideal = cache.map(\.width)
         let total = ideal.reduce(0, +)
         let widths: [CGFloat]
         if total > 0, bounds.width < total {

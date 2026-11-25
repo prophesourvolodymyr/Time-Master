@@ -25,7 +25,7 @@ struct MenuBarMomentDetector {
                 MenuBarMoment(
                     kind: .finished,
                     title: "Workout complete",
-                    message: "\(finish.workoutName) · \(MenuBarFormat.clock(finish.elapsedSeconds))",
+                    message: "\(WorkoutTitle.short(finish.workoutName)) · \(MenuBarFormat.clock(finish.elapsedSeconds))",
                     workoutName: finish.workoutName
                 )
             ]

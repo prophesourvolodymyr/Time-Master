@@ -310,6 +310,7 @@ public enum AgentToolRegistry {
                 "title": AgentSchema.string("New title."),
                 "markdownBody": AgentSchema.string("Replacement Markdown notes."),
                 "icon": AgentSchema.string("Note pages only: an SF Symbol name or an emoji shown on the note's row. Empty text clears it."),
+                "iconImage": AgentSchema.external(AgentSchema.path("Absolute path to a local image (jpg, png, heic, gif, webp) the app copies into the page and uses as its icon picture (the small tile). Empty text clears the picture.")),
                 "duration": AgentSchema.integer("Seconds per set (exercise pages).", minimum: 5),
                 "restAfter": AgentSchema.integer("Rest after the exercise in seconds.", minimum: 0),
                 "sets": AgentSchema.integer("Default number of sets.", minimum: 1),

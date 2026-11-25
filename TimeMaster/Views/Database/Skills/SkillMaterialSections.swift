@@ -25,13 +25,16 @@ struct SkillPrerequisitesSection: View {
     let materialID: String
 
     private var candidates: [SkillMaterial] {
+        if let known = store.derived.prerequisiteCandidates[materialID] { return known }
         let blocked = store.skillDependencyBlockedIDs(for: materialID)
         let pages = store.allPagesFlat
         var ids = pages.filter(SkillLibrary.isSkill).map(\.manifest.id)
         ids += pages.filter { !$0.manifest.hidesSkills }.flatMap { page in
             page.manifest.skillBoardSections.map { SkillGroupID.make(containerID: page.manifest.id, sectionID: $0.id) }
         }
-        return ids.filter { !blocked.contains($0) }.compactMap(store.skillMaterial(id:))
+        let built = ids.filter { !blocked.contains($0) }.compactMap(store.skillMaterial(id:))
+        store.derived.prerequisiteCandidates[materialID] = built
+        return built
     }
 
     var body: some View {
@@ -463,10 +466,10 @@ struct SkillFilesSection: View {
             } else if isImage(url) {
                 let isCover = material?.manifest.coverMediaFilename == filename
                 Button {
-                    SkillErrorCenter.shared.attempt("Set the cover") {
+                    SkillErrorCenter.shared.attempt("Set the banner") {
                         try store.setSkillCover(materialID, filename: isCover ? nil : filename)
                     }
-                } label: { Label(isCover ? "Remove the cover" : "Use as cover", systemImage: "photo") }
+                } label: { Label(isCover ? "Remove the banner" : "Use as banner", systemImage: "photo") }
                 Button {
                     SkillErrorCenter.shared.attempt("Set the icon") {
                         try store.setSkillIcon(materialID, name: nil, type: nil, image: filename)
@@ -690,16 +693,21 @@ struct SkillIconChooserSheet: View {
                             .foregroundStyle(Theme.toolbarOrange)
                     }.keyNavPlainButtonStyle()
                     if allowsPictures {
-                        TmaxMenu {
-                            Button { pictureSource = .photos } label: { Label("Photos", systemImage: "photo.on.rectangle") }
-                            Button { pictureSource = .files } label: { Label("Files", systemImage: "folder") }
-                        } label: {
-                            Label("Use a picture as the icon", systemImage: "photo.badge.plus")
-                                .font(TimeMasterFont.rowTitle())
-                                .foregroundStyle(Theme.toolbarOrange)
+                        VStack(alignment: .leading, spacing: 4) {
+                            TmaxMenu {
+                                Button { pictureSource = .photos } label: { Label("Photos", systemImage: "photo.on.rectangle") }
+                                Button { pictureSource = .files } label: { Label("Files", systemImage: "folder") }
+                            } label: {
+                                Label("Upload a cover", systemImage: "photo.badge.plus")
+                                    .font(TimeMasterFont.rowTitle())
+                                    .foregroundStyle(Theme.toolbarOrange)
+                            }
+                            .menuStyle(.button)
+                            .buttonStyle(.plain)
+                            Text("The picture becomes the icon tile of this page.")
+                                .font(TimeMasterFont.caption())
+                                .foregroundStyle(Theme.textSecondary)
                         }
-                        .menuStyle(.button)
-                        .buttonStyle(.plain)
                     }
                     ChecklistIconEditor(
                         iconName: $iconName, iconType: $iconType, iconImage: $iconImage,

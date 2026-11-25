@@ -145,6 +145,7 @@ struct TmaxMenu<Content: View, Label: View>: View {
         Button(action: open) {
             label
         }
+        .environment(\.everBouncePops, false)
         .everBounce(isOpen, in: Rectangle(), kind: .lift(lift), lights: false)
         .background(TmaxMenuAnchor(box: anchor))
         .onAppear { AppInteractionHaptics.shared.preparePress() }

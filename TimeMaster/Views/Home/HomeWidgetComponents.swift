@@ -41,81 +41,137 @@ enum HomeNavigation {
     }
 }
 
-struct HomeCardHeader: View {
+extension WidgetArtSpot {
+    static func home(_ footprint: HomeWidgetFootprint) -> WidgetArtSpot {
+        switch footprint {
+        case .compact: .corner
+        case .wide: .side
+        case .square: .crown
+        }
+    }
+
+    static func sideRoom(forHeight height: CGFloat) -> CGFloat {
+        height * 0.73 + 16
+    }
+}
+
+extension WidgetArt {
+    static func forWorkout(_ option: HomeWorkoutOption) -> WidgetArt {
+        forWorkout(type: option.typeName, symbol: option.typeIcon)
+    }
+
+    static func forWorkout(_ workout: Workout) -> WidgetArt {
+        forWorkout(type: workout.type.name, symbol: workout.type.iconName)
+    }
+}
+
+struct HomeWidgetChrome<Content: View>: View {
+    private let label: String?
+    private let tint: WidgetTint
+    private let art: WidgetArt?
+    private let spot: WidgetArtSpot
+    private let content: Content
+
+    init(label: String? = nil, tint: WidgetTint = .graphite, @ViewBuilder content: () -> Content) {
+        self.label = label
+        self.tint = tint
+        art = nil
+        spot = .corner
+        self.content = content()
+    }
+
+    init(label: String? = nil, art: WidgetArt, spot: WidgetArtSpot, @ViewBuilder content: () -> Content) {
+        self.label = label
+        tint = art.tint
+        self.art = art
+        self.spot = spot
+        self.content = content()
+    }
+
+    var body: some View {
+        if let art {
+            WidgetCard(art: art, spot: spot) { inner }
+        } else {
+            WidgetCard(tint: tint) { inner }
+        }
+    }
+
+    private var inner: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let label {
+                WidgetLabel(text: label)
+            }
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .padding(16)
+    }
+}
+
+struct HomeFeatureLayout<Controls: View>: View {
+    let footprint: HomeWidgetFootprint
+    var label: String?
     let title: String
-    let systemImage: String
-    var trailing: String?
-    var tint: Color = Theme.toolbarOrange
+    var meta: String?
+    private let controls: Controls
 
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: systemImage)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(tint)
-            Text(title)
-                .font(TimeMasterFont.black(12, relativeTo: .caption))
-                .foregroundStyle(Theme.textSecondary)
-                .lineLimit(1)
-            Spacer(minLength: 4)
-            if let trailing {
-                Text(trailing)
-                    .font(TimeMasterFont.black(12, relativeTo: .caption))
-                    .foregroundStyle(Theme.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(trailing.map { "\(title), \($0)" } ?? title)
-        .accessibilityAddTraits(.isHeader)
+    init(
+        footprint: HomeWidgetFootprint,
+        label: String? = nil,
+        title: String,
+        meta: String? = nil,
+        @ViewBuilder controls: () -> Controls
+    ) {
+        self.footprint = footprint
+        self.label = label
+        self.title = title
+        self.meta = meta
+        self.controls = controls()
     }
-}
-
-struct HomeRingBadge: View {
-    let fraction: Double
-    let label: String
-    var diameter: CGFloat = 56
-    var lineWidth: CGFloat = 6
-    var tint: Color = Theme.toolbarOrange
 
     var body: some View {
-        ZStack {
-            SkillProgressRing(fraction: fraction, tint: tint, lineWidth: lineWidth)
-            if fraction < 1 {
-                Text(label)
-                    .font(TimeMasterFont.black(max(11, diameter * 0.26), relativeTo: .headline))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .padding(.horizontal, lineWidth + 2)
+        switch footprint {
+        case .compact:
+            VStack(alignment: .leading, spacing: 4) {
+                if let label {
+                    WidgetLabel(text: label)
+                }
+                WidgetTitle(text: title, size: 18, lines: 2)
+                Spacer(minLength: 0)
+                HStack(spacing: 8) { controls }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        case .wide:
+            GeometryReader { proxy in
+                VStack(alignment: .leading, spacing: 4) {
+                    if let label {
+                        WidgetLabel(text: label)
+                    }
+                    WidgetTitle(text: title, size: 24, lines: 2)
+                    if let meta {
+                        WidgetLabel(text: meta)
+                    }
+                    Spacer(minLength: 0)
+                    HStack(spacing: 8) { controls }
+                }
+                .frame(width: max(0, proxy.size.width - WidgetArtSpot.sideRoom(forHeight: proxy.size.height)), alignment: .leading)
+                .frame(maxHeight: .infinity, alignment: .topLeading)
+            }
+        case .square:
+            VStack(alignment: .leading, spacing: 6) {
+                if let label {
+                    WidgetLabel(text: label)
+                }
+                Spacer(minLength: 0)
+                WidgetTitle(text: title, size: 32, lines: 2)
+                if let meta {
+                    WidgetLabel(text: meta)
+                }
+                HStack(spacing: 10) { controls }
+                    .padding(.top, 8)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .frame(width: diameter, height: diameter)
-        .accessibilityHidden(true)
-    }
-}
-
-struct HomeWorkoutTile: View {
-    let systemImage: String
-    let colorHex: String
-    var side: CGFloat = 56
-
-    var body: some View {
-        let tint = Color(hex: HomeColor.accentHex(colorHex))
-        RoundedRectangle(cornerRadius: side * 0.3, style: .continuous)
-            .fill(LinearGradient(
-                colors: [tint.opacity(0.95), tint.opacity(0.55)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ))
-            .frame(width: side, height: side)
-            .overlay {
-                Image(systemName: systemImage)
-                    .font(.system(size: side * 0.42, weight: .semibold))
-                    .foregroundStyle(.white)
-            }
-            .accessibilityHidden(true)
     }
 }
 
@@ -129,20 +185,9 @@ struct HomePillButton: View {
 
     var body: some View {
         Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .font(TimeMasterFont.rowTitle())
-                .foregroundStyle(prominent ? Color.black : Theme.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .padding(.horizontal, 14)
-                .frame(maxWidth: fillsWidth ? CGFloat.infinity : nil, minHeight: 44)
-                .background(
-                    prominent ? Color.white : Color.white.opacity(0.12),
-                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                )
-                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            WidgetPillLabel(title: title, systemImage: systemImage, prominent: prominent, fillsWidth: fillsWidth)
         }
-        .buttonStyle(SkillsPressStyle(cornerRadius: 12))
+        .buttonStyle(SkillsPressStyle(cornerRadius: 22))
         .accessibilityLabel(title)
         .accessibilityHint(hint ?? "")
     }
@@ -158,12 +203,7 @@ struct HomeIconButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: diameter * 0.38, weight: .bold))
-                .foregroundStyle(prominent ? Color.black : Theme.textPrimary)
-                .frame(width: diameter, height: diameter)
-                .background(prominent ? Color.white : Color.white.opacity(0.12), in: Circle())
-                .contentShape(Circle())
+            WidgetPillLabel(title: nil, systemImage: systemImage, prominent: prominent, diameter: diameter)
         }
         .buttonStyle(SkillsPressStyle(cornerRadius: diameter / 2))
         .accessibilityLabel(label)
@@ -180,138 +220,20 @@ struct HomeInviteAction {
 
 struct HomeInvite: View {
     let footprint: HomeWidgetFootprint
-    let systemImage: String
     let headline: String
-    var detail: String?
-    var tint: Color = Theme.toolbarOrange
     var action: HomeInviteAction?
 
     var body: some View {
-        switch footprint {
-        case .compact: compact
-        case .wide: wide
-        case .square: square
-        }
-    }
-
-    private var compact: some View {
-        VStack(spacing: 6) {
-            Image(systemName: systemImage)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(tint)
-            Text(headline)
-                .font(TimeMasterFont.rowTitle())
-                .foregroundStyle(Theme.textPrimary)
-                .multilineTextAlignment(.center)
-                .lineLimit(3)
-                .minimumScaleFactor(0.8)
-            Spacer(minLength: 0)
+        HomeFeatureLayout(footprint: footprint, title: headline) {
             if let action {
-                HomePillButton(title: action.title, systemImage: action.systemImage, fillsWidth: true, hint: action.hint, action: action.run)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .accessibilityElement(children: .contain)
-    }
-
-    private var wide: some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.system(size: 26, weight: .semibold))
-                .foregroundStyle(tint)
-                .frame(width: 36)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(headline)
-                    .font(TimeMasterFont.heading())
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
-                if let detail {
-                    Text(detail)
-                        .font(TimeMasterFont.secondary())
-                        .foregroundStyle(Theme.textSecondary)
-                        .lineLimit(3)
-                        .minimumScaleFactor(0.85)
+                if footprint == .compact {
+                    HomeIconButton(systemImage: action.systemImage, label: action.title, hint: action.hint, prominent: true, action: action.run)
+                } else {
+                    HomePillButton(title: action.title, systemImage: action.systemImage, hint: action.hint, action: action.run)
+                        .fixedSize()
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            if let action {
-                HomePillButton(title: action.title, systemImage: action.systemImage, hint: action.hint, action: action.run)
-                    .fixedSize()
-            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .contain)
-    }
-
-    private var square: some View {
-        VStack(spacing: 14) {
-            Spacer(minLength: 0)
-            Image(systemName: systemImage)
-                .font(.system(size: 40, weight: .semibold))
-                .foregroundStyle(tint)
-            Text(headline)
-                .font(TimeMasterFont.black(26, relativeTo: .title))
-                .foregroundStyle(Theme.textPrimary)
-                .multilineTextAlignment(.center)
-                .lineLimit(3)
-                .minimumScaleFactor(0.75)
-            if let detail {
-                Text(detail)
-                    .font(TimeMasterFont.body(15, relativeTo: .subheadline))
-                    .foregroundStyle(Theme.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(4)
-                    .minimumScaleFactor(0.85)
-            }
-            if let action {
-                HomePillButton(title: action.title, systemImage: action.systemImage, fillsWidth: true, hint: action.hint, action: action.run)
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .accessibilityElement(children: .contain)
-    }
-}
-
-struct HomeProgressBar: View {
-    let fraction: Double
-    var tint: Color = Theme.toolbarOrange
-    var height: CGFloat = 5
-
-    var body: some View {
-        let clamped = min(1, max(0, fraction.isFinite ? fraction : 0))
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.white.opacity(0.14))
-                Capsule()
-                    .fill(tint)
-                    .frame(width: clamped > 0 ? max(height, proxy.size.width * clamped) : 0)
-            }
-        }
-        .frame(height: height)
-        .accessibilityHidden(true)
-    }
-}
-
-struct HomeKicker: View {
-    let text: String
-    let systemImage: String
-    var tint: Color = Theme.toolbarOrange
-
-    var body: some View {
-        HStack(spacing: 5) {
-            Image(systemName: systemImage)
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(tint)
-            Text(text.uppercased())
-                .font(TimeMasterFont.black(11, relativeTo: .caption2))
-                .kerning(0.5)
-                .foregroundStyle(Theme.textSecondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-        }
-        .accessibilityHidden(true)
     }
 }

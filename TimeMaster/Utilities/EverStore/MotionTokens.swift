@@ -280,6 +280,17 @@ struct EverPressBloom<Surface: Shape>: View {
     }
 }
 
+private struct EverBouncePopsKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    var everBouncePops: Bool {
+        get { self[EverBouncePopsKey.self] }
+        set { self[EverBouncePopsKey.self] = newValue }
+    }
+}
+
 struct EverBounceModifier<Surface: InsettableShape>: ViewModifier {
     let isPressed: Bool
     let shape: Surface
@@ -291,6 +302,7 @@ struct EverBounceModifier<Surface: InsettableShape>: ViewModifier {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.everBouncePops) private var popsAllowed
     @State private var engaged = false
     @State private var lit = false
     @State private var pressedAt: TimeInterval = 0
@@ -343,7 +355,7 @@ struct EverBounceModifier<Surface: InsettableShape>: ViewModifier {
         if pressed {
             sawPress = true
             pressedAt = ProcessInfo.processInfo.systemUptime
-            if pops { AppInteractionHaptics.shared.pressed() }
+            if pops && popsAllowed { AppInteractionHaptics.shared.pressed() }
             withAnimation(kind.press) { engaged = true }
             if lights { withAnimation(EverBounceMotion.lightOn) { lit = true } }
             return

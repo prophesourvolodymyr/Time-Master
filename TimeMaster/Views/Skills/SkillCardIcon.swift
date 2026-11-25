@@ -2,20 +2,34 @@ import SwiftUI
 import TimeMasterCore
 
 /// A page's icon on the Skills page, on a small raised tile: its own picture, symbol or emoji; a page without one
-/// (or no page at all) shows the symbol of its category instead of a stand-in.
+/// (or no page at all) shows the symbol of its category instead of a stand-in, or with `brandTile` the category's
+/// brand icon.
 struct SkillCardIcon: View {
     let page: ExercisePage?
     let category: SkillCategory
     let size: CGFloat
+    var brandTile = false
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
-        glyph
-            .frame(width: size, height: size)
-            .background(Theme.surface2, in: shape)
-            .clipShape(shape)
-            .overlay { shape.strokeBorder(Theme.separator, lineWidth: 1) }
-            .accessibilityHidden(true)
+        if brandTile, !hasOwnIcon {
+            TmaxBrandIcon(category.brandGlyph, size: size)
+        } else {
+            let shape = RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+            glyph
+                .frame(width: size, height: size)
+                .background(Theme.surface2, in: shape)
+                .clipShape(shape)
+                .overlay { shape.strokeBorder(Theme.separator, lineWidth: 1) }
+                .accessibilityHidden(true)
+        }
+    }
+
+    private var artName: String? {
+        page.flatMap(SkillArt.assetName(for:))
+    }
+
+    private var hasOwnIcon: Bool {
+        page?.iconImageURL != nil || page?.manifest.iconName?.isEmpty == false || artName != nil
     }
 
     @ViewBuilder
@@ -24,6 +38,11 @@ struct SkillCardIcon: View {
             SkillCardPicture(url: url, maxPixel: Int(size * 3))
         } else if let page, let name = page.manifest.iconName, !name.isEmpty {
             SkillIconView(iconName: name, iconType: page.manifest.iconType ?? .emoji, size: size * 0.5)
+        } else if let artName {
+            Image(artName)
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fill)
         } else {
             Image(systemName: category.systemImage)
                 .font(.system(size: size * 0.46, weight: .semibold))

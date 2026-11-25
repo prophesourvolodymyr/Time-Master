@@ -5,6 +5,7 @@ import SwiftUI
 struct TimeMasterWidgetBundle: WidgetBundle {
     var body: some Widget {
         TimeMasterWidget()
+        TmaxStreakWidget()
         TmaxLockScreenWidget()
         TmaxWorkoutLiveActivity()
     }

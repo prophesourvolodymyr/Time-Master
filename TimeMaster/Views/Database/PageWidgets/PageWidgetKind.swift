@@ -34,7 +34,7 @@ extension PageWidgetKind {
         switch self {
         case .clips: 196
         case .folder: 212
-        case .progress: 184
+        case .progress: 152
         case .todos: 216
         case .milestones: 192
         case .learnFirst: 168

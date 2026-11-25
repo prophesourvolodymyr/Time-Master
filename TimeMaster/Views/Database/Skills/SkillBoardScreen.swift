@@ -91,6 +91,12 @@ struct SkillBoardScreen: View {
         self.boardID = boardID
         self.showsHeading = showsHeading
         self.scrollTo = scrollTo
+        let defaults = UserDefaults.standard
+        let defaultedKey = "tm.skills.viewModeDefaulted." + boardID
+        if !defaults.bool(forKey: defaultedKey) {
+            defaults.removeObject(forKey: SkillSettings.viewModeKeyPrefix + boardID)
+            defaults.set(true, forKey: defaultedKey)
+        }
         _modeRaw = AppStorage(wrappedValue: SkillBoardMode.board.rawValue, SkillSettings.viewModeKeyPrefix + boardID)
         _groupingRaw = AppStorage(wrappedValue: SkillBoardGrouping.status.rawValue, SkillSettings.groupByKeyPrefix + boardID)
     }
@@ -106,7 +112,7 @@ struct SkillBoardScreen: View {
         let shownIDs = siblingIDs(snapshot, types: typeSnapshot)
         VStack(alignment: .leading, spacing: SkillMetrics.s2) {
             if showsHeading {
-                SkillSectionHeading(symbol: "square.grid.2x2", title: "Skills", count: snapshot.direct.count)
+                SkillBoardTitle(symbol: "square.grid.2x2", title: "Skills", count: snapshot.direct.count)
             }
             VStack(alignment: .leading, spacing: SkillMetrics.s3) {
                 header(snapshot, mode: mode)
@@ -140,6 +146,7 @@ struct SkillBoardScreen: View {
                 }
             }
         }
+        .tmaxBrandGlow(.white)
         .onAppear {
             stackDepth = navigationState.path.count
             offerSiblings(shownIDs, scope: snapshot.scope)

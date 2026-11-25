@@ -1,9 +1,6 @@
 import SwiftUI
 import TimeMasterCore
 
-/// To-do: the next open to-dos of the page and of the sub-skills below it, and how many are open in a badge. A to-do is
-/// ticked off right here, with a haptic: its check fills and it stays a moment before the next one takes its place.
-/// With none open, or none at all, the tile says so. A tap anywhere else opens the to-do list.
 struct PageWidgetTodoTile: View {
     let todos: PageWidgetTodos
     let onOpen: (PageWidgetTarget) -> Void
@@ -25,26 +22,33 @@ struct PageWidgetTodoTile: View {
 
     var body: some View {
         let rows = shownRows
-        PageWidgetTile(kind: .todos, target: .todos, summary: summary, hasControls: !rows.isEmpty, onOpen: onOpen) {
-            VStack(alignment: .leading, spacing: 4) {
-                PageWidgetHeader(kind: .todos) {
-                    PageWidgetCountBadge(count: todos.openCount)
-                }
-                if rows.isEmpty {
-                    PageWidgetEmptyState(
-                        systemImage: todos.total == 0 ? "plus.circle" : "checkmark.seal.fill",
-                        title: todos.total == 0 ? "Nothing to do yet" : "Nothing left to do"
-                    )
-                } else {
+        PageWidgetTile(
+            kind: .todos,
+            target: .todos,
+            summary: summary,
+            tint: Self.tint,
+            art: rows.isEmpty ? .clipboard : nil,
+            hasControls: !rows.isEmpty,
+            onOpen: onOpen
+        ) {
+            if rows.isEmpty {
+                PageWidgetEmptyState(systemImage: nil, title: todos.total == 0 ? "Nothing to do yet" : "Nothing left to do")
+            } else {
+                VStack(alignment: .leading, spacing: 2) {
+                    WidgetHero(text: "\(todos.openCount)", size: 26)
+                        .frame(height: 30, alignment: .leading)
+                        .accessibilityHidden(true)
                     ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                         line(row, at: index)
                     }
                     Spacer(minLength: 0)
                 }
+                .padding(PageWidgetMetrics.inset)
             }
-            .padding(PageWidgetMetrics.inset)
         }
     }
+
+    private static let tint = WidgetTint.orange
 
     /// The open to-dos, with the ones just ticked back in their places, as many as fit.
     private var shownRows: [PageWidgetTodoRow] {
@@ -63,7 +67,7 @@ struct PageWidgetTodoTile: View {
             } label: {
                 Image(systemName: isTicked ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 17, weight: .regular))
-                    .foregroundStyle(isTicked ? Theme.toolbarOrange : Theme.textSecondary)
+                    .foregroundStyle(isTicked ? Self.tint.ink : Self.tint.secondaryInk)
                     .frame(width: 26, height: 22)
                     .contentShape(Rectangle())
             }
@@ -73,9 +77,9 @@ struct PageWidgetTodoTile: View {
             .accessibilityValue(isTicked ? "Done" : "Not done")
             .accessibilityHint("Marks it done")
             Text(row.title)
-                .font(TimeMasterFont.body(13, relativeTo: .subheadline))
-                .strikethrough(isTicked, color: Theme.textSecondary)
-                .foregroundStyle(isTicked ? Theme.textSecondary : Theme.textPrimary)
+                .font(TimeMasterFont.body(14, relativeTo: .subheadline))
+                .strikethrough(isTicked, color: Self.tint.secondaryInk)
+                .foregroundStyle(isTicked ? Self.tint.secondaryInk : Self.tint.ink)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .allowsHitTesting(false)

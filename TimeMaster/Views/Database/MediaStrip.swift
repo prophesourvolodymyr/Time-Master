@@ -214,7 +214,7 @@ private struct MediaStripCard: View {
             }
             .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 18))
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(isCover ? "Cover, " : "")\(kindName) \(index + 1) of \(count)")
+            .accessibilityLabel("\(isCover ? "Banner, " : "")\(kindName) \(index + 1) of \(count)")
             .accessibilityHint(hint)
             .modifier(MediaCardViewerAction(enabled: playsInline) { openViewer() })
             .help(playsInline ? "Click to play or pause, double-click to expand" : "Open in the viewer")
@@ -278,7 +278,7 @@ private struct MediaStripCard: View {
 
     private var coverBadge: some View {
         Label {
-            Text("Cover")
+            Text("Banner")
                 .font(TimeMasterFont.black(11, relativeTo: .caption2))
         } icon: {
             Image(systemName: "pin.fill")

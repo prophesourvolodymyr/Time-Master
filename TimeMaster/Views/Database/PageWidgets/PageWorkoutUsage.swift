@@ -114,7 +114,7 @@ private struct PageWorkoutScanner {
     }
 
     private mutating func uses(_ slot: SetSlot, path: Set<UUID>) -> Bool {
-        if points(at: slot.exercisePageID) || points(at: slot.restExercisePageID) { return true }
+        if points(at: slot.exercisePageID) || slot.restExercisePageIDs.contains(where: { points(at: $0) }) { return true }
         if slot.drops.contains(where: { points(at: $0.exercisePageID) }) { return true }
         if let rest = slot.restRow, uses(rest) { return true }
         if let nestedID = slot.nestedWorkoutID, !path.contains(nestedID), let nested = workouts[nestedID],
@@ -128,7 +128,7 @@ private struct PageWorkoutScanner {
     }
 
     private func uses(_ rest: RestRow) -> Bool {
-        points(at: rest.exercisePageID) || rest.contents.contains { points(at: $0.pageID) }
+        rest.exercisePageIDs.contains(where: { points(at: $0) }) || rest.contents.contains { points(at: $0.pageID) }
     }
 
     private func points(at pageID: UUID?) -> Bool {

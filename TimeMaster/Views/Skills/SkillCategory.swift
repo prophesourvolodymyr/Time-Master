@@ -27,6 +27,16 @@ enum SkillCategory: String, CaseIterable, Identifiable {
         }
     }
 
+    var brandGlyph: TmaxBrandGlyph {
+        switch self {
+        case .calisthenics: .calisthenics
+        case .boxing: .boxing
+        case .wrestling: .wrestling
+        case .gymnastics: .gymnastics
+        case .other: .skills
+        }
+    }
+
     /// Words a root folder's title holds to name a category, checked in page order.
     private static let keywords: [(word: String, category: SkillCategory)] = [
         ("calisthenic", .calisthenics),

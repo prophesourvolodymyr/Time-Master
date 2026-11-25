@@ -549,8 +549,8 @@ struct PageCreationSheet: View {
             }
             mediaStrip
             Text(mediaFilenames.isEmpty
-                 ? "The first picture becomes the square cover; the rest form the gallery."
-                 : "The first item is the cover. Press and drag any item to reorder.")
+                 ? "The first picture becomes the banner; the rest form the gallery."
+                 : "The first item is the banner. Press and drag any item to reorder.")
                 .font(TimeMasterFont.caption())
                 .foregroundStyle(Theme.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .center)
@@ -564,12 +564,12 @@ struct PageCreationSheet: View {
         return ScrollView(.horizontal, showsIndicators: false) {
             HStack(alignment: .bottom, spacing: 10) {
                 if let cover = mediaFilenames.first {
-                    mediaColumn(label: "Cover", accent: true) {
+                    mediaColumn(label: "Banner", accent: true) {
                         draggableTile(filename: cover, width: height, height: height, isCover: true)
                     }
                 } else {
-                    mediaColumn(label: "Cover", accent: true) {
-                        addMediaTile(width: height, height: height, title: "Add cover")
+                    mediaColumn(label: "Banner", accent: true) {
+                        addMediaTile(width: height, height: height, title: "Add banner")
                     }
                 }
 
@@ -623,7 +623,7 @@ struct PageCreationSheet: View {
     }
 
     private func addMediaTile(width: CGFloat, height: CGFloat, title: String) -> some View {
-        let isCover = title == "Add cover"
+        let isCover = title == "Add banner"
         return Button {
             showMediaPicker = true
         } label: {
@@ -648,7 +648,7 @@ struct PageCreationSheet: View {
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .keyNavBounceButtonStyle(shape: .roundedRectangle(cornerRadius: 14), cornerRadius: 14, lift: 6)
-        .accessibilityLabel(isCover ? "Add cover and media" : "Add media")
+        .accessibilityLabel(isCover ? "Add banner and media" : "Add media")
     }
 
     private func mediaTile(filename: String, width: CGFloat, height: CGFloat, isCover: Bool) -> some View {
@@ -709,7 +709,7 @@ struct PageCreationSheet: View {
         }
         .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(isCover ? "Cover" : "Gallery item")
+        .accessibilityLabel(isCover ? "Banner" : "Gallery item")
     }
 
     private var workoutTypeCard: some View {

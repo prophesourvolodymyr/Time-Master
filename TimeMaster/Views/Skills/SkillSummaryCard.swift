@@ -108,6 +108,11 @@ struct SkillSummaryCard: View {
                     .frame(width: proxy.size.width, height: proxy.size.height)
                     .clipped()
             }
+        } else if let art = SkillArt.assetName(for: page) {
+            Image(art)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFill()
         } else {
             ZStack {
                 LinearGradient(

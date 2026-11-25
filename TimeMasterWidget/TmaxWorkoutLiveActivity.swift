@@ -16,7 +16,7 @@ struct TmaxWorkoutLiveActivity: Widget {
             .widgetURL(URL(string: "timemaster://open"))
         } dynamicIsland: { context in
             let state = context.state
-            let accent = Color(widgetHex: context.attributes.colorHex)
+            let accent = WidgetTint.forTypeColor(hex: context.attributes.colorHex).accentOnDark
             let name = context.attributes.workoutName
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {

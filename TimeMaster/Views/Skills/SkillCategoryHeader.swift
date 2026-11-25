@@ -2,7 +2,7 @@ import SwiftUI
 import TimeMasterCore
 
 /// The big title of a Skills page section, drawn like the Workouts page's (`WorkoutGroupHeader`): the category's
-/// picture (or symbol) on a rounded square, its name, how many skills it shows and a round fold chevron over a
+/// picture (or its brand icon) on a rounded square, its name, how many skills it shows and a round fold chevron over a
 /// hairline. Clicking the name folds the section; clicking the square, or "Change picture" in the menu, opens the icon
 /// chooser of the folder that stands for the category (`page`). Without `onToggle` (search results, where nothing folds)
 /// it is a plain heading with no chevron and a square that does nothing.
@@ -21,6 +21,12 @@ struct SkillCategoryHeader: View {
     #endif
 
     var body: some View {
+        heading
+            .tmaxBrandGlow(.white)
+    }
+
+    @ViewBuilder
+    private var heading: some View {
         if let onToggle {
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
@@ -58,7 +64,7 @@ struct SkillCategoryHeader: View {
         } else {
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
-                    SkillCardIcon(page: page, category: category, size: iconSide)
+                    icon
                     titleAndCount
                     Spacer(minLength: 8)
                 }
@@ -78,7 +84,7 @@ struct SkillCategoryHeader: View {
     private var iconButton: some View {
         if let onChangePicture {
             Button(action: onChangePicture) {
-                SkillCardIcon(page: page, category: category, size: iconSide)
+                icon
                     .overlay(alignment: .bottomTrailing) {
                         if page?.iconImageURL == nil { pictureBadge }
                     }
@@ -88,8 +94,12 @@ struct SkillCategoryHeader: View {
             .accessibilityHint("Opens the icon picker")
             .help("Change picture")
         } else {
-            SkillCardIcon(page: page, category: category, size: iconSide)
+            icon
         }
+    }
+
+    private var icon: some View {
+        SkillCardIcon(page: page, category: category, size: iconSide, brandTile: true)
     }
 
     private var pictureBadge: some View {

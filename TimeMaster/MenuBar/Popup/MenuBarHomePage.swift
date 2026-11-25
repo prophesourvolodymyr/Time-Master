@@ -29,25 +29,19 @@ struct MenuBarHomePage: View {
     @ViewBuilder
     private var finishCard: some View {
         if let finish = live.lastFinish, Date().timeIntervalSince(finish.finishedAt) < 600 {
-            MenuBarCard(emphasized: true) {
-                HStack(spacing: 12) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundStyle(Color(hex: "34C759"))
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Nice work")
-                            .font(TimeMasterFont.heading())
-                            .foregroundStyle(Theme.textPrimary)
-                        Text("\(finish.workoutName) · \(MenuBarFormat.clock(finish.elapsedSeconds))")
-                            .font(TimeMasterFont.secondary())
-                            .foregroundStyle(Theme.textSecondary)
-                            .lineLimit(1)
-                    }
-                    Spacer(minLength: 0)
+            WidgetCard(art: .trophy, spot: .side) {
+                VStack(alignment: .leading, spacing: 2) {
+                    WidgetTitle(text: "Nice work", size: 24, lines: 1)
+                    WidgetLabel(text: "\(WorkoutTitle.short(finish.workoutName)) · \(MenuBarFormat.clock(finish.elapsedSeconds))")
                 }
-                .accessibilityElement(children: .combine)
+                .padding(.trailing, 96)
+                .padding(16)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             }
+            .frame(height: 96)
+            .clipShape(MenuBarMetrics.shape)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Nice work. \(finish.workoutName), \(MenuBarFormat.clock(finish.elapsedSeconds))")
         }
     }
 
@@ -59,68 +53,57 @@ struct MenuBarHomePage: View {
         if let scheduled = todayItems.first(where: { $0.status == .pending && !$0.workout.sections.isEmpty }) {
             return (scheduled.workout, "Up next · \(scheduled.timeRangeText)")
         }
-        if let first = store.workouts.first(where: { !$0.sections.isEmpty }) {
+        if let first = store.workouts.first(where: { !$0.sections.isEmpty && !store.isArchived($0) }) {
             return (first, "Quick start")
         }
         return nil
     }
 
+    private var showsContinue: Bool {
+        guard resume.hasResumableWorkout, let saved = resume.resumeState else { return false }
+        return store.workout(id: saved.workoutId) != nil
+    }
+
     @ViewBuilder
     private var launcher: some View {
         if resume.hasResumableWorkout, let saved = resume.resumeState, store.workout(id: saved.workoutId) != nil {
-            MenuBarCard(emphasized: true, padding: 16) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("CONTINUE")
-                        .font(TimeMasterFont.black(11, relativeTo: .caption2))
-                        .foregroundStyle(Theme.toolbarOrange)
-                    Text(saved.workoutName)
-                        .font(TimeMasterFont.heading())
-                        .foregroundStyle(Theme.textPrimary)
-                        .lineLimit(2)
-                    Text("\(MenuBarFormat.clock(saved.elapsedSeconds)) in · \(saved.sectionName)")
-                        .font(TimeMasterFont.secondary())
-                        .foregroundStyle(Theme.textSecondary)
-                    MenuBarCompactButton(title: "Resume", symbol: "play.fill", prominent: true, fillsWidth: true) {
-                        actions.startWorkout(saved.workoutId)
-                    }
+            MenuBarHeroCard(
+                art: .stopwatch,
+                label: "Continue",
+                title: WorkoutTitle.short(saved.workoutName),
+                meta: "\(MenuBarFormat.clock(saved.elapsedSeconds)) in"
+            ) {
+                HomePillButton(
+                    title: "Resume",
+                    systemImage: "play.fill",
+                    hint: "\(saved.workoutName), \(saved.sectionName)"
+                ) {
+                    actions.startWorkout(saved.workoutId)
                 }
+                .fixedSize()
             }
         } else if let next = upNext {
-            MenuBarCard(emphasized: true, padding: 16) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(next.caption.uppercased())
-                        .font(TimeMasterFont.black(11, relativeTo: .caption2))
-                        .foregroundStyle(Theme.toolbarOrange)
-                    HStack(spacing: 12) {
-                        MenuBarTypeTile(colorHex: next.workout.type.colorHex, symbol: next.workout.type.iconName, size: 44)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(next.workout.name)
-                                .font(TimeMasterFont.heading())
-                                .foregroundStyle(Theme.textPrimary)
-                                .lineLimit(2)
-                            Text("\(MenuBarFormat.minutes(next.workout.totalDuration)) · \(next.workout.sections.count) sections")
-                                .font(TimeMasterFont.secondary())
-                                .foregroundStyle(Theme.textSecondary)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                    MenuBarCompactButton(title: "Start workout", symbol: "play.fill", prominent: true, fillsWidth: true) {
-                        actions.startWorkout(next.workout.id)
-                    }
+            MenuBarHeroCard(
+                art: .forWorkout(next.workout),
+                label: next.caption,
+                title: WorkoutTitle.short(next.workout.name),
+                meta: MenuBarFormat.minutes(next.workout.totalDuration)
+            ) {
+                HomePillButton(
+                    title: "Start",
+                    systemImage: "play.fill",
+                    hint: "Starts \(next.workout.name)"
+                ) {
+                    actions.startWorkout(next.workout.id)
                 }
+                .fixedSize()
             }
         } else {
-            MenuBarCard {
-                VStack(spacing: 10) {
-                    MenuBarEmptyState(
-                        symbol: "dumbbell.fill",
-                        title: "No workouts yet",
-                        message: "Create a workout in Tmax."
-                    )
-                    MenuBarCompactButton(title: "New workout", symbol: "plus", prominent: true) {
-                        actions.newWorkout()
-                    }
+            MenuBarHeroCard(art: .dumbbell, title: "No workouts yet") {
+                HomePillButton(title: "New workout", systemImage: "plus", hint: "Creates a workout in Tmax") {
+                    actions.newWorkout()
                 }
+                .fixedSize()
             }
         }
     }
@@ -146,7 +129,9 @@ struct MenuBarHomePage: View {
     @ViewBuilder
     private var suggestionSection: some View {
         if preferences.showsSuggestions {
-            let suggestions = MenuBarSuggestionEngine.make(.make(store: store)).prefix(2)
+            let suggestions = MenuBarSuggestionEngine.make(.make(store: store))
+                .filter { !(showsContinue && $0.kind == .resume) }
+                .prefix(2)
             ForEach(Array(suggestions)) { suggestion in
                 MenuBarSuggestionCard(suggestion: suggestion)
             }
@@ -157,15 +142,13 @@ struct MenuBarHomePage: View {
     private var quoteSection: some View {
         if preferences.showsQuotes {
             let quote = MenuBarQuotes.daily()
-            MenuBarCard {
+            MenuBarCard(padding: 16) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("“\(quote.text)”")
-                        .font(TimeMasterFont.blackItalic(14, relativeTo: .subheadline))
+                        .font(TimeMasterFont.blackItalic(15, relativeTo: .subheadline))
                         .foregroundStyle(Theme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(quote.author)
-                        .font(TimeMasterFont.caption())
-                        .foregroundStyle(Theme.textSecondary)
+                    WidgetLabel(text: quote.author)
                 }
                 .accessibilityElement(children: .combine)
             }
@@ -188,25 +171,34 @@ private struct MenuBarSuggestionCard: View {
     @Environment(\.menuBarActions) private var actions
 
     var body: some View {
-        MenuBarCard(padding: 12) {
+        MenuBarCard(padding: 14) {
             HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(suggestion.title)
-                        .font(TimeMasterFont.rowTitle())
+                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                         .foregroundStyle(Theme.textPrimary)
+                        .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(suggestion.message)
-                        .font(TimeMasterFont.caption())
-                        .foregroundStyle(Theme.textSecondary)
+                        .font(WidgetFont.label())
+                        .foregroundStyle(WidgetTint.graphite.secondaryInk)
+                        .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer(minLength: 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 if let actionTitle = suggestion.actionTitle {
-                    Button(actionTitle) { perform() }
-                        .font(TimeMasterFont.black(13, relativeTo: .subheadline))
-                        .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 36, tint: Theme.surface2))
+                    MenuBarCompactButton(title: actionTitle, symbol: symbol, prominent: suggestion.isStart) { perform() }
+                        .fixedSize()
                 }
             }
+        }
+    }
+
+    private var symbol: String {
+        switch suggestion.action {
+        case .startWorkout: "play.fill"
+        case .openPage: "arrow.up.right"
+        case .none: "circle"
         }
     }
 
@@ -219,12 +211,19 @@ private struct MenuBarSuggestionCard: View {
     }
 }
 
+private extension MenuBarSuggestion {
+    var isStart: Bool {
+        if case .startWorkout = action { return true }
+        return false
+    }
+}
+
 struct MenuBarLiveCard: View {
     let state: WorkoutLiveState
     @State private var confirmingEnd = false
     @Environment(\.menuBarActions) private var actions
 
-    private var tint: Color { state.isRest ? Theme.accent : Theme.toolbarOrange }
+    private var tint: Color { state.isRest ? WidgetTint.peach.base : Theme.toolbarOrange }
 
     private var phaseName: String {
         if state.isPaused { return "Paused" }
@@ -239,45 +238,37 @@ struct MenuBarLiveCard: View {
     var body: some View {
         MenuBarCard(emphasized: true, padding: 16) {
             VStack(spacing: 12) {
-                HStack {
-                    Text(state.workoutName.uppercased())
-                        .font(TimeMasterFont.black(11, relativeTo: .caption2))
-                        .foregroundStyle(Theme.textSecondary)
-                        .lineLimit(1)
-                    Spacer(minLength: 8)
-                }
+                WidgetLabel(text: WorkoutTitle.short(state.workoutName))
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 MenuBarRing(progress: state.phaseProgress, lineWidth: 10, tint: tint) {
-                    VStack(spacing: 2) {
+                    VStack(spacing: 0) {
                         Text(MenuBarFormat.clock(state.untimedSeconds ?? state.remainingSeconds))
-                            .font(TimeMasterFont.black(42, relativeTo: .largeTitle))
-                            .monospacedDigit()
+                            .font(WidgetFont.hero(42))
                             .foregroundStyle(Theme.textPrimary)
-                        Text(phaseName.uppercased())
-                            .font(TimeMasterFont.black(11, relativeTo: .caption2))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                        Text(phaseName)
+                            .font(TimeMasterFont.black(13, relativeTo: .caption))
                             .foregroundStyle(tint)
                     }
+                    .padding(.horizontal, 18)
                 }
-                .frame(width: 150, height: 150)
+                .frame(width: 156, height: 156)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(state.untimedSeconds.map { "\(phaseName), \(MenuBarFormat.clock($0)) in this set" }
                     ?? "\(phaseName), \(MenuBarFormat.clock(state.remainingSeconds)) left")
-                VStack(spacing: 3) {
-                    Text(state.title)
-                        .font(TimeMasterFont.heading())
-                        .foregroundStyle(Theme.textPrimary)
+                VStack(spacing: 2) {
+                    WidgetTitle(text: state.title, size: 20, lines: 2)
                         .multilineTextAlignment(.center)
-                        .lineLimit(2)
                     if !state.subtitle.isEmpty {
-                        Text(state.subtitle)
-                            .font(TimeMasterFont.secondary())
-                            .foregroundStyle(Theme.textSecondary)
+                        WidgetLabel(text: state.subtitle)
                     }
                 }
                 if let next = state.nextTitle, !next.isEmpty {
                     HStack(spacing: 8) {
                         MenuBarChip(text: "NEXT", tint: tint)
                         Text(next)
-                            .font(TimeMasterFont.rowTitle())
+                            .font(TimeMasterFont.black(14, relativeTo: .subheadline))
                             .foregroundStyle(Theme.textPrimary)
                             .lineLimit(1)
                     }
@@ -293,7 +284,7 @@ struct MenuBarLiveCard: View {
         VStack(spacing: 4) {
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Theme.separator)
+                    Capsule().fill(WidgetTint.graphite.track)
                     Capsule()
                         .fill(tint)
                         .frame(width: proxy.size.width * (state.workoutProgress ?? 0))
@@ -301,14 +292,15 @@ struct MenuBarLiveCard: View {
             }
             .frame(height: 6)
             HStack {
-                Text("\(MenuBarFormat.clock(state.elapsedSeconds)) elapsed")
+                Text("\(MenuBarFormat.clock(state.elapsedSeconds)) in")
                 Spacer()
                 if let left = state.remainingWorkoutSeconds {
                     Text("\(MenuBarFormat.clock(left)) left")
                 }
             }
-            .font(TimeMasterFont.caption())
-            .foregroundStyle(Theme.textSecondary)
+            .font(WidgetFont.label())
+            .monospacedDigit()
+            .foregroundStyle(WidgetTint.graphite.secondaryInk)
         }
         .accessibilityElement(children: .combine)
     }
@@ -318,7 +310,7 @@ struct MenuBarLiveCard: View {
         if confirmingEnd {
             VStack(spacing: 8) {
                 Text("End this workout?")
-                    .font(TimeMasterFont.secondary())
+                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                     .foregroundStyle(Theme.textPrimary)
                     .multilineTextAlignment(.center)
                 HStack(spacing: 8) {
@@ -329,10 +321,13 @@ struct MenuBarLiveCard: View {
                         WorkoutLiveSession.shared.send(.endWorkout)
                     } label: {
                         Label("End", systemImage: "stop.fill")
-                            .font(TimeMasterFont.black(14, relativeTo: .subheadline))
-                            .frame(maxWidth: .infinity)
+                            .font(TimeMasterFont.black(15, relativeTo: .subheadline))
+                            .foregroundStyle(WidgetTint.peach.ink)
+                            .frame(maxWidth: .infinity, minHeight: MenuBarMetrics.buttonHeight)
+                            .background(WidgetTint.peach.base, in: Capsule())
+                            .contentShape(Capsule())
                     }
-                    .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 40, fillsWidth: true))
+                    .buttonStyle(SkillsPressStyle(cornerRadius: MenuBarMetrics.buttonHeight / 2))
                 }
             }
         } else {
@@ -349,15 +344,9 @@ struct MenuBarLiveCard: View {
                     MenuBarCompactButton(title: "Skip", symbol: "forward.end.fill", fillsWidth: true) {
                         WorkoutLiveSession.shared.send(.skipPhase)
                     }
-                    Button {
+                    HomeIconButton(systemImage: "stop.fill", label: "End workout", diameter: MenuBarMetrics.buttonHeight) {
                         confirmingEnd = true
-                    } label: {
-                        Image(systemName: "stop.fill")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(Theme.textPrimary)
                     }
-                    .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 40, tint: Theme.surface2))
-                    .accessibilityLabel("End workout")
                 }
                 MenuBarCompactButton(title: "Open in Tmax", symbol: "macwindow", fillsWidth: true) {
                     actions.showMainWindow()

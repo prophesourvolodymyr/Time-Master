@@ -6,9 +6,13 @@ struct MenuBarWorkoutsPage: View {
     @State private var query = ""
     @FocusState private var searchFocused: Bool
 
+    private var trimmedQuery: String {
+        query.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private var results: [Workout] {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return store.workouts }
+        let trimmed = trimmedQuery
+        guard !trimmed.isEmpty else { return store.workouts.filter { !store.isArchived($0) } }
         return store.workouts.filter {
             $0.name.localizedCaseInsensitiveContains(trimmed) || $0.type.name.localizedCaseInsensitiveContains(trimmed)
         }
@@ -22,7 +26,7 @@ struct MenuBarWorkoutsPage: View {
                 .padding(.bottom, 8)
             ScrollView {
                 VStack(spacing: 8) {
-                    if store.workouts.isEmpty {
+                    if results.isEmpty && trimmedQuery.isEmpty {
                         MenuBarCard {
                             MenuBarEmptyState(
                                 symbol: "dumbbell.fill",
@@ -40,7 +44,7 @@ struct MenuBarWorkoutsPage: View {
                         }
                     } else {
                         ForEach(results) { workout in
-                            MenuBarWorkoutRow(workout: workout)
+                            MenuBarWorkoutRow(workout: workout, isArchived: store.isArchived(workout))
                         }
                     }
                     MenuBarCompactButton(title: "New workout", symbol: "plus", fillsWidth: true) {
@@ -80,14 +84,20 @@ struct MenuBarWorkoutsPage: View {
                 .accessibilityLabel("Clear search")
             }
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 40)
-        .modifier(TimeMasterCardSurface(cornerRadius: 14, flat: true))
+        .padding(.horizontal, 14)
+        .frame(minHeight: MenuBarMetrics.buttonHeight)
+        .background(WidgetTint.graphite.base, in: Capsule())
+        .overlay {
+            Capsule()
+                .strokeBorder(Color.white.opacity(searchFocused ? 0.24 : 0.08), lineWidth: 1)
+                .allowsHitTesting(false)
+        }
     }
 }
 
 private struct MenuBarWorkoutRow: View {
     let workout: Workout
+    let isArchived: Bool
     @Environment(\.menuBarActions) private var actions
 
     private var canStart: Bool { !workout.sections.isEmpty }
@@ -95,40 +105,41 @@ private struct MenuBarWorkoutRow: View {
     var body: some View {
         MenuBarCard(padding: 10) {
             HStack(spacing: 10) {
-                MenuBarTypeTile(colorHex: workout.type.colorHex, symbol: workout.type.iconName, size: 40)
+                MenuBarArtTile(art: .forWorkout(workout), size: 40)
                 Button {
                     actions.openWorkoutDetail(workout.id)
                 } label: {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(workout.name)
-                            .font(TimeMasterFont.rowTitle())
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(WorkoutTitle.short(workout.name))
+                            .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                             .foregroundStyle(Theme.textPrimary)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                         Text(meta)
-                            .font(TimeMasterFont.caption())
-                            .foregroundStyle(Theme.textSecondary)
+                            .font(WidgetFont.label())
+                            .foregroundStyle(WidgetTint.graphite.secondaryInk)
                             .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(MenuBarRowButtonStyle())
-                Button {
+                .accessibilityLabel("\(workout.name), \(meta)")
+                HomeIconButton(
+                    systemImage: "play.fill",
+                    label: canStart ? "Start \(workout.name)" : "\(workout.name) has no exercises yet",
+                    diameter: MenuBarMetrics.buttonHeight
+                ) {
                     actions.startWorkout(workout.id)
-                } label: {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Theme.textPrimary)
                 }
-                .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 40, tint: Theme.surface2))
                 .disabled(!canStart)
-                .accessibilityLabel(canStart ? "Start \(workout.name)" : "\(workout.name) has no exercises yet")
+                .opacity(canStart ? 1 : 0.4)
             }
         }
     }
 
     private var meta: String {
         guard canStart else { return "No exercises yet" }
-        let sections = workout.sections.count == 1 ? "1 section" : "\(workout.sections.count) sections"
-        return "\(MenuBarFormat.minutes(workout.totalDuration)) · \(sections) · \(workout.type.name)"
+        let minutes = MenuBarFormat.minutes(workout.totalDuration)
+        return isArchived ? "Archived · \(minutes)" : minutes
     }
 }
