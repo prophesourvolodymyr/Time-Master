@@ -35,6 +35,14 @@ final class AppInteractionHaptics {
         #endif
     }
 
+    func menuOpened() {
+        #if os(iOS)
+        press.impactOccurred()
+        press.prepare()
+        selection.prepare()
+        #endif
+    }
+
     func prepareSelection() {
         #if os(iOS)
         selection.prepare()

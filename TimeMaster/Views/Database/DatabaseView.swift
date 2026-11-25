@@ -730,7 +730,7 @@ struct DatabaseView: View {
     }
 
     private func databaseAddMenu(progress: CGFloat = 0, width: CGFloat) -> some View {
-        Menu {
+        TmaxMenu {
             addMenuItems
         } label: {
             ScrollingChromeControl(
@@ -741,7 +741,7 @@ struct DatabaseView: View {
                 height: width
             )
         }
-        .buttonStyle(TimeMasterCardButtonStyle())
+        .buttonStyle(ScrollingChromeButtonStyle(progress: progress, width: width, height: width))
         .accessibilityLabel("Add")
         .help("Add")
     }
@@ -972,7 +972,7 @@ struct DatabaseView: View {
             Image(systemName: "square.and.arrow.down")
         }
                  }
-        AppToolbar.iconItem(placement: .primaryAction) { Menu {
+        AppToolbar.iconItem(placement: .primaryAction) { TmaxMenu {
             Button { showingNewFolderSheet = true } label: {
                 Label("New Folder", systemImage: "folder.badge.plus")
             }
@@ -1044,7 +1044,7 @@ struct DatabaseView: View {
             .buttonStyle(TimeMasterInsetControlStyle())
             .accessibilityLabel(isGridMode ? "List View" : "Gallery View")
 
-            Menu {
+            TmaxMenu {
                 ForEach(PageSortOption.allCases, id: \.self) { option in
                     Button {
                         sortOption = option
@@ -1891,7 +1891,7 @@ struct FolderDetailView: View {
             Image(systemName: isGalleryMode ? "list.bullet" : "square.grid.2x2")
         }
                  }
-        AppToolbar.iconItem(placement: .primaryAction) { Menu {
+        AppToolbar.iconItem(placement: .primaryAction) { TmaxMenu {
             Button { showingAddExercise = true } label: {
                 Label("Add Exercise", systemImage: "figure.strengthtraining.traditional")
             }

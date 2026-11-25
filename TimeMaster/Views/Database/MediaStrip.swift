@@ -306,7 +306,7 @@ private struct MediaStripCard: View {
                     .accessibilityHidden(true)
             }
             if !actions.isEmpty {
-                Menu {
+                TmaxMenu {
                     MediaCardMenuItems(actions: actions)
                 } label: {
                     roundGlyph("ellipsis")

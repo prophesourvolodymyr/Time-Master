@@ -26,6 +26,7 @@
 		01C6178D03E256CB1BDA3E74 /* MenuBarHomePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83F77FEAC1731205614EF7D9 /* MenuBarHomePage.swift */; };
 		01E539BCC8758F003633FF6C /* SkillSectionHeading.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A726C403E39B8D9787594E /* SkillSectionHeading.swift */; };
 		023F3A439686683D29EB0010 /* WorkoutLiveIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF1901BDE57C7A688CD40E7 /* WorkoutLiveIntents.swift */; };
+		02681A888AB09F22D07F6231 /* TmaxMenuOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1DCDF9B26F134EDC98F5643 /* TmaxMenuOverlay.swift */; };
 		026A76A2FDAEE70DC0D52521 /* ProfileMembershipConfettiMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F8A57D98601C655821199E /* ProfileMembershipConfettiMac.swift */; };
 		0296EE5247DE6E6AB32D966E /* ProfileVerificationBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = E84477FBD678CB4B72F30921 /* ProfileVerificationBadge.swift */; };
 		02B588CCC98850F49BD3E7AB /* MenuBarWorkoutsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FFD6A4B37D9DDDC678158D5 /* MenuBarWorkoutsPage.swift */; };
@@ -224,6 +225,7 @@
 		29158F6F1C5270FBE2A7B861 /* Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282193241415BB7A32B3786C /* Workout.swift */; };
 		291B2E347B6A6828CA91F2B0 /* TmaxLiveLockScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F720446A69D29FCCE9D5D9 /* TmaxLiveLockScreenView.swift */; };
 		2961777529AC80F2A9570C32 /* ExerciseNamingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F451370DBD282BA9ED115D /* ExerciseNamingService.swift */; };
+		2962BA5463FEB634FBBE868D /* TmaxMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB53D1CFA0D8D86D30F6DFA8 /* TmaxMenu.swift */; };
 		29A561075819258A35769E42 /* PhysiqueNativeShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4375A38A7E40062251AF0A75 /* PhysiqueNativeShell.swift */; };
 		2A29ABBAA56D9F82AB8B7168 /* TimeMaster-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 03BD8754ED0ABC0AC7511EA0 /* TimeMaster-Regular.ttf */; };
 		2A63A443DC14AB6D2966AF8D /* PlayerControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3438BA6BBE0293B2F69894C4 /* PlayerControls.swift */; };
@@ -548,6 +550,7 @@
 		706EB9B8EAE401D013775844 /* ChecklistCoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB012D517F6E919F7EB57379 /* ChecklistCoverView.swift */; };
 		709DE5315CAB769D69931F97 /* ChecklistArtwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EE0CB303CCD1F025C52221F /* ChecklistArtwork.swift */; };
 		70A8938D4FADD29277FBC7EC /* MusicLibraryScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFE4033315C9DD766463155 /* MusicLibraryScreen.swift */; };
+		70CF16AC5F81B00CCAED0EE6 /* TmaxMenuOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1DCDF9B26F134EDC98F5643 /* TmaxMenuOverlay.swift */; };
 		70E8F3E3BFBC93208D2399B4 /* RankedDuelPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD1B645E66CDC6169482B6F /* RankedDuelPlayerView.swift */; };
 		711F50876914AB1F62D89F4D /* TmaxCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96E480F0A938E2F0E46CE3F1 /* TmaxCommands.swift */; };
 		7120FAF755AA3EBA138E2010 /* ScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED9DF2FD706E1FCDC8B9E7C /* ScheduleView.swift */; };
@@ -1237,6 +1240,7 @@
 		FBD2B4B4F4D6C96F091C5A69 /* WorkoutFloatingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7127A5BB916CC82E46F5109 /* WorkoutFloatingWidget.swift */; };
 		FC12390284E03444EDA3EE5A /* StoreProfileStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C5B5C2CEF33E2633C8D56A6 /* StoreProfileStyle.swift */; };
 		FC2E44BEB5B00827EC601FF6 /* PhysiqueRatingReceiptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCFAD63A5204BA660C5DA9D9 /* PhysiqueRatingReceiptView.swift */; };
+		FC57561F05D8DA8644B95E04 /* TmaxMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB53D1CFA0D8D86D30F6DFA8 /* TmaxMenu.swift */; };
 		FC7933C3C1FDB7EB8991EA08 /* CoachActivityList.swift in Sources */ = {isa = PBXBuildFile; fileRef = E688108605B6961603118AFC /* CoachActivityList.swift */; };
 		FCD5DE757F600B2648EF7773 /* MenuBarSuggestions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F762A2383272F7BA9CA4A5AC /* MenuBarSuggestions.swift */; };
 		FD3B2ECB5F295F8901250344 /* RankedProfileSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB88A84725CA9E5630C47C8E /* RankedProfileSection.swift */; };
@@ -1751,6 +1755,7 @@
 		B1063B64FD574E9B4010B6DE /* WorkoutStore+Schedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkoutStore+Schedule.swift"; sourceTree = "<group>"; };
 		B1168A524804194F1F2728B8 /* Manrope-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Manrope-Regular.ttf"; sourceTree = "<group>"; };
 		B133A2594468E201B003E4EE /* PageSiblingNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageSiblingNavigation.swift; sourceTree = "<group>"; };
+		B1DCDF9B26F134EDC98F5643 /* TmaxMenuOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmaxMenuOverlay.swift; sourceTree = "<group>"; };
 		B252752B4743B22C413C4047 /* OutdoorMapModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorMapModels.swift; sourceTree = "<group>"; };
 		B26870953ABC5C4610D424C6 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		B2943661F89E1216004DD7D0 /* ImportLinkParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportLinkParser.swift; sourceTree = "<group>"; };
@@ -1781,6 +1786,7 @@
 		BA214153A177B646B5716F8F /* ExercisePageDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisePageDetailView.swift; sourceTree = "<group>"; };
 		BAD91AD9DB9234FDA30CEF19 /* OutdoorStartContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorStartContent.swift; sourceTree = "<group>"; };
 		BB4D14AB06E00B0F337177A7 /* ChecklistIconEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistIconEditor.swift; sourceTree = "<group>"; };
+		BB53D1CFA0D8D86D30F6DFA8 /* TmaxMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmaxMenu.swift; sourceTree = "<group>"; };
 		BB794EAFF7346A2E70C5E063 /* PageWorkoutUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageWorkoutUsage.swift; sourceTree = "<group>"; };
 		BBA8A14EDF107FC7C17C424B /* QuickPreviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickPreviewTests.swift; sourceTree = "<group>"; };
 		BC946449E7BE914D6BA838A9 /* ChecklistProgressRing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistProgressRing.swift; sourceTree = "<group>"; };
@@ -2372,6 +2378,7 @@
 				B92C940BB9EEB2D3E8558F38 /* WorkoutWidgetPlacement.swift */,
 				899451F50BCBE7D446003318 /* EverStore */,
 				997345F2E222E7B70F360AA2 /* KeyboardNav */,
+				F1CE271FAD59D2C0E7CA47AF /* TmaxMenu */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -3079,6 +3086,15 @@
 				839A8313EA5DB43A15C45303 /* SlotReelScroll.swift */,
 			);
 			path = Navigation;
+			sourceTree = "<group>";
+		};
+		F1CE271FAD59D2C0E7CA47AF /* TmaxMenu */ = {
+			isa = PBXGroup;
+			children = (
+				BB53D1CFA0D8D86D30F6DFA8 /* TmaxMenu.swift */,
+				B1DCDF9B26F134EDC98F5643 /* TmaxMenuOverlay.swift */,
+			);
+			path = TmaxMenu;
 			sourceTree = "<group>";
 		};
 		F5F90D3D4F86D49C65A0C7F6 /* Outdoor */ = {
@@ -3871,6 +3887,8 @@
 				64E8C0CF168AF48304F22644 /* TmaxLoadingIndicator.swift in Sources */,
 				3DE689BF1E1DB9E628E3042F /* TmaxLoadingState.swift in Sources */,
 				B17BA1C4911A23EEFB6B37E8 /* TmaxMark.swift in Sources */,
+				2962BA5463FEB634FBBE868D /* TmaxMenu.swift in Sources */,
+				02681A888AB09F22D07F6231 /* TmaxMenuOverlay.swift in Sources */,
 				FF44597D890B93E0EAC471ED /* TmaxProgressBar.swift in Sources */,
 				E459C7BBCC25B9609F36D885 /* TmaxQuotes.swift in Sources */,
 				3D2E57CE4F78E20824FFAB96 /* TmaxStartupModel.swift in Sources */,
@@ -4480,6 +4498,8 @@
 				1618CBEAE8E1829601F44DA7 /* TmaxLoadingIndicator.swift in Sources */,
 				037DE4CD2905F911C3C741F6 /* TmaxLoadingState.swift in Sources */,
 				4E95389CFDB91B4292F5D70A /* TmaxMark.swift in Sources */,
+				FC57561F05D8DA8644B95E04 /* TmaxMenu.swift in Sources */,
+				70CF16AC5F81B00CCAED0EE6 /* TmaxMenuOverlay.swift in Sources */,
 				FD8BA53AE7BF1BFCA37BC187 /* TmaxProgressBar.swift in Sources */,
 				97791672272FCBA900AE31B4 /* TmaxQuotes.swift in Sources */,
 				B0E68D63AD2F782154E89424 /* TmaxStartupModel.swift in Sources */,

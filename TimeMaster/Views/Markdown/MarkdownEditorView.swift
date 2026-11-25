@@ -237,7 +237,7 @@ struct MarkdownEditorView: View {
     }
 
     private var turnIntoMenu: some View {
-        Menu {
+        TmaxMenu {
             ForEach(MarkdownSlashItem.all) { item in
                 if case .kind(let kind) = item.action {
                     Button {
@@ -504,8 +504,8 @@ private struct MarkdownBlockRow: View {
     }
 
     private var handle: some View {
-        Menu {
-            Menu("Turn into") {
+        TmaxMenu(cornerRadius: 10) {
+            TmaxSubmenu {
                 ForEach(MarkdownSlashItem.all) { item in
                     if case .kind(let kind) = item.action {
                         Button {
@@ -515,6 +515,8 @@ private struct MarkdownBlockRow: View {
                         }
                     }
                 }
+            } label: {
+                Text("Turn into")
             }
             blockActions
         } label: {

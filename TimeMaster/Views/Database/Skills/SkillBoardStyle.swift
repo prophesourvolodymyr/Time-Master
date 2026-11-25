@@ -91,6 +91,8 @@ struct SkillSegmentButtonStyle: ButtonStyle {
     var namespace: Namespace.ID? = nil
     var fillsWidth = true
     var matchID: AnyHashable = "selection"
+    var isGrabbed = false
+    var pillOffset: CGFloat = 0
 
     func makeBody(configuration: Configuration) -> some View {
         SkillSegmentButtonBody(
@@ -98,7 +100,9 @@ struct SkillSegmentButtonStyle: ButtonStyle {
             isSelected: isSelected,
             namespace: namespace,
             fillsWidth: fillsWidth,
-            matchID: matchID
+            matchID: matchID,
+            isGrabbed: isGrabbed,
+            pillOffset: pillOffset
         )
     }
 }
@@ -109,13 +113,15 @@ private struct SkillSegmentButtonBody: View {
     let namespace: Namespace.ID?
     let fillsWidth: Bool
     let matchID: AnyHashable
+    let isGrabbed: Bool
+    let pillOffset: CGFloat
 
-    @Environment(\.isFocused) private var isFocused
     @State private var isHovering = false
+
+    private var isLit: Bool { configuration.isPressed || isGrabbed }
 
     var body: some View {
         let radius = SkillSegmentMetrics.pillHeight / 2
-        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         configuration.label
             .foregroundStyle(foreground)
             .padding(.horizontal, SkillSegmentMetrics.labelInset)
@@ -126,33 +132,28 @@ private struct SkillSegmentButtonBody: View {
             )
             .background { selection(radius: radius) }
             .keyNavButtonSurface(.capsule)
-            .overlay {
-                if isFocused {
-                    shape.strokeBorder(Theme.textPrimary.opacity(0.75), lineWidth: 2)
-                        .allowsHitTesting(false)
-                }
-            }
             .padding(SkillSegmentMetrics.inset)
             .padding(.vertical, SkillSegmentMetrics.touchOutset)
             .contentShape(Rectangle())
             .padding(.vertical, -SkillSegmentMetrics.touchOutset)
-            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed, cornerRadius: SkillSegmentMetrics.pillHeight / 2 + SkillSegmentMetrics.inset, tracks: false))
+            .modifier(TimeMasterActionFeedback(isPressed: isLit, cornerRadius: SkillSegmentMetrics.pillHeight / 2 + SkillSegmentMetrics.inset, tracks: false))
             .onHover { isHovering = $0 }
     }
 
     private var foreground: Color {
         if isSelected { return Theme.background }
-        return isHovering || configuration.isPressed ? Theme.textPrimary : Theme.textSecondary
+        return isHovering || isLit ? Theme.textPrimary : Theme.textSecondary
     }
 
     @ViewBuilder
     private func selection(radius: CGFloat) -> some View {
         if isSelected {
             if let namespace {
-                SkillRaisedBackground(cornerRadius: radius, isLit: configuration.isPressed)
+                SkillRaisedBackground(cornerRadius: radius, isLit: isLit)
                     .matchedGeometryEffect(id: matchID, in: namespace)
+                    .offset(x: pillOffset)
             } else {
-                SkillRaisedBackground(cornerRadius: radius, isLit: configuration.isPressed)
+                SkillRaisedBackground(cornerRadius: radius, isLit: isLit)
                     .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
         }

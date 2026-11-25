@@ -228,7 +228,7 @@ struct ScheduleDayView: View {
     @ViewBuilder
     private var addControl: some View {
         if isToday {
-            Menu {
+            TmaxMenu {
                 Button { onAdd(false) } label: { Label("Schedule a workout", systemImage: "calendar.badge.plus") }
                 Button { onAdd(true) } label: { Label("Log custom workout", systemImage: "square.and.pencil") }
             } label: { addLabel }

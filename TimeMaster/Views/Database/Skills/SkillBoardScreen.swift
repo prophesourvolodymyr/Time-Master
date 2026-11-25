@@ -264,7 +264,7 @@ struct SkillBoardScreen: View {
         let grouped = isGrouped(snapshot)
         return SkillCornerMenu(symbol: "rectangle.3.group", title: "Group by", value: grouping.title) {
             if supportsTypeGrouping(snapshot) {
-                SwiftUI.Section("Group by") {
+                TmaxMenuSection("Group by") {
                     ForEach(SkillBoardGrouping.allCases) { option in
                         Button {
                             setGrouping(option)

@@ -68,7 +68,7 @@ struct SkillPrerequisitesSection: View {
     }
 
     private func addMenu<Content: View>(_ candidates: [SkillMaterial], shape: KeyNavShape, @ViewBuilder label: () -> Content) -> some View {
-        Menu {
+        TmaxMenu {
             ForEach(candidates) { candidate in
                 Button {
                     add(candidate)
@@ -101,7 +101,7 @@ struct SkillPrerequisitesSection: View {
             .buttonStyle(SkillPressButtonStyle())
             .accessibilityLabel("\(index + 1). \(dependency.title)" + (dependency.isLearnable ? ", \(status.title)" : ""))
             .accessibilityHint(dependency.isGroup ? "Opens this group" : "Opens this page")
-            Menu {
+            TmaxMenu {
                 actions(for: dependency, index: index, in: all)
             } label: {
                 Image(systemName: "ellipsis")
@@ -690,7 +690,7 @@ struct SkillIconChooserSheet: View {
                             .foregroundStyle(Theme.toolbarOrange)
                     }.keyNavPlainButtonStyle()
                     if allowsPictures {
-                        Menu {
+                        TmaxMenu {
                             Button { pictureSource = .photos } label: { Label("Photos", systemImage: "photo.on.rectangle") }
                             Button { pictureSource = .files } label: { Label("Files", systemImage: "folder") }
                         } label: {

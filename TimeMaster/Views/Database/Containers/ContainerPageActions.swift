@@ -27,7 +27,7 @@ struct PageCardMenu: View {
         }
         if SkillLibrary.isSkill(page), let onSetStatus {
             let current = page.manifest.skillStatus ?? .notStarted
-            Menu {
+            TmaxSubmenu {
                 ForEach(SkillStatus.boardOrder, id: \.self) { status in
                     Button {
                         onSetStatus(status)

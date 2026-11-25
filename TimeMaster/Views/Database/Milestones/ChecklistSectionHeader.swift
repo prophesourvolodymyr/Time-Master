@@ -35,7 +35,7 @@ struct ChecklistSectionHeader<MenuItems: View>: View {
                     .accessibilityLabel("\(done) of \(total) done")
             }
             Spacer(minLength: 0)
-            Menu {
+            TmaxMenu {
                 menuItems()
             } label: {
                 Image(systemName: "ellipsis")

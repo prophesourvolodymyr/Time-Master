@@ -39,30 +39,45 @@ struct SkillStatusChip: View {
 struct SkillStatusMenu<Label: View>: View {
     let status: SkillStatus
     let onChange: (SkillStatus) -> Void
+    let embedded: Bool
     let label: Label
 
-    init(status: SkillStatus, onChange: @escaping (SkillStatus) -> Void, @ViewBuilder label: () -> Label) {
+    init(status: SkillStatus, embedded: Bool = false, onChange: @escaping (SkillStatus) -> Void, @ViewBuilder label: () -> Label) {
         self.status = status
+        self.embedded = embedded
         self.onChange = onChange
         self.label = label()
     }
 
-    var body: some View {
-        Menu {
-            ForEach(SkillStatus.boardOrder, id: \.self) { option in
-                Button {
-                    onChange(option)
-                } label: {
-                    SwiftUI.Label(option.title, systemImage: option == status ? "checkmark" : option.symbolName)
-                }
+    private var options: some View {
+        ForEach(SkillStatus.boardOrder, id: \.self) { option in
+            Button {
+                onChange(option)
+            } label: {
+                SwiftUI.Label(option.title, systemImage: option == status ? "checkmark" : option.symbolName)
             }
-        } label: {
-            label
         }
-        .menuIndicator(.hidden)
-        .keyNavTarget(shape: .capsule)
-        .accessibilityLabel("Status: \(status.title)")
-        .accessibilityHint("Pick a status")
+    }
+
+    @ViewBuilder
+    var body: some View {
+        if embedded {
+            TmaxSubmenu {
+                options
+            } label: {
+                label
+            }
+        } else {
+            TmaxMenu {
+                options
+            } label: {
+                label
+            }
+            .menuIndicator(.hidden)
+            .keyNavTarget(shape: .capsule)
+            .accessibilityLabel("Status: \(status.title)")
+            .accessibilityHint("Pick a status")
+        }
     }
 }
 

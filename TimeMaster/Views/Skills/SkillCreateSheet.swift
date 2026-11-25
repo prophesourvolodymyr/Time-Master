@@ -153,7 +153,7 @@ struct SkillCreateSheet: View {
     private var folderPicker: some View {
         let current = folders.first { $0.id == folderID }
         let currentTitle = current?.path ?? "Top level"
-        return Menu {
+        return TmaxMenu {
             Button {
                 folderID = nil
             } label: {

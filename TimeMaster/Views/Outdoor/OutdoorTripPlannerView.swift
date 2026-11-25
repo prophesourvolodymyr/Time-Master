@@ -308,11 +308,13 @@ struct OutdoorTripPlannerView: View {
                 }
                 .frame(minHeight: 44)
                 if stopCount > 0 {
-                    Menu {
+                    TmaxMenu {
                         ForEach(TripPlaceCategory.allCases) { category in
-                            Toggle(category.title, isOn: Binding(get: { categories.contains(category) }, set: {
-                                if $0 { categories.insert(category) } else { categories.remove(category) }
-                            }))
+                            Button {
+                                if categories.contains(category) { categories.remove(category) } else { categories.insert(category) }
+                            } label: {
+                                Label(category.title, systemImage: categories.contains(category) ? "checkmark" : "circle")
+                            }
                         }
                     } label: {
                         Label(
@@ -331,16 +333,34 @@ struct OutdoorTripPlannerView: View {
     }
 
     private var routingPreferences: some View {
-        Menu {
-            Picker("Workout", selection: Binding(get: { editor.trip.kind }, set: { value in editor.change { $0.kind = value } })) {
-                ForEach(OutdoorActivityKind.allCases) { Text($0.displayName).tag($0) }
+        TmaxMenu {
+            TmaxMenuSection("Workout") {
+                ForEach(OutdoorActivityKind.allCases) { value in
+                    Button {
+                        editor.change { $0.kind = value }
+                    } label: {
+                        Label(value.displayName, systemImage: editor.trip.kind == value ? "checkmark" : "circle")
+                    }
+                }
             }
-            Picker("Routing", selection: Binding(get: { editor.trip.preference }, set: { value in editor.change { $0.preference = value } })) {
-                ForEach(TripRoutingPreference.allCases) { Text($0.title(for: editor.trip.kind)).tag($0) }
+            TmaxMenuSection("Routing") {
+                ForEach(TripRoutingPreference.allCases) { value in
+                    Button {
+                        editor.change { $0.preference = value }
+                    } label: {
+                        Label(value.title(for: editor.trip.kind), systemImage: editor.trip.preference == value ? "checkmark" : "circle")
+                    }
+                }
             }
             if editor.trip.kind != .bike {
-                Picker("Running goal", selection: Binding(get: { editor.trip.runningGoal }, set: { value in editor.change { $0.runningGoal = value } })) {
-                    ForEach(TripRunningGoal.allCases) { Text($0.title).tag($0) }
+                TmaxMenuSection("Running goal") {
+                    ForEach(TripRunningGoal.allCases) { value in
+                        Button {
+                            editor.change { $0.runningGoal = value }
+                        } label: {
+                            Label(value.title, systemImage: editor.trip.runningGoal == value ? "checkmark" : "circle")
+                        }
+                    }
                 }
             }
             if entry == .custom, !configuring { Button("Adjust suggestions", systemImage: "slider.horizontal.3") { configuring = true; expanded = true } }
@@ -391,7 +411,7 @@ struct OutdoorTripPlannerView: View {
                     .accessibilityHidden(true)
             }
             if !showsConfiguration {
-                Menu {
+                TmaxMenu(cornerRadius: 22) {
                     if index > 0 {
                         Button(stop.incomingMode == .bus ? "Travel under own power" : "Mark leg as bus transfer", systemImage: "bus") {
                             editor.change { trip in
@@ -400,9 +420,11 @@ struct OutdoorTripPlannerView: View {
                                 trip.stops[i].shapingPoints = []
                             }
                         }
-                        Menu("Leg routing") {
+                        TmaxSubmenu {
                             Button("Use trip preference") { setPreference(nil, stop: stop) }
                             ForEach(TripRoutingPreference.allCases) { value in Button(value.title(for: editor.trip.kind)) { setPreference(value, stop: stop) } }
+                        } label: {
+                            Text("Leg routing")
                         }
                         if !stop.shapingPoints.isEmpty {
                             Button("Clear route adjustments") { editor.change { trip in

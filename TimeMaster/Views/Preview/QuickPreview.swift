@@ -460,7 +460,7 @@ struct QuickPreviewPopup: View {
                         .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 44))
                 }
                 if !attached.isEmpty {
-                    Menu {
+                    TmaxMenu {
                         ForEach(attached, id: \.manifest.id) { linked in
                             Button(linked.title) { open(linked, clip: nil, tab: nil) }
                         }

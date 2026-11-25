@@ -784,7 +784,7 @@ struct PageTypeBoardCard: View {
         Divider()
         moveToTypeMenu
         if let setStatus = actions.setStatus, page.isSkillLike {
-            SkillStatusMenu(status: item.status, onChange: { setStatus(page, $0) }) {
+            SkillStatusMenu(status: item.status, embedded: true, onChange: { setStatus(page, $0) }) {
                 Label("Status", systemImage: "flag")
             }
         }
@@ -810,7 +810,7 @@ struct PageTypeBoardCard: View {
     /// "Move to type ▸": Untagged and every type with a check on the current one, then a new type for this page and the
     /// presets.
     private var moveToTypeMenu: some View {
-        Menu {
+        TmaxSubmenu {
             ForEach(moveTargets) { column in
                 Button {
                     actions.setType(page, column.type)
@@ -838,7 +838,7 @@ struct PageTypeBoardCard: View {
     @ViewBuilder
     private var linkItems: some View {
         if item.links.count > Self.inlineMenuLinks {
-            Menu {
+            TmaxSubmenu {
                 ForEach(item.links) { link in
                     Button {
                         actions.openLink(link.url)
@@ -1188,7 +1188,7 @@ struct PageTypesMenuButton: View {
     @State private var showingManager = false
 
     var body: some View {
-        Menu {
+        TmaxMenu {
             Button {
                 editor = presets.first.map { SkillTypeEditorRoute.newType(presetID: $0.id) } ?? SkillTypeEditorRoute.newPreset
             } label: {

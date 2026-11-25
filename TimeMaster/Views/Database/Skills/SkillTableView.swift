@@ -131,7 +131,7 @@ struct SkillTableView: View {
                 .font(TimeMasterFont.technical())
                 .foregroundStyle(Theme.textSecondary)
             Spacer(minLength: 0)
-            Menu {
+            TmaxMenu {
                 ForEach(SkillTableSortKey.allCases) { key in
                     Button {
                         tap(key)
@@ -370,7 +370,7 @@ private struct SkillTableRow: View {
                 .lineLimit(1)
         }
         if item.isDirect && !moveTargets.isEmpty {
-            Menu {
+            TmaxMenu {
                 ForEach(moveTargets) { lane in
                     Button {
                         actions.moveToSection(page, lane.sectionID)

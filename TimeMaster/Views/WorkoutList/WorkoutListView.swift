@@ -422,7 +422,7 @@ struct WorkoutListView: View {
 
     @ViewBuilder
     private func moveToSectionMenu(_ workout: Workout, current: WorkoutGroup?) -> some View {
-        Menu {
+        TmaxSubmenu {
             ForEach(store.workoutGroups) { target in
                 Button {
                     withAnimation(.smooth(duration: 0.2)) { store.moveWorkout(workout.id, toGroup: target.id) }

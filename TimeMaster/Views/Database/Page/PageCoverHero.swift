@@ -151,8 +151,8 @@ struct PageCoverHero<Header: View>: View {
             .help("Add a cover picture")
             .accessibilityLabel("Add a cover picture")
         } else {
-            Menu {
-                SwiftUI.Section("From this page") {
+            TmaxMenu(cornerRadius: 16, inset: 6) {
+                TmaxMenuSection("From this page") {
                     ForEach(choices) { choice in
                         Button {
                             onChooseCover(choice.filename)
@@ -175,7 +175,7 @@ struct PageCoverHero<Header: View>: View {
                 chip(symbol: "photo")
             }
             .menuStyle(.button)
-            .keyNavPlainButtonStyle(shape: .capsule)
+            .keyNavBounceButtonStyle(shape: .circle, cornerRadius: 16, inset: 6, lift: 6)
             .menuIndicator(.hidden)
             .fixedSize()
             .disabled(isImportingCover)

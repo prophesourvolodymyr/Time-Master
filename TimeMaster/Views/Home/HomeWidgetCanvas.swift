@@ -431,7 +431,7 @@ private struct HomeWidgetOptions: View {
 
     var body: some View {
         if hasItems {
-            Menu {
+            TmaxMenu(cornerRadius: 14, inset: 8) {
                 menuItems
             } label: {
                 Image(systemName: "ellipsis")
@@ -461,7 +461,7 @@ private struct HomeWidgetOptions: View {
     private var optionsMenu: some View {
         switch widget.kind {
         case .activityShortcuts:
-            Menu("Actions") {
+            TmaxSubmenu {
                 ForEach(HomeActivityShortcut.allCases) { action in
                     Button {
                         var configuration = widget.configuration
@@ -479,9 +479,11 @@ private struct HomeWidgetOptions: View {
                         )
                     }
                 }
+            } label: {
+                Text("Actions")
             }
         case .metrics:
-            Menu("Metrics") {
+            TmaxSubmenu {
                 ForEach(HomeMetricField.allCases) { field in
                     Button {
                         var configuration = widget.configuration
@@ -499,6 +501,8 @@ private struct HomeWidgetOptions: View {
                         )
                     }
                 }
+            } label: {
+                Text("Metrics")
             }
         case .today, .recentWorkouts:
             visibleCountMenu
@@ -554,7 +558,7 @@ private struct HomeWidgetOptions: View {
     }
 
     private var footprintMenu: some View {
-        Menu("Size") {
+        TmaxSubmenu {
             ForEach(widget.kind.supportedFootprints) { footprint in
                 Button {
                     widgetStore.updateFootprint(footprint, for: widget.id)
@@ -565,11 +569,13 @@ private struct HomeWidgetOptions: View {
                     )
                 }
             }
+        } label: {
+            Text("Size")
         }
     }
 
     private var visibleCountMenu: some View {
-        Menu("Visible items") {
+        TmaxSubmenu {
             ForEach([1, 2, 3, 4, 5], id: \.self) { count in
                 Button {
                     var configuration = widget.configuration
@@ -582,11 +588,13 @@ private struct HomeWidgetOptions: View {
                     )
                 }
             }
+        } label: {
+            Text("Visible items")
         }
     }
 
     private var selectedTypeMenu: some View {
-        Menu("Workout type") {
+        TmaxSubmenu {
             Button {
                 var configuration = widget.configuration
                 configuration.selectedTypeID = nil
@@ -606,11 +614,13 @@ private struct HomeWidgetOptions: View {
                     )
                 }
             }
+        } label: {
+            Text("Workout type")
         }
     }
 
     private var selectedWorkoutMenu: some View {
-        Menu("Workout") {
+        TmaxSubmenu {
             ForEach(workoutStore.workouts.filter { !$0.sections.isEmpty }) { workout in
                 Button {
                     var configuration = widget.configuration
@@ -623,6 +633,8 @@ private struct HomeWidgetOptions: View {
                     )
                 }
             }
+        } label: {
+            Text("Workout")
         }
     }
 }

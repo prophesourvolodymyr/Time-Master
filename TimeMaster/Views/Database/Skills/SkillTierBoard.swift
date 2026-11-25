@@ -175,7 +175,7 @@ struct SkillTierBoardView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(Rectangle())
                     .onTapGesture { PageCoverOpening.openPage(page, playing: nil, in: navigationState) }
-                Menu { tileMenu(item) } label: {
+                TmaxMenu { tileMenu(item) } label: {
                     Image(systemName: "ellipsis.circle.fill")
                         .font(.system(size: 20))
                         .foregroundStyle(Theme.textSecondary)
@@ -194,7 +194,7 @@ struct SkillTierBoardView: View {
 
     @ViewBuilder
     private func tileMenu(_ item: SkillTrainer) -> some View {
-        Menu {
+        TmaxSubmenu {
             ForEach(SkillTier.allCases, id: \.self) { tier in
                 Button { set(item.page, tier) } label: {
                     Label("Tier \(tier.title)", systemImage: tier == item.tier ? "checkmark" : "")

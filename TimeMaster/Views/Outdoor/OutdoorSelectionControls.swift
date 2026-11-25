@@ -27,11 +27,12 @@ struct OutdoorChoicePicker<Value: Hashable>: View {
     }
 
     private var menu: some View {
-        Menu {
-            Picker(title, selection: $selection) {
-                ForEach(options) { option in
-                    Label(option.title, systemImage: option.systemImage)
-                        .tag(option.id)
+        TmaxMenu {
+            ForEach(options) { option in
+                Button {
+                    selection = option.id
+                } label: {
+                    Label(option.title, systemImage: option.id == selection ? "checkmark" : option.systemImage)
                 }
             }
         } label: {

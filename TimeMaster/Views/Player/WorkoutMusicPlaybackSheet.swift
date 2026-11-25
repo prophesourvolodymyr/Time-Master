@@ -68,8 +68,12 @@ struct WorkoutMusicPlaybackSheet: View {
                                 .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
                         }
                         Spacer()
-                        Menu {
-                            Toggle("Repeat selection", isOn: $repeatSelection)
+                        TmaxMenu {
+                            Button {
+                                repeatSelection.toggle()
+                            } label: {
+                                Label("Repeat selection", systemImage: repeatSelection ? "checkmark" : "repeat")
+                            }
                             ForEach(library.items) { item in
                                 Button(item.title) { session.play(item.musicClip(), repeatMusic: repeatSelection) }
                                     .disabled(item.totalDuration <= 0)

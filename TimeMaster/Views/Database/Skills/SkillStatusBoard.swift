@@ -425,6 +425,7 @@ struct SkillStatusBoardCard: View {
     @State private var isHovering = false
     @State private var typeEditor: SkillTypeEditorRoute?
     @State private var showingTypeManager = false
+    @EnvironmentObject private var store: DatabaseStore
     @AppStorage(SkillSettings.showsCardCoversKey) private var showsCovers = true
 
     private var page: ExercisePage { item.page }
@@ -566,8 +567,9 @@ struct SkillStatusBoardCard: View {
 
     /// The type menu around `label`: change the page's type, make a new one or manage them.
     private func typeMenu<Label: View>(@ViewBuilder label: () -> Label) -> some View {
-        Menu {
+        TmaxMenu {
             SkillTypeMenuItems(pageID: item.id, editor: $typeEditor, showingManager: $showingTypeManager)
+                .environmentObject(store)
         } label: {
             label()
         }
@@ -689,7 +691,7 @@ struct SkillCardMoreChildrenChip: View {
     @State private var isHovering = false
 
     var body: some View {
-        Menu {
+        TmaxMenu {
             ForEach(children, id: \.manifest.id) { child in
                 Button {
                     onOpen(child)
@@ -797,7 +799,7 @@ struct SkillCardMoreLinksChip: View {
     @State private var isHovering = false
 
     var body: some View {
-        Menu {
+        TmaxMenu {
             ForEach(links) { link in
                 Button {
                     onOpen(link)

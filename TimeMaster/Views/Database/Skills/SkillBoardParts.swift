@@ -454,7 +454,7 @@ struct SkillPageMenuItems: View {
         if showsContents {
             linkItems
             if !item.children.isEmpty {
-                Menu {
+                TmaxSubmenu {
                     ForEach(item.children, id: \.manifest.id) { child in
                         Button {
                             actions.open(child)
@@ -472,13 +472,13 @@ struct SkillPageMenuItems: View {
     @ViewBuilder
     private var statusItems: some View {
         if statusAsMenu {
-            SkillStatusMenu(status: item.status, onChange: { actions.setStatus(item.page, $0) }) {
+            SkillStatusMenu(status: item.status, embedded: true, onChange: { actions.setStatus(item.page, $0) }) {
                 Label("Status", systemImage: "flag")
             }
         } else {
             SkillStatusQuickActions(status: item.status) { actions.setStatus(item.page, $0) }
         }
-        Menu {
+        TmaxSubmenu {
             SkillTypeMenuItems(pageID: item.id, editor: $typeEditor, showingManager: $showingTypeManager)
         } label: {
             Label("Type", systemImage: "tag")
@@ -493,7 +493,7 @@ struct SkillPageMenuItems: View {
             Label("Edit…", systemImage: "pencil")
         }
         if item.isDirect, !moveTargets.isEmpty {
-            Menu {
+            TmaxSubmenu {
                 ForEach(moveTargets) { lane in
                     Button {
                         actions.moveToSection(item.page, lane.sectionID)
@@ -516,7 +516,7 @@ struct SkillPageMenuItems: View {
     @ViewBuilder
     private var linkItems: some View {
         if item.links.count > Self.inlineMenuLinks {
-            Menu {
+            TmaxSubmenu {
                 ForEach(item.links) { link in
                     Button {
                         actions.openLink(link.url)
@@ -754,7 +754,7 @@ struct SkillCornerMenu<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     var body: some View {
-        Menu {
+        TmaxMenu {
             content()
         } label: {
             Image(systemName: symbol)

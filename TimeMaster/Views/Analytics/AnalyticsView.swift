@@ -91,7 +91,7 @@ struct AnalyticsView: View {
     private var analyticsActions: [ReachabilityAction] {
         var actions = [
             ReachabilityAction("filter", title: "Workout Type", dismissesOnActivation: false) {
-                Menu {
+                TmaxMenu {
                     Button("All", systemImage: "square.grid.2x2") {
                         selectType(nil)
                     }

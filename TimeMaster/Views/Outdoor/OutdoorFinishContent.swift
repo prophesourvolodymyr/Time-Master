@@ -55,7 +55,7 @@ struct OutdoorFinishContent: View {
                                     .font(TimeMasterFont.black(12, relativeTo: .caption))
                                     .foregroundStyle(Theme.toolbarOrange)
                                 Spacer()
-                                Menu {
+                                TmaxMenu {
                                     Button("Delete workout", role: .destructive) { showingDelete = true }
                                 } label: {
                                     Image(systemName: "ellipsis").frame(minWidth: 44, minHeight: 44)

@@ -701,7 +701,7 @@ struct WorkoutDetailView: View {
         Button { if let onClose { onClose() } else { dismiss() } } label: {
             editorHeaderIcon("chevron.left", diameter: diameter)
         }
-        .buttonStyle(TimeMasterCardButtonStyle())
+        .buttonStyle(ScrollingChromeButtonStyle(progress: 1, width: diameter, height: diameter))
         .foregroundStyle(Theme.textPrimary)
         .accessibilityLabel("Back to workouts")
     }
@@ -710,16 +710,16 @@ struct WorkoutDetailView: View {
         Button { setMusicConfigurationOpen(true) } label: {
             editorHeaderIcon("music.note.list", diameter: diameter, title: "Music", progress: progress)
         }
-        .buttonStyle(TimeMasterCardButtonStyle())
+        .buttonStyle(ScrollingChromeButtonStyle(progress: progress, width: diameter, height: diameter))
         .foregroundStyle(Theme.textPrimary)
         .accessibilityLabel("Configure workout music")
     }
 
     private func editorActionsMenu(progress: CGFloat, diameter: CGFloat) -> some View {
-        Menu { editorActionMenuItems } label: {
+        TmaxMenu { editorActionMenuItems } label: {
             editorHeaderIcon("ellipsis", diameter: diameter, title: "More", progress: progress)
         }
-        .buttonStyle(TimeMasterCardButtonStyle())
+        .buttonStyle(ScrollingChromeButtonStyle(progress: progress, width: diameter, height: diameter))
         .foregroundStyle(Theme.textPrimary)
         .accessibilityLabel("Workout actions")
     }
@@ -1187,7 +1187,7 @@ struct WorkoutDetailView: View {
                 .buttonStyle(BuilderChipButtonStyle())
                 .accessibilityLabel("Add set to \(section.name)")
             } middle: {
-                Menu {
+                TmaxMenu {
                     sectionMenuItems(section)
                 } label: {
                     Image(systemName: "ellipsis")
@@ -1273,7 +1273,7 @@ struct WorkoutDetailView: View {
             BuilderCluster {
                 EmptyView()
             } middle: {
-                Menu {
+                TmaxMenu {
                     preparationMenuItems(section: section, slot: slot)
                 } label: {
                     Image(systemName: "ellipsis")
@@ -1331,7 +1331,7 @@ struct WorkoutDetailView: View {
                 durationEdit = DurationEditTarget(title: title, seconds: slot.duration, kind: .slot(section.id, slot.id), isTimerEnabled: section.isTimerEnabled)
             }
             BuilderCluster {
-                Menu {
+                TmaxMenu {
                     setAddMenuItems(section: section, slot: slot)
                 } label: {
                     Image(systemName: "plus")
@@ -1339,7 +1339,7 @@ struct WorkoutDetailView: View {
                 .builderChipMenu()
                 .accessibilityLabel("Add to set \(index + 1)")
             } middle: {
-                Menu {
+                TmaxMenu {
                     setMoreMenuItems(section: section, slot: slot, index: index)
                 } label: {
                     Image(systemName: "ellipsis")
@@ -1467,7 +1467,7 @@ struct WorkoutDetailView: View {
             BuilderCluster {
                 EmptyView()
             } middle: {
-                Menu {
+                TmaxMenu {
                     dropMenuItems(section: section, slot: slot, drop: drop)
                 } label: {
                     Image(systemName: "ellipsis")
@@ -1653,7 +1653,7 @@ struct WorkoutDetailView: View {
             BuilderCluster {
                 restActionMenu(target: target)
             } middle: {
-                Menu {
+                TmaxMenu {
                     restMoreItems(row, target: target)
                 } label: {
                     Image(systemName: "ellipsis")
@@ -1726,7 +1726,7 @@ struct WorkoutDetailView: View {
     }
 
     private func restActionMenu(target: RestTarget) -> some View {
-        Menu {
+        TmaxMenu {
             restAddItems(target: target)
         } label: {
             Image(systemName: "plus")
@@ -1779,7 +1779,7 @@ struct WorkoutDetailView: View {
             BuilderCluster {
                 EmptyView()
             } middle: {
-                Menu {
+                TmaxMenu {
                     restExerciseMenuItems(target: target, pageID: pageID, key: key)
                 } label: {
                     Image(systemName: "ellipsis")
@@ -1839,7 +1839,7 @@ struct WorkoutDetailView: View {
             Circle()
                 .strokeBorder(Theme.textSecondary.opacity(0.7), style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
         } title: {
-            Menu {
+            TmaxMenu {
                 restAddItems(target: target)
             } label: {
                 Text("Add a note, stretch, or rest exercise")
@@ -1893,7 +1893,7 @@ struct WorkoutDetailView: View {
                     .accessibilityLabel("Edit note")
                 }
             } middle: {
-                Menu {
+                TmaxMenu {
                     restContentMenuItems(content, target: target, key: key)
                 } label: {
                     Image(systemName: "ellipsis")

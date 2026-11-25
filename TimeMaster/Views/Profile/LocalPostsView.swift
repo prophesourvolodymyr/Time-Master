@@ -129,7 +129,7 @@ struct LocalPostCard: View {
                         }
                         Spacer(minLength: 0)
                         if !asVisitor {
-                            Menu {
+                            TmaxMenu {
                                 Button { sheet = .edit(postID) } label: {
                                     Label("Edit post", systemImage: "pencil")
                                 }

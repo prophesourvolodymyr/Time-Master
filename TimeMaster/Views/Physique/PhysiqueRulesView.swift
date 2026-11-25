@@ -44,7 +44,7 @@ struct PhysiqueRulesView: View {
             .textSelection(.enabled)
             .toolbar {
                 ToolbarItem(placement: .automatic) {
-                    Menu {
+                    TmaxMenu {
                         ForEach(ReadingSection.allCases, id: \.self) { section in
                             Button(section.rawValue) {
                                 proxy.scrollTo(section, anchor: .top)

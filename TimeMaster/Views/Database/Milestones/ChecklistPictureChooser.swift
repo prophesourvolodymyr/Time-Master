@@ -24,7 +24,7 @@ struct ChecklistPictureChooser: View {
                 ForEach(pictures, id: \.self) { url in
                     pictureTile(url)
                 }
-                Menu {
+                TmaxMenu {
                     Button { onAdd(.photos) } label: { Label("Photos", systemImage: "photo.on.rectangle") }
                     Button { onAdd(.files) } label: { Label("Files", systemImage: "folder") }
                 } label: {

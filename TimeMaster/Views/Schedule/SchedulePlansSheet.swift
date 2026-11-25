@@ -32,7 +32,7 @@ struct SchedulePlansSheet: View {
                                 .padding(.vertical, 8)
                                 .contentShape(Rectangle())
                             }.buttonStyle(.plain)
-                            Menu {
+                            TmaxMenu {
                                 Button("Edit Plan", systemImage: "pencil") { editingPlan = plan }
                                 Button("Delete Plan", systemImage: "trash", role: .destructive) { deletingPlan = plan }
                             } label: {

@@ -177,7 +177,7 @@ struct BundleSectionEditor: View {
                 .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 8))
                 .accessibilityLabel("Set \(index + 1)")
                 .accessibilityValue(expandedSetIDs.contains(set.id) ? "Expanded" : "Collapsed")
-                Menu {
+                TmaxMenu {
                     Button("Page", systemImage: "book.pages") {
                         addingToSetID = set.id
                         showingPages = true
@@ -294,7 +294,7 @@ struct BundleSectionEditor: View {
                             .help("Estimated time, used for the workout's total")
                     }
                 }
-                Menu {
+                TmaxMenu {
                     Button("Repeat", systemImage: "plus.square.on.square") {
                         mutateSet(setID) { $0.children.insert(exercise.duplicated(), at: index + 1) }
                     }
@@ -435,7 +435,7 @@ struct BundleSectionEditor: View {
 
     private func restChip(_ pageID: UUID, isDefault: Bool, hasChoices: Bool, setID: UUID, exerciseID: UUID?) -> some View {
         let title = databaseStore.page(id: pageID)?.title ?? "Rest exercise"
-        return Menu {
+        return TmaxMenu {
             if let onOpenPage {
                 Button("Open", systemImage: "book.pages") { onOpenPage(pageID) }
             }

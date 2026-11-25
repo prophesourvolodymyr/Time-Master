@@ -206,7 +206,7 @@ struct SkillsRootView: View {
     }
 
     private func sortMenu(progress: CGFloat, width: CGFloat, height: CGFloat) -> some View {
-        Menu {
+        TmaxMenu {
             ForEach(SkillSortOption.allCases) { option in
                 Button {
                     sort(by: option)
@@ -218,7 +218,7 @@ struct SkillsRootView: View {
             ScrollingChromeControl(systemImage: "arrow.up.arrow.down", title: "Sort", progress: progress, width: width, height: height)
         }
         .menuIndicator(.hidden)
-        .buttonStyle(TimeMasterCardButtonStyle())
+        .buttonStyle(ScrollingChromeButtonStyle(progress: progress, width: width, height: height))
         .scrollingChromeRing(progress: progress, width: width, height: height)
         .accessibilityLabel("Sort")
         .accessibilityValue(sortOption.title)
@@ -361,7 +361,7 @@ struct SkillsRootView: View {
         } label: {
             Label("Open", systemImage: "arrow.up.forward.square")
         }
-        Menu {
+        TmaxSubmenu {
             ForEach(SkillSortOption.statusOrder, id: \.self) { status in
                 Button {
                     setStatus(status, of: page)

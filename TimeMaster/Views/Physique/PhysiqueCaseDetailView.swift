@@ -636,7 +636,7 @@ struct PhysiqueCaseDetailView: View {
         }
         ToolbarItem(placement: .automatic) {
             if authorizedItem != nil || supportURL != nil {
-            Menu {
+            TmaxMenu {
                 if let item = authorizedItem {
                     Button("Copy case reference", action: copyCaseReference)
                     if item.canWithdraw {
@@ -648,7 +648,7 @@ struct PhysiqueCaseDetailView: View {
                     }
                 }
                 if let url = supportURL {
-                    Link("Contact support (opens another app)", destination: url)
+                    Button("Contact support (opens another app)") { openURL(url) }
                 }
             } label: {
                 Label("Case actions", systemImage: "ellipsis.circle")

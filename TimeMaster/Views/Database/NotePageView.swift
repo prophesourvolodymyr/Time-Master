@@ -251,7 +251,7 @@ struct NotePageView: View {
     }
 
     private var moreMenu: some View {
-        Menu {
+        TmaxMenu {
             Button { choosingIcon = true } label: {
                 Label("Icon", systemImage: "face.smiling")
             }

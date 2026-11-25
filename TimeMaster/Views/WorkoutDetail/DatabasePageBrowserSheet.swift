@@ -188,7 +188,7 @@ struct DatabasePageBrowserSheet: View {
                     .foregroundStyle(Theme.toolbarOrange)
                 }
                 AppToolbar.iconItem(placement: .primaryAction) {
-                    Menu {
+                    TmaxMenu {
                         ForEach(PageSortOption.allCases, id: \.self) { option in
                             Button {
                                 sortOption = option

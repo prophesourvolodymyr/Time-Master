@@ -98,6 +98,16 @@ enum TmaxTabBarStyle {
     }
 }
 
+private let tmaxTabTrackSpace = "tmax-tab-track"
+
+private struct TmaxTabFramesKey<ID: Hashable>: PreferenceKey {
+    static var defaultValue: [ID: CGRect] { [:] }
+
+    static func reduce(value: inout [ID: CGRect], nextValue: () -> [ID: CGRect]) {
+        value.merge(nextValue()) { _, new in new }
+    }
+}
+
 /// Tmax's tab row, the skill page tabs on every page: one slim debossed track with a raised orange pill on the selected
 /// tab that swooshes to the next one, each tab's symbol, name and count. While the tabs fit, the track spans the width
 /// (`fillsWidth`) or hugs its tabs; when they do not, it scrolls sideways and keeps the selected tab in view. The pill
@@ -113,6 +123,10 @@ struct TmaxTabBar<ID: Hashable, Label: View>: View {
 
     @Namespace private var namespace
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var draft: ID?
+    @State private var frames: [ID: CGRect] = [:]
+    @State private var isDragging = false
+    @State private var fingerX: CGFloat = 0
 
     /// `onSelect` hears every tap, the selected tab's too, and changes the selection itself.
     init(
@@ -153,15 +167,21 @@ struct TmaxTabBar<ID: Hashable, Label: View>: View {
         )
     }
 
+    private var current: ID { draft ?? selection }
+
     var body: some View {
         ViewThatFits(in: .horizontal) {
             track(fillsWidth: fillsWidth)
             scrollingTrack
         }
         .skillSegmentTrack()
-        .animation(TmaxTabBarStyle.animation(reduceMotion: reduceMotion), value: selection)
+        .animation(TmaxTabBarStyle.animation(reduceMotion: reduceMotion), value: current)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(name)
+        .onDisappear {
+            draft = nil
+            isDragging = false
+        }
     }
 
     private var scrollingTrack: some View {
@@ -169,6 +189,7 @@ struct TmaxTabBar<ID: Hashable, Label: View>: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 track(fillsWidth: false)
             }
+            .scrollDisabled(isDragging)
             .onAppear { proxy.scrollTo(selection, anchor: .center) }
             .onChange(of: selection) { value in
                 withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
@@ -181,23 +202,77 @@ struct TmaxTabBar<ID: Hashable, Label: View>: View {
     private func track(fillsWidth: Bool) -> some View {
         TmaxTabRowLayout(fillsWidth: fillsWidth) {
             ForEach(tabs) { tab in
-                let isSelected = tab.id == selection
+                let isCurrent = tab.id == current
                 Button {
                     onSelect(tab.id)
                 } label: {
                     label(tab)
                 }
-                .buttonStyle(SkillSegmentButtonStyle(isSelected: isSelected, namespace: namespace))
+                .buttonStyle(SkillSegmentButtonStyle(
+                    isSelected: isCurrent,
+                    namespace: namespace,
+                    isGrabbed: isDragging && isCurrent,
+                    pillOffset: isDragging && isCurrent ? pillOffset(for: tab.id) : 0
+                ))
                 .modifier(TmaxTabAlternateActions(alternate: tab.alternate))
                 .help(tab.tooltip)
                 .accessibilityLabel(tab.accessibilityName)
                 .accessibilityValue(tab.accessibilityValue ?? "")
                 .accessibilityHint(tab.accessibilityHint ?? "")
-                .accessibilityAddTraits(isSelected ? .isSelected : [])
+                .accessibilityAddTraits(tab.id == selection ? .isSelected : [])
                 .accessibilityIdentifier(tab.accessibilityIdentifier ?? "")
                 .id(tab.id)
+                .background {
+                    GeometryReader { proxy in
+                        Color.clear.preference(
+                            key: TmaxTabFramesKey<ID>.self,
+                            value: [tab.id: proxy.frame(in: .named(tmaxTabTrackSpace))]
+                        )
+                    }
+                }
             }
         }
+        .coordinateSpace(name: tmaxTabTrackSpace)
+        .onPreferenceChange(TmaxTabFramesKey<ID>.self) { frames = $0 }
+        .simultaneousGesture(pillDrag)
+    }
+
+    private var pillDrag: some Gesture {
+        DragGesture(minimumDistance: 6, coordinateSpace: .named(tmaxTabTrackSpace))
+            .onChanged { value in
+                if !isDragging {
+                    guard abs(value.translation.width) > abs(value.translation.height),
+                          let pill = frames[selection],
+                          pill.insetBy(dx: -2, dy: -10).contains(value.startLocation) else { return }
+                    isDragging = true
+                }
+                fingerX = value.location.x
+                guard let hovered = tab(atX: value.location.x), hovered != current else { return }
+                draft = hovered
+                EverHaptic.selection()
+            }
+            .onEnded { _ in
+                guard isDragging else { return }
+                isDragging = false
+                if let target = draft, target != selection { onSelect(target) }
+                DispatchQueue.main.async { draft = nil }
+            }
+    }
+
+    private func tab(atX x: CGFloat) -> ID? {
+        var found: ID?
+        for tab in tabs {
+            guard let frame = frames[tab.id] else { continue }
+            if x < frame.minX { return found ?? tab.id }
+            found = tab.id
+            if x < frame.maxX { return tab.id }
+        }
+        return found
+    }
+
+    private func pillOffset(for id: ID) -> CGFloat {
+        guard let frame = frames[id] else { return 0 }
+        return min(9, max(-9, (fingerX - frame.midX) * 0.3))
     }
 }
 

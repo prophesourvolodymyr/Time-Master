@@ -29,7 +29,7 @@ struct CollectibleMarketView: View {
             VStack(alignment: .leading, spacing: EverSpacing.x5) {
                 HStack(spacing: EverSpacing.x2) {
                     CollectibleCategoryRail(selection: $category)
-                    Menu {
+                    TmaxMenu {
                         Button("All releases") { release = nil }
                         ForEach(Array(Set(CollectibleCatalog.items.map(\.season))).sorted(), id: \.self) { value in
                             Button("Release \(value)") { release = value }

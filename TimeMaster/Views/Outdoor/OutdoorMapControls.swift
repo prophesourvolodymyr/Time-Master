@@ -46,7 +46,7 @@ struct OutdoorMapControls: View, Animatable {
             downloadButton
 
             if let onFitRoute {
-                Menu {
+                TmaxMenu {
                     Button("Fit trip", systemImage: "arrow.up.left.and.arrow.down.right", action: onFitRoute)
                     if let onNorth { Button("North up", systemImage: "location.north.line", action: onNorth) }
                 } label: {

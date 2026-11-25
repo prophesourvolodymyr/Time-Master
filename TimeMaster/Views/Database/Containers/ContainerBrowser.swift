@@ -148,8 +148,8 @@ struct ContainerBrowser: View {
     }
 
     private var sortMenu: some View {
-        Menu {
-            SwiftUI.Section("Sort by") {
+        TmaxMenu {
+            TmaxMenuSection("Sort by") {
                 ForEach(ContainerBrowseSort.options(for: tab)) { option in
                     Button {
                         setSort(option)
@@ -159,7 +159,7 @@ struct ContainerBrowser: View {
                 }
             }
             if tab == .skills {
-                SwiftUI.Section("Group by") {
+                TmaxMenuSection("Group by") {
                     ForEach(ContainerSkillGrouping.allCases) { option in
                         Button {
                             setGrouping(option)
@@ -182,7 +182,7 @@ struct ContainerBrowser: View {
     }
 
     private var addMenu: some View {
-        Menu {
+        TmaxMenu {
             if tab == .skills {
                 Button {
                     beginNaming(.skill)

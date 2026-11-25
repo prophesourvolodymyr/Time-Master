@@ -174,10 +174,12 @@ struct OutdoorMusicEditorView: View {
                 }
             }
             SpotlightSearchBar(text: $query, isPresented: $searchOpen, placeholder: "Search music") {
-                Menu {
-                    Picker("Music import source", selection: $searchSourceID) {
-                        ForEach(importSourceDestinations) { destination in
-                            Text(library.destinationName(destination)).tag(destination.id)
+                TmaxMenu {
+                    ForEach(importSourceDestinations) { destination in
+                        Button {
+                            searchSourceID = destination.id
+                        } label: {
+                            Label(library.destinationName(destination), systemImage: destination.id == searchSourceDestination.id ? "checkmark" : "circle")
                         }
                     }
                 } label: {

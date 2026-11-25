@@ -53,7 +53,7 @@ struct ChecklistSectionDivider: View {
             }
             .layoutPriority(1)
             hairline(tint)
-            Menu {
+            TmaxMenu {
                 menuItems
             } label: {
                 Image(systemName: "ellipsis")

@@ -82,7 +82,7 @@ struct PhysiqueJudgingView: View {
         }
         .toolbar {
             ToolbarItem(placement: .automatic) {
-                Menu {
+                TmaxMenu {
                     Button {
                         detailsExpanded.toggle()
                     } label: {

@@ -754,7 +754,7 @@ private struct PhysiqueStandingsRow: View {
         .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         .accessibilityLabel("Player details for \(standing.identity.displayName)")
         if !isOwn {
-            Menu {
+            TmaxMenu {
                 Button("Report player", action: onReport)
                 Button("Safety and block…", action: onDetails)
             } label: {

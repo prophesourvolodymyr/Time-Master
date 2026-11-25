@@ -758,7 +758,7 @@ struct PageCreationSheet: View {
                 }
             }
             if !availableSkillBoardSections.isEmpty {
-                Menu {
+                TmaxMenu {
                     Button("Unsectioned") {
                         skillBoardSectionID = nil
                     }

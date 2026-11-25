@@ -209,7 +209,7 @@ struct TodoRowView: View {
                     .accessibilityLabel("\(item.children.progressDone) of \(total) sub-to-dos done")
             }
             if !isPreview {
-                Menu {
+                TmaxMenu {
                     menuItems
                 } label: {
                     Image(systemName: "ellipsis")

@@ -234,7 +234,7 @@ struct SkillBoardSectionHeader<MenuContent: View>: View {
             }
 
             if showsMenu {
-                Menu {
+                TmaxMenu {
                     menu()
                 } label: {
                     Image(systemName: "ellipsis")

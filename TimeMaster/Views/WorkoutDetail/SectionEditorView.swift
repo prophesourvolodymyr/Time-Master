@@ -531,7 +531,7 @@ struct SectionEditorView: View {
                 }
             }
             Spacer(minLength: 0)
-            Menu {
+            TmaxMenu {
                 if !isDefault {
                     Button("Make Default", systemImage: "star") {
                         restExercisePageIDs = RestExercise.making(pageID, defaultIn: restExercisePageIDs)

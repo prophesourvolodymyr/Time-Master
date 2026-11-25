@@ -215,7 +215,7 @@ struct SkillTypeMenuItems: View {
             }
         } else {
             ForEach(presets) { preset in
-                Menu {
+                TmaxSubmenu {
                     ForEach(preset.orderedTypes) { type in
                         Button {
                             set(type.id)
@@ -317,10 +317,12 @@ struct SkillTypePicker<Label: View>: View {
 
     @State private var editor: SkillTypeEditorRoute?
     @State private var showingManager = false
+    @EnvironmentObject private var store: DatabaseStore
 
     var body: some View {
-        Menu {
+        TmaxMenu {
             SkillTypeMenuItems(pageID: pageID, editor: $editor, showingManager: $showingManager)
+                .environmentObject(store)
         } label: {
             label()
         }
