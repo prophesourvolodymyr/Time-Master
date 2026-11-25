@@ -106,7 +106,7 @@ enum MenuBarSuggestionEngine {
                 MenuBarSuggestion(
                     kind: .missed,
                     title: "You missed \(missed.name)",
-                    message: "A short session still counts today.",
+                    message: "A short session still counts.",
                     actionTitle: "Start",
                     action: .startWorkout(missed.workoutID)
                 )
@@ -119,7 +119,7 @@ enum MenuBarSuggestionEngine {
                 MenuBarSuggestion(
                     kind: .streakAtRisk,
                     title: "Keep your \(input.currentStreak)-day streak",
-                    message: "Nothing is logged today yet.",
+                    message: "Nothing logged today.",
                     actionTitle: "Start",
                     action: .startWorkout(nil)
                 )
@@ -141,7 +141,7 @@ enum MenuBarSuggestionEngine {
                 result.append(
                     MenuBarSuggestion(
                         kind: .goalAlmostMet,
-                        title: "One session to your weekly goal",
+                        title: "1 session to your goal",
                         message: "\(input.sessionsThisWeek) of \(input.weeklyGoal) sessions done.",
                         actionTitle: "Start",
                         action: .startWorkout(nil)
@@ -169,7 +169,7 @@ enum MenuBarSuggestionEngine {
                 MenuBarSuggestion(
                     kind: .restDay,
                     title: "Rest day",
-                    message: "A short stretch keeps you loose. Ask the coach for ideas.",
+                    message: "A short stretch keeps you loose.",
                     actionTitle: "Coach",
                     action: .openPage(.coach)
                 )
@@ -186,7 +186,7 @@ extension MenuBarSuggestionInput {
         let scheduled = store.scheduledWorkouts(for: now, now: now).map {
             Scheduled(
                 workoutID: $0.workout.id,
-                name: $0.workout.name,
+                name: WorkoutTitle.short($0.workout.name),
                 start: $0.scheduledStart,
                 hasTime: $0.hasScheduledTime,
                 status: $0.status,
@@ -205,7 +205,7 @@ extension MenuBarSuggestionInput {
             lastByType[key] = entry.completedAt
         }
         var waiting: [WaitingType] = []
-        for workout in store.workouts where !workout.sections.isEmpty {
+        for workout in store.workouts where !workout.sections.isEmpty && !store.isArchived(workout) {
             guard let last = lastByType[workout.type.id],
                   !waiting.contains(where: { $0.typeName == workout.type.name }) else { continue }
             let days = calendar.dateComponents(
@@ -217,7 +217,7 @@ extension MenuBarSuggestionInput {
         }
 
         let resumable = WorkoutResumeManager.shared.resumeState.map {
-            Resumable(workoutID: $0.workoutId, name: $0.workoutName)
+            Resumable(workoutID: $0.workoutId, name: WorkoutTitle.short($0.workoutName))
         }
 
         return MenuBarSuggestionInput(

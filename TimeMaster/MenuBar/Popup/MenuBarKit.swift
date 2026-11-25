@@ -1,5 +1,13 @@
 import SwiftUI
 
+enum MenuBarMetrics {
+    static let cornerRadius: CGFloat = 22
+    static let heroHeight: CGFloat = 168
+    static let buttonHeight: CGFloat = 40
+
+    static var shape: RoundedRectangle { RoundedRectangle(cornerRadius: cornerRadius, style: .continuous) }
+}
+
 struct MenuBarCard<Content: View>: View {
     var emphasized = false
     var padding: CGFloat = 14
@@ -9,7 +17,58 @@ struct MenuBarCard<Content: View>: View {
         content
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .modifier(TimeMasterCardSurface(cornerRadius: 18, accent: .white, emphasized: emphasized))
+            .environment(\.widgetTint, .graphite)
+            .background {
+                ZStack {
+                    WidgetTint.graphite.base
+                    WidgetSheen(tint: .graphite)
+                }
+            }
+            .clipShape(MenuBarMetrics.shape)
+            .overlay {
+                MenuBarMetrics.shape
+                    .strokeBorder(Color.white.opacity(emphasized ? 0.12 : 0.06), lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+    }
+}
+
+struct MenuBarHeroCard<Controls: View>: View {
+    let art: WidgetArt
+    var label: String?
+    let title: String
+    var meta: String?
+    private let controls: Controls
+
+    init(art: WidgetArt, label: String? = nil, title: String, meta: String? = nil, @ViewBuilder controls: () -> Controls) {
+        self.art = art
+        self.label = label
+        self.title = title
+        self.meta = meta
+        self.controls = controls()
+    }
+
+    var body: some View {
+        WidgetCard(art: art, spot: .side) {
+            GeometryReader { proxy in
+                VStack(alignment: .leading, spacing: 4) {
+                    if let label {
+                        WidgetLabel(text: label)
+                    }
+                    WidgetTitle(text: title, size: 24, lines: 1)
+                    if let meta {
+                        WidgetLabel(text: meta)
+                    }
+                    Spacer(minLength: 0)
+                    HStack(spacing: 8) { controls }
+                }
+                .frame(width: max(0, proxy.size.width - WidgetArtSpot.sideRoom(forHeight: proxy.size.height)), alignment: .leading)
+                .frame(maxHeight: .infinity, alignment: .topLeading)
+            }
+            .padding(16)
+        }
+        .frame(height: MenuBarMetrics.heroHeight)
+        .clipShape(MenuBarMetrics.shape)
     }
 }
 
@@ -20,16 +79,18 @@ struct MenuBarSectionTitle: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(title)
-                .font(TimeMasterFont.sectionTitle())
+                .font(TimeMasterFont.black(15, relativeTo: .headline))
                 .foregroundStyle(Theme.textPrimary)
                 .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 8)
             if let trailing {
                 Text(trailing)
-                    .font(TimeMasterFont.caption())
-                    .foregroundStyle(Theme.textSecondary)
+                    .font(WidgetFont.label())
+                    .foregroundStyle(WidgetTint.graphite.secondaryInk)
+                    .lineLimit(1)
             }
         }
+        .padding(.horizontal, 4)
     }
 }
 
@@ -40,15 +101,19 @@ struct MenuBarRing<Center: View>: View {
     @ViewBuilder var center: Center
 
     var body: some View {
+        let clamped = min(1, max(0, progress.isFinite ? progress : 0))
         ZStack {
             Circle()
-                .stroke(Theme.separator, lineWidth: lineWidth)
+                .stroke(WidgetTint.graphite.track, lineWidth: lineWidth)
             Circle()
-                .trim(from: 0, to: min(1, max(0, progress)))
+                .trim(from: 0, to: clamped)
                 .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+                .shadow(color: tint.opacity(0.45), radius: lineWidth * 0.6)
+                .opacity(clamped > 0 ? 1 : 0)
             center
         }
+        .padding(lineWidth / 2)
     }
 }
 
@@ -58,15 +123,15 @@ struct MenuBarStat: View {
     var tint: Color = Theme.textPrimary
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 0) {
             Text(value)
-                .font(TimeMasterFont.black(22, relativeTo: .title3))
+                .font(WidgetFont.hero(26))
                 .foregroundStyle(tint)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.6)
             Text(caption)
-                .font(TimeMasterFont.caption())
-                .foregroundStyle(Theme.textSecondary)
+                .font(WidgetFont.label())
+                .foregroundStyle(WidgetTint.graphite.secondaryInk)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -82,37 +147,41 @@ struct MenuBarEmptyState: View {
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: symbol)
-                .font(.system(size: 28, weight: .semibold))
-                .foregroundStyle(Theme.textSecondary)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(Theme.toolbarOrange)
+                .frame(width: 44, height: 44)
+                .background(WidgetTint.graphite.softFill, in: Circle())
                 .accessibilityHidden(true)
-            Text(title)
-                .font(TimeMasterFont.sectionTitle())
-                .foregroundStyle(Theme.textPrimary)
-            Text(message)
-                .font(TimeMasterFont.secondary())
-                .foregroundStyle(Theme.textSecondary)
+            WidgetTitle(text: title, size: 18, lines: 2)
                 .multilineTextAlignment(.center)
+            Text(message)
+                .font(WidgetFont.label())
+                .foregroundStyle(WidgetTint.graphite.secondaryInk)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
+        .padding(.vertical, 18)
         .padding(.horizontal, 12)
         .accessibilityElement(children: .combine)
     }
 }
 
-struct MenuBarTypeTile: View {
-    let colorHex: String
-    let symbol: String
+struct MenuBarArtTile: View {
+    let art: WidgetArt
     var size: CGFloat = 36
 
     var body: some View {
-        RoundedRectangle(cornerRadius: size * 0.3, style: .continuous)
-            .fill(Color(hex: colorHex).opacity(0.22))
+        Image(art.assetName)
+            .resizable()
+            .interpolation(.high)
+            .aspectRatio(1, contentMode: .fill)
+            .scaleEffect(1.3)
             .frame(width: size, height: size)
+            .clipShape(RoundedRectangle(cornerRadius: size * 0.3, style: .continuous))
             .overlay {
-                Image(systemName: symbol)
-                    .font(.system(size: size * 0.42, weight: .bold))
-                    .foregroundStyle(Color(hex: colorHex))
+                RoundedRectangle(cornerRadius: size * 0.3, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
             }
             .accessibilityHidden(true)
     }
@@ -120,13 +189,14 @@ struct MenuBarTypeTile: View {
 
 struct MenuBarChip: View {
     let text: String
-    var tint: Color = Theme.textSecondary
+    var tint: Color = WidgetTint.graphite.secondaryInk
     var filled = false
 
     var body: some View {
         Text(text)
             .font(TimeMasterFont.black(11, relativeTo: .caption2))
-            .foregroundStyle(filled ? Color.black : tint)
+            .foregroundStyle(filled ? WidgetTint.orange.ink : tint)
+            .lineLimit(1)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(Capsule().fill(filled ? tint : tint.opacity(0.14)))
@@ -151,17 +221,16 @@ struct MenuBarCompactButton: View {
 
     var body: some View {
         Button(action: action) {
-            Label(title, systemImage: symbol)
-                .font(TimeMasterFont.black(14, relativeTo: .subheadline))
-                .lineLimit(1)
-                .frame(maxWidth: fillsWidth ? .infinity : nil)
+            WidgetPillLabel(
+                title: title,
+                systemImage: symbol,
+                prominent: prominent,
+                fillsWidth: fillsWidth,
+                diameter: MenuBarMetrics.buttonHeight
+            )
         }
-        .buttonStyle(TimeMasterActionButtonStyle(
-            prominent: prominent,
-            minimumSize: 40,
-            fillsWidth: fillsWidth,
-            tint: prominent ? Theme.toolbarOrange : Theme.surface2
-        ))
+        .buttonStyle(SkillsPressStyle(cornerRadius: MenuBarMetrics.buttonHeight / 2))
+        .accessibilityLabel(title)
     }
 }
 
@@ -176,34 +245,33 @@ struct MenuBarScheduledRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            MenuBarTypeTile(colorHex: item.workout.type.colorHex, symbol: item.workout.type.iconName, size: 34)
+            MenuBarArtTile(art: .forWorkout(item.workout), size: 36)
             Button {
                 actions.openWorkoutDetail(item.workout.id)
             } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.workout.name)
-                        .font(TimeMasterFont.rowTitle())
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(WorkoutTitle.short(item.workout.name))
+                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                         .foregroundStyle(Theme.textPrimary)
                         .lineLimit(1)
                     Text(item.timeRangeText)
-                        .font(TimeMasterFont.caption())
-                        .foregroundStyle(Theme.textSecondary)
+                        .font(WidgetFont.label())
+                        .foregroundStyle(WidgetTint.graphite.secondaryInk)
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(MenuBarRowButtonStyle())
-            MenuBarChip(text: item.status.title, tint: statusTint)
+            .accessibilityLabel(item.workout.name)
+            MenuBarChip(text: item.status.title, tint: statusTint, filled: item.status == .completed)
             if showsStart && canStart {
-                Button {
+                HomeIconButton(
+                    systemImage: "play.fill",
+                    label: "Start \(item.workout.name)",
+                    diameter: 36
+                ) {
                     actions.startWorkout(item.workout.id)
-                } label: {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Theme.textPrimary)
                 }
-                .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 36, tint: Theme.surface2))
-                .accessibilityLabel("Start \(item.workout.name)")
             }
         }
         .accessibilityElement(children: .contain)
@@ -211,9 +279,9 @@ struct MenuBarScheduledRow: View {
 
     private var statusTint: Color {
         switch item.status {
-        case .pending: Theme.toolbarOrange
-        case .completed: Color(hex: "34C759")
-        case .missed: Color(hex: "FF3B30")
+        case .pending: WidgetTint.graphite.secondaryInk
+        case .completed: WidgetTint.orange.base
+        case .missed: WidgetTint.peach.base
         }
     }
 }

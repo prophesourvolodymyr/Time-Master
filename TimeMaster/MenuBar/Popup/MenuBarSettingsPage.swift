@@ -39,12 +39,12 @@ struct MenuBarSettingsPage: View {
         Toggle(isOn: isOn) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(TimeMasterFont.rowTitle())
+                    .font(TimeMasterFont.black(14, relativeTo: .subheadline))
                     .foregroundStyle(Theme.textPrimary)
                 if let detail {
                     Text(detail)
-                        .font(TimeMasterFont.caption())
-                        .foregroundStyle(Theme.textSecondary)
+                        .font(WidgetFont.label())
+                        .foregroundStyle(WidgetTint.graphite.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -82,23 +82,29 @@ struct MenuBarSettingsPage: View {
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: preferences.level == level ? "largecircle.fill.circle" : "circle")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(preferences.level == level ? Theme.toolbarOrange : Theme.textSecondary)
+                                .foregroundStyle(preferences.level == level ? Theme.toolbarOrange : WidgetTint.graphite.secondaryInk)
                                 .accessibilityHidden(true)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(level.title)
-                                    .font(TimeMasterFont.rowTitle())
+                                    .font(TimeMasterFont.black(14, relativeTo: .subheadline))
                                     .foregroundStyle(Theme.textPrimary)
                                 Text(level.detail)
-                                    .font(TimeMasterFont.caption())
-                                    .foregroundStyle(Theme.textSecondary)
+                                    .font(WidgetFont.label())
+                                    .foregroundStyle(WidgetTint.graphite.secondaryInk)
                                     .multilineTextAlignment(.leading)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                             Spacer(minLength: 0)
                         }
-                        .padding(12)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
                         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                        .modifier(TimeMasterCardSurface(cornerRadius: 14, emphasized: preferences.level == level, flat: true))
+                        .background(WidgetTint.graphite.base, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .strokeBorder(preferences.level == level ? Theme.toolbarOrange.opacity(0.7) : Color.white.opacity(0.06), lineWidth: 1)
+                                .allowsHitTesting(false)
+                        }
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(MenuBarRowButtonStyle())

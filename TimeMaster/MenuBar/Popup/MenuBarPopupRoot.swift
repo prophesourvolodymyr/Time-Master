@@ -123,9 +123,10 @@ private struct MenuBarStreakChip: View {
                 .font(TimeMasterFont.black(14, relativeTo: .subheadline))
                 .foregroundStyle(Theme.textPrimary)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(Capsule().fill(Theme.surface2))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Capsule().fill(WidgetTint.graphite.base))
+        .overlay(Capsule().strokeBorder(Color.white.opacity(0.08), lineWidth: 1))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(streak) day streak")
     }

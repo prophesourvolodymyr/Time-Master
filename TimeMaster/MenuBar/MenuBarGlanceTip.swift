@@ -14,14 +14,14 @@ struct MenuBarTip: Equatable {
     }
 }
 
-private struct MenuBarGlanceTipView: View {
+struct MenuBarGlanceTipView: View {
     let tip: MenuBarTip
     let onOpen: () -> Void
     let onMute: () -> Void
     let onClose: () -> Void
     let onHover: (Bool) -> Void
 
-    private var tint: Color { tip.isRest ? Theme.accent : Theme.toolbarOrange }
+    private var tint: Color { tip.isRest ? WidgetTint.peach.base : Theme.toolbarOrange }
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -84,11 +84,11 @@ private struct MenuBarGlanceTipView: View {
         .padding(12)
         .frame(width: 320)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Theme.surface)
+            RoundedRectangle(cornerRadius: 20, style: .continuous).fill(WidgetTint.graphite.base)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(tint.opacity(0.5), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(tint.opacity(0.45), lineWidth: 1)
         )
         .padding(8)
         .onHover(perform: onHover)

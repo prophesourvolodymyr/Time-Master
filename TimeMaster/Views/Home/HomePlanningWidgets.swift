@@ -17,7 +17,7 @@ struct HomePickContent: View {
         HomeFeatureLayout(
             footprint: footprint,
             label: kicker,
-            title: workout.name,
+            title: WorkoutTitle.short(workout.name),
             meta: showsDetails ? HomeText.duration(seconds: workout.durationSeconds) : nil
         ) {
             switch footprint {
@@ -237,7 +237,7 @@ struct HomeWeekAheadCard: View {
             if upcoming.isEmpty {
                 if let suggestion, let open = HomeWeekCopy.firstOpenDay(days) {
                     HomePillButton(
-                        title: "Plan \(suggestion.name)",
+                        title: "Plan \(WorkoutTitle.short(suggestion.name))",
                         systemImage: "calendar.badge.plus",
                         fillsWidth: true,
                         hint: "Chooses a time on \(open.relativeLabel)"
@@ -256,7 +256,7 @@ struct HomeWeekAheadCard: View {
                                 .foregroundStyle(Self.tint.ink)
                                 .lineLimit(1)
                             Spacer(minLength: 6)
-                            Text(day.titles.joined(separator: ", "))
+                            Text(day.titles.map(WorkoutTitle.short).joined(separator: ", "))
                                 .font(WidgetFont.label())
                                 .foregroundStyle(Self.tint.secondaryInk)
                                 .lineLimit(1)

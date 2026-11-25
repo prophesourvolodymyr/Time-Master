@@ -114,6 +114,7 @@ targets:
           - "**/.DS_Store"
       - path: TimeMasterShared
       - path: TimeMaster/Views/Widgets/WidgetPalette.swift
+      - path: TimeMaster/Models/WorkoutTitle.swift
       - path: TimeMaster/Resources/Fonts/Inter-Black.ttf
     settings:
       base:

@@ -53,6 +53,10 @@ extension WorkoutStore {
         workoutGroups.first { $0.workoutIDs.contains(workoutID) }
     }
 
+    func isArchived(_ workout: Workout) -> Bool {
+        WorkoutTitle.isArchived(workout.name, groupTitle: workoutGroup(containing: workout.id)?.title)
+    }
+
     @discardableResult
     func addWorkoutGroup(title: String, icon: String, iconType: SkillBoardIconType?) -> WorkoutGroup {
         let group = WorkoutGroup(title: title, icon: icon, iconType: iconType)

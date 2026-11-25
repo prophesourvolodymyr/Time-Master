@@ -140,7 +140,7 @@ struct HomeWidgetContent: View {
             HomeWidgetChrome(art: .forWorkout(workout), spot: .home(widget.footprint)) {
                 HomeFeatureLayout(
                     footprint: widget.footprint,
-                    title: workout.name,
+                    title: WorkoutTitle.short(workout.name),
                     meta: widget.configuration.showDetails ? HomeText.duration(seconds: workout.totalDuration) : nil
                 ) {
                     startControl(title: "Start", hint: "Starts \(workout.name)") { onStartWorkout(workout) }
@@ -192,7 +192,7 @@ struct HomeWidgetContent: View {
                                 Circle()
                                     .fill(Theme.toolbarOrange)
                                     .frame(width: 8, height: 8)
-                                Text(entry.workoutName)
+                                Text(WorkoutTitle.short(entry.workoutName))
                                     .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                                     .lineLimit(1)
                                 Spacer(minLength: 6)
@@ -221,7 +221,7 @@ struct HomeWidgetContent: View {
                 HomeFeatureLayout(
                     footprint: widget.footprint,
                     label: "Continue",
-                    title: state.workoutName,
+                    title: WorkoutTitle.short(state.workoutName),
                     meta: "\(durationText(state.elapsedSeconds)) in"
                 ) {
                     startControl(
@@ -243,7 +243,7 @@ struct HomeWidgetContent: View {
             HomeWidgetChrome(art: .forWorkout(workout), spot: .home(widget.footprint)) {
                 HomeFeatureLayout(
                     footprint: widget.footprint,
-                    title: workout.name,
+                    title: WorkoutTitle.short(workout.name),
                     meta: widget.configuration.showDetails ? HomeText.duration(seconds: workout.totalDuration) : nil
                 ) {
                     startControl(title: "Start", hint: "Starts \(workout.name)") { onStartWorkout(workout) }
@@ -596,7 +596,7 @@ struct HomeWidgetContent: View {
     }
 
     private var workoutShortcutTarget: Workout? {
-        picks.first.flatMap { workoutStore.workout(id: $0.workout.id) } ?? readyWorkouts.first
+        picks.first.flatMap { workoutStore.workout(id: $0.workout.id) } ?? suggestableWorkouts.first
     }
 
     private var todaysPick: some View {
@@ -683,7 +683,7 @@ struct HomeWidgetContent: View {
                 WidgetTitle(text: headline, size: 26, lines: 2)
                 if let pick {
                     HomePillButton(
-                        title: "Start \(pick.workout.name)",
+                        title: "Start \(WorkoutTitle.short(pick.workout.name))",
                         systemImage: "play.fill",
                         fillsWidth: true,
                         hint: "Starts \(pick.workout.name)"
@@ -710,11 +710,15 @@ struct HomeWidgetContent: View {
             return pending.workout
         }
         let leading = insights.ranked.first?.id
-        return readyWorkouts.first { $0.id != leading } ?? readyWorkouts.first
+        return suggestableWorkouts.first { $0.id != leading } ?? suggestableWorkouts.first
     }
 
     private var readyWorkouts: [Workout] {
         workoutStore.workouts.filter { !$0.sections.isEmpty }
+    }
+
+    private var suggestableWorkouts: [Workout] {
+        readyWorkouts.filter { !workoutStore.isArchived($0) }
     }
 
     private var selectedWorkoutValue: Workout? {
@@ -722,7 +726,7 @@ struct HomeWidgetContent: View {
            let workout = readyWorkouts.first(where: { $0.id == selectedID }) {
             return workout
         }
-        return readyWorkouts.first
+        return suggestableWorkouts.first
     }
 
     private var visibleTypes: [WorkoutType] {
@@ -769,7 +773,7 @@ struct HomeWidgetContent: View {
         } label: {
             HStack(spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(item.workout.name)
+                    Text(WorkoutTitle.short(item.workout.name))
                         .font(TimeMasterFont.black(17, relativeTo: .headline))
                         .lineLimit(1)
                     if widget.configuration.showScheduledTime {

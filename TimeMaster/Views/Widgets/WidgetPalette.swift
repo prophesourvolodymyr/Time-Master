@@ -30,6 +30,27 @@ enum WidgetTint: String, CaseIterable {
     var softFill: Color { ink.opacity(isLight ? 0.1 : 0.12) }
     var pillFill: Color { isLight ? Self.color(0x121214) : .white }
     var pillInk: Color { isLight ? .white : Self.color(0x121214) }
+    var accentOnDark: Color { self == .graphite ? Self.orange.base : base }
+
+    static func forTypeColor(hex: String) -> WidgetTint {
+        let digits = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        guard digits.count == 6, let rgb = UInt32(digits, radix: 16) else { return .graphite }
+        let red = Double((rgb >> 16) & 0xFF) / 255
+        let green = Double((rgb >> 8) & 0xFF) / 255
+        let blue = Double(rgb & 0xFF) / 255
+        let high = max(red, green, blue)
+        let chroma = high - min(red, green, blue)
+        guard chroma >= 0.2 else { return .graphite }
+        let hue: Double
+        if high == red {
+            hue = (60 * (green - blue) / chroma + 360).truncatingRemainder(dividingBy: 360)
+        } else if high == green {
+            hue = 60 * (blue - red) / chroma + 120
+        } else {
+            hue = 60 * (red - green) / chroma + 240
+        }
+        return hue < 50 || hue >= 330 ? .orange : .peach
+    }
 
     static func color(_ rgb: UInt32) -> Color {
         Color(
@@ -106,7 +127,7 @@ enum WidgetArt: String, CaseIterable {
         func has(_ prefixes: String...) -> Bool {
             words.contains { word in prefixes.contains { word.hasPrefix($0) } }
         }
-        if has("boxing", "kickbox", "martial", "punch", "fight") { return .boxingGlove }
+        if has("boxing", "kickbox", "martial", "punch", "fight", "wrestl", "grappl", "judo", "jiu", "mma") { return .boxingGlove }
         if has("hiit", "highintensity", "interval", "tabata", "bolt", "flame") { return .bolt }
         if has("cardio", "heart") { return .heart }
         if has("run", "walk", "hik", "jog", "sprint", "shoe") { return .runningShoe }

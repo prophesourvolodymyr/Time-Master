@@ -40,31 +40,40 @@ struct MenuBarActivityPage: View {
     private func weekCard(_ summary: MenuBarActivitySummary) -> some View {
         MenuBarCard(emphasized: true, padding: 16) {
             HStack(spacing: 16) {
-                MenuBarRing(progress: summary.goalProgress, lineWidth: 9) {
+                MenuBarRing(progress: summary.goalProgress, lineWidth: 10) {
                     VStack(spacing: 0) {
                         Text("\(summary.sessionsThisWeek)")
-                            .font(TimeMasterFont.black(26, relativeTo: .title2))
+                            .font(WidgetFont.hero(32))
                             .foregroundStyle(Theme.textPrimary)
                         Text(summary.weeklyGoal > 0 ? "of \(summary.weeklyGoal)" : "this week")
-                            .font(TimeMasterFont.caption())
-                            .foregroundStyle(Theme.textSecondary)
+                            .font(WidgetFont.label())
+                            .foregroundStyle(WidgetTint.graphite.secondaryInk)
                     }
                 }
-                .frame(width: 92, height: 92)
+                .frame(width: 104, height: 104)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(
                     summary.weeklyGoal > 0
                         ? "\(summary.sessionsThisWeek) of \(summary.weeklyGoal) sessions this week"
                         : "\(summary.sessionsThisWeek) sessions this week"
                 )
-                VStack(spacing: 12) {
-                    HStack(spacing: 12) {
-                        MenuBarStat(value: "\(summary.streakCurrent)", caption: "day streak", tint: Theme.toolbarOrange)
-                        MenuBarStat(value: "\(summary.streakBest)", caption: "best streak")
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(Theme.toolbarOrange)
+                        Text("\(summary.streakCurrent)")
+                            .font(WidgetFont.hero(32))
+                            .foregroundStyle(Theme.textPrimary)
+                        Text(summary.streakCurrent == 1 ? "day" : "days")
+                            .font(WidgetFont.label())
+                            .foregroundStyle(WidgetTint.graphite.secondaryInk)
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(summary.streakCurrent) day streak")
                     HStack(spacing: 12) {
+                        MenuBarStat(value: "\(summary.streakBest)", caption: "best streak")
                         MenuBarStat(value: MenuBarFormat.minutes(summary.weekSeconds), caption: "this week")
-                        MenuBarStat(value: "\(summary.sessionsThisWeek)", caption: "sessions")
                     }
                 }
             }
@@ -80,15 +89,15 @@ struct MenuBarActivityPage: View {
                         VStack(spacing: 6) {
                             ZStack(alignment: .bottom) {
                                 RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                    .fill(Theme.separator)
+                                    .fill(Color.white.opacity(0.05))
                                     .frame(height: 84)
                                 RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                    .fill(day.isToday ? Theme.toolbarOrange : Theme.toolbarOrange.opacity(0.55))
+                                    .fill(Theme.toolbarOrange)
                                     .frame(height: barHeight(day.seconds, busiest: summary.busiestDaySeconds))
                             }
                             Text(day.date.formatted(.dateTime.weekday(.narrow)))
                                 .font(TimeMasterFont.black(11, relativeTo: .caption2))
-                                .foregroundStyle(day.isToday ? Theme.textPrimary : Theme.textSecondary)
+                                .foregroundStyle(day.isToday ? Theme.textPrimary : WidgetTint.graphite.secondaryInk)
                         }
                         .frame(maxWidth: .infinity)
                         .accessibilityElement(children: .ignore)
@@ -112,29 +121,30 @@ struct MenuBarActivityPage: View {
             MenuBarCard(padding: 14) {
                 VStack(spacing: 12) {
                     ForEach(summary.monthByType) { share in
+                        let tint = WidgetTint.forTypeColor(hex: share.colorHex).accentOnDark
                         VStack(spacing: 5) {
                             HStack {
                                 Circle()
-                                    .fill(Color(hex: share.colorHex))
+                                    .fill(tint)
                                     .frame(width: 8, height: 8)
                                 Text(share.typeName)
-                                    .font(TimeMasterFont.rowTitle())
+                                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                                     .foregroundStyle(Theme.textPrimary)
                                     .lineLimit(1)
                                 Spacer()
                                 Text(MenuBarFormat.minutes(share.seconds))
-                                    .font(TimeMasterFont.caption())
-                                    .foregroundStyle(Theme.textSecondary)
+                                    .font(WidgetFont.label())
+                                    .foregroundStyle(WidgetTint.graphite.secondaryInk)
                             }
                             GeometryReader { proxy in
                                 ZStack(alignment: .leading) {
-                                    Capsule().fill(Theme.separator)
+                                    Capsule().fill(WidgetTint.graphite.track)
                                     Capsule()
-                                        .fill(Color(hex: share.colorHex))
+                                        .fill(tint)
                                         .frame(width: max(4, proxy.size.width * share.fraction))
                                 }
                             }
-                            .frame(height: 5)
+                            .frame(height: 6)
                         }
                         .accessibilityElement(children: .combine)
                     }
@@ -155,17 +165,17 @@ struct MenuBarActivityPage: View {
                             }
                         } label: {
                             HStack(spacing: 8) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.name)
-                                        .font(TimeMasterFont.rowTitle())
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(WorkoutTitle.short(item.name))
+                                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                                         .foregroundStyle(Theme.textPrimary)
                                         .lineLimit(1)
                                     Text(dayLabel(item.date))
-                                        .font(TimeMasterFont.caption())
-                                        .foregroundStyle(Theme.textSecondary)
+                                        .font(WidgetFont.label())
+                                        .foregroundStyle(WidgetTint.graphite.secondaryInk)
                                 }
                                 Spacer(minLength: 6)
-                                if item.isPartial { MenuBarChip(text: "PARTIAL", tint: Theme.textSecondary) }
+                                if item.isPartial { MenuBarChip(text: "PARTIAL") }
                                 Text(MenuBarFormat.minutes(item.seconds))
                                     .font(TimeMasterFont.black(13, relativeTo: .subheadline))
                                     .foregroundStyle(Theme.textPrimary)

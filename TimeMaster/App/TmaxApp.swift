@@ -309,7 +309,7 @@ private struct TmaxRootView: View {
         }
         let requested = (notification.userInfo?["workoutID"] as? UUID).flatMap { store.workout(id: $0) }
         let scheduled = store.scheduledWorkouts(for: Date()).first { $0.status == .pending }?.workout
-        let fallback = store.workouts.first { !$0.sections.isEmpty }
+        let fallback = store.workouts.first { !$0.sections.isEmpty && !store.isArchived($0) }
         guard let workout = requested ?? scheduled ?? fallback, !workout.sections.isEmpty else { return }
         resumePlayerWorkout = workout
     }

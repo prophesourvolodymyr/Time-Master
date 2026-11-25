@@ -35,7 +35,7 @@ struct MenuBarCoachPage: View {
                         } label: {
                             HStack {
                                 Text(starter)
-                                    .font(TimeMasterFont.rowTitle())
+                                    .font(TimeMasterFont.black(14, relativeTo: .subheadline))
                                     .foregroundStyle(Theme.textPrimary)
                                     .multilineTextAlignment(.leading)
                                 Spacer(minLength: 8)
@@ -43,9 +43,10 @@ struct MenuBarCoachPage: View {
                                     .font(.system(size: 12, weight: .bold))
                                     .foregroundStyle(Theme.toolbarOrange)
                             }
-                            .padding(12)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
                             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                            .modifier(TimeMasterCardSurface(cornerRadius: 14, flat: true))
+                            .background(WidgetTint.graphite.base, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(MenuBarRowButtonStyle())
@@ -64,24 +65,19 @@ struct MenuBarCoachPage: View {
         MenuBarCard(emphasized: isConfigured, padding: 16) {
             HStack(spacing: 12) {
                 Image(systemName: "brain.head.profile")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(Theme.toolbarOrange)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(WidgetTint.orange.ink)
                     .frame(width: 44, height: 44)
-                    .background(RoundedRectangle(cornerRadius: 13, style: .continuous).fill(Theme.toolbarOrange.opacity(0.16)))
+                    .background(Theme.toolbarOrange, in: Circle())
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("AI Coach")
-                        .font(TimeMasterFont.heading())
-                        .foregroundStyle(Theme.textPrimary)
+                VStack(alignment: .leading, spacing: 2) {
+                    WidgetTitle(text: "AI Coach", size: 20, lines: 1)
                     if isConfigured {
-                        Text("\(ai.activeProvider.name) · \(ai.model)")
-                            .font(TimeMasterFont.caption())
-                            .foregroundStyle(Theme.textSecondary)
-                            .lineLimit(1)
+                        WidgetLabel(text: "\(ai.activeProvider.name) · \(ai.model)")
                     } else {
-                        Text("Add an API key in Coach settings to start chatting.")
-                            .font(TimeMasterFont.caption())
-                            .foregroundStyle(Theme.toolbarOrange)
+                        Text("Add an API key in Coach settings")
+                            .font(WidgetFont.label())
+                            .foregroundStyle(WidgetTint.peach.base)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -107,16 +103,25 @@ struct MenuBarCoachPage: View {
             Button(action: send) {
                 Image(systemName: "arrow.up")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Theme.textPrimary)
+                    .foregroundStyle(trimmedPrompt.isEmpty ? WidgetTint.graphite.secondaryInk : WidgetTint.orange.ink)
+                    .frame(width: 36, height: 36)
+                    .background(trimmedPrompt.isEmpty ? WidgetTint.graphite.softFill : Theme.toolbarOrange, in: Circle())
+                    .contentShape(Circle())
             }
-            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, circular: true, minimumSize: 36))
+            .buttonStyle(SkillsPressStyle(cornerRadius: 18))
             .disabled(trimmedPrompt.isEmpty)
             .accessibilityLabel("Ask in Tmax")
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 4)
+        .padding(.leading, 16)
+        .padding(.trailing, 6)
+        .padding(.vertical, 6)
         .frame(minHeight: 48)
-        .modifier(TimeMasterCardSurface(cornerRadius: 18, flat: true))
+        .background(WidgetTint.graphite.base, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(Color.white.opacity(focused ? 0.24 : 0.08), lineWidth: 1)
+                .allowsHitTesting(false)
+        }
     }
 
     private func send() {

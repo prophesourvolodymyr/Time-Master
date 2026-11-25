@@ -27,7 +27,7 @@ private struct TmaxLiveLockScreenContent: View {
     @ScaledMetric(relativeTo: .body) private var nextSize: CGFloat = 30
 
     private var tone: Color {
-        state.tone(workout: Color(widgetHex: colorHex)).opacity(isLuminanceReduced ? 0.75 : 1)
+        state.tone(workout: WidgetTint.forTypeColor(hex: colorHex).accentOnDark).opacity(isLuminanceReduced ? 0.75 : 1)
     }
 
     var body: some View {
@@ -68,7 +68,7 @@ private struct TmaxLiveLockScreenContent: View {
                 if state.hasNext {
                     TmaxLiveNextCard(
                         state: state,
-                        accent: Color(widgetHex: colorHex),
+                        accent: WidgetTint.forTypeColor(hex: colorHex).accentOnDark,
                         size: state.isRest ? nextSize * 1.2 : nextSize * 0.86,
                         maxNameWidth: state.isRest ? 70 : 62
                     )

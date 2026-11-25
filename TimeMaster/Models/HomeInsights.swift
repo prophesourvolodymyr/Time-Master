@@ -62,7 +62,7 @@ extension HomeInsights {
         let streak = workouts.streakInfo()
         let ready = workouts.workouts.filter { !$0.sections.isEmpty }
         let ranked = rankedOptions(
-            ready: ready,
+            ready: ready.filter { !workouts.isArchived($0) },
             history: history,
             now: now,
             dayIndex: dayIndex,

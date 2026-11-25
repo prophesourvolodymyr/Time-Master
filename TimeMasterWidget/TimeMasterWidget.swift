@@ -248,7 +248,7 @@ struct TimeMasterProvider: AppIntentTimelineProvider {
         return TimeMasterEntry(
             date: .now,
             mode: configuration.mode,
-            workout: selected ?? pinned ?? workouts.first,
+            workout: selected ?? pinned ?? workouts.first { !WorkoutTitle.isArchived($0.name) },
             today: WidgetSnapshotStore.today,
             streak: WidgetSnapshotStore.streak,
             weeklyGoal: WidgetSnapshotStore.weeklyGoal,
@@ -329,14 +329,14 @@ struct TimeMasterWidgetFace: View {
             switch family {
             case .systemSmall:
                 VStack(alignment: .leading, spacing: 2) {
-                    TmaxWidgetTitle(text: workout.name, size: 17, lines: 3, tint: tint)
+                    TmaxWidgetTitle(text: WorkoutTitle.short(workout.name), size: 17, lines: 3, tint: tint)
                     TmaxWidgetLabel(text: "\(workout.durationMinutes) min", tint: tint)
                     Spacer(minLength: 0)
                     TmaxWidgetPlayGlyph(tint: tint)
                 }
             case .systemMedium:
                 VStack(alignment: .leading, spacing: 4) {
-                    TmaxWidgetTitle(text: workout.name, size: 22, lines: 2, tint: tint)
+                    TmaxWidgetTitle(text: WorkoutTitle.short(workout.name), size: 22, lines: 2, tint: tint)
                     TmaxWidgetLabel(text: "\(workout.durationMinutes) min", tint: tint)
                     Spacer(minLength: 0)
                     Link(destination: startURL(for: workout)) {
@@ -348,7 +348,7 @@ struct TimeMasterWidgetFace: View {
             default:
                 VStack(alignment: .leading, spacing: 6) {
                     Spacer(minLength: 0)
-                    TmaxWidgetTitle(text: workout.name, size: 30, lines: 2, tint: tint)
+                    TmaxWidgetTitle(text: WorkoutTitle.short(workout.name), size: 30, lines: 2, tint: tint)
                     TmaxWidgetLabel(text: "\(workout.durationMinutes) min", tint: tint)
                     Link(destination: startURL(for: workout)) {
                         TmaxWidgetPill(title: "Start", systemImage: "play.fill", tint: tint, fillsWidth: true)
@@ -371,7 +371,7 @@ struct TimeMasterWidgetFace: View {
             case .next(let item):
                 VStack(alignment: .leading, spacing: 2) {
                     TmaxWidgetLabel(text: item.timeRange, tint: tint)
-                    TmaxWidgetTitle(text: item.workoutName, size: 17, lines: 2, tint: tint)
+                    TmaxWidgetTitle(text: WorkoutTitle.short(item.workoutName), size: 17, lines: 2, tint: tint)
                     Spacer(minLength: 0)
                     if pending.count > 1 {
                         TmaxWidgetLabel(text: "+\(pending.count - 1)", tint: tint)
@@ -482,7 +482,7 @@ struct TimeMasterWidgetFace: View {
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(tint.ink)
             VStack(alignment: .leading, spacing: 0) {
-                Text(item.workoutName)
+                Text(WorkoutTitle.short(item.workoutName))
                     .font(TmaxWidgetFont.black(15, relativeTo: .subheadline))
                     .foregroundStyle(tint.ink)
                     .lineLimit(1)

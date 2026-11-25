@@ -215,7 +215,7 @@ struct TmaxGlanceFace: View {
 
     private var title: String {
         switch entry.agenda {
-        case .next(let item): item.workoutName
+        case .next(let item): WorkoutTitle.short(item.workoutName)
         case .finished(let completed, let total): completed == total ? "All done" : "Nothing left"
         case .restDay: "Rest day"
         }
@@ -233,7 +233,8 @@ struct TmaxGlanceFace: View {
         guard case .next(let item) = entry.agenda else {
             return "\(entry.streak) · \(title)"
         }
-        let name = item.clockTimes.map { "\($0.start) \(item.workoutName)" } ?? item.workoutName
+        let short = WorkoutTitle.short(item.workoutName)
+        let name = item.clockTimes.map { "\($0.start) \(short)" } ?? short
         return "\(entry.streak) · \(name)"
     }
 }

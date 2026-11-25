@@ -32,12 +32,13 @@ struct MenuBarSchedulePage: View {
         return VStack(spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
                 Text(today.formatted(.dateTime.weekday(.wide).day().month(.abbreviated)))
-                    .font(TimeMasterFont.sectionTitle())
+                    .font(TimeMasterFont.black(15, relativeTo: .headline))
                     .foregroundStyle(Theme.textPrimary)
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
-                if isRest { MenuBarChip(text: "REST DAY", tint: Theme.accent) }
+                if isRest { MenuBarChip(text: "REST DAY", tint: WidgetTint.peach.base) }
             }
+            .padding(.horizontal, 4)
             MenuBarCard(emphasized: !items.isEmpty, padding: 12) {
                 if items.isEmpty {
                     MenuBarEmptyState(
@@ -83,32 +84,32 @@ private struct MenuBarUpcomingDayRow: View {
             VStack(spacing: 0) {
                 Text(day.formatted(.dateTime.weekday(.abbreviated)).uppercased())
                     .font(TimeMasterFont.black(11, relativeTo: .caption2))
-                    .foregroundStyle(Theme.textSecondary)
+                    .foregroundStyle(WidgetTint.graphite.secondaryInk)
                 Text(day.formatted(.dateTime.day()))
-                    .font(TimeMasterFont.black(20, relativeTo: .title3))
+                    .font(WidgetFont.hero(22))
                     .foregroundStyle(Theme.textPrimary)
             }
             .frame(width: 40)
             VStack(alignment: .leading, spacing: 4) {
                 if items.isEmpty {
                     Text(isRest ? "Rest day" : "Nothing planned")
-                        .font(TimeMasterFont.secondary())
-                        .foregroundStyle(isRest ? Theme.accent : Theme.textSecondary)
+                        .font(WidgetFont.label())
+                        .foregroundStyle(isRest ? WidgetTint.peach.base : WidgetTint.graphite.secondaryInk)
                 } else {
                     ForEach(items) { item in
                         HStack(spacing: 6) {
                             Circle()
-                                .fill(Color(hex: item.workout.type.colorHex))
+                                .fill(WidgetTint.forTypeColor(hex: item.workout.type.colorHex).accentOnDark)
                                 .frame(width: 7, height: 7)
                                 .accessibilityHidden(true)
-                            Text(item.workout.name)
-                                .font(TimeMasterFont.rowTitle())
+                            Text(WorkoutTitle.short(item.workout.name))
+                                .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                                 .foregroundStyle(Theme.textPrimary)
                                 .lineLimit(1)
                             Spacer(minLength: 4)
                             Text(item.hasScheduledTime ? item.timeRangeText : "Any time")
-                                .font(TimeMasterFont.caption())
-                                .foregroundStyle(Theme.textSecondary)
+                                .font(WidgetFont.label())
+                                .foregroundStyle(WidgetTint.graphite.secondaryInk)
                                 .lineLimit(1)
                         }
                     }
