@@ -136,7 +136,10 @@ public enum AgentApproval {
         case "attach_media": return "Attach \(text("path").map { ($0 as NSString).lastPathComponent } ?? "a file") to \(quoted("page"))"
         case "add_page_note": return "Add a note to \(quoted("page"))"
         case "update_page": return "Edit \(quoted("page"))"
-        case "move_page": return "Move \(quoted("page")) to \(text("newParent") ?? "the root")"
+        case "move_page":
+            if let before = text("before") { return "Move \(quoted("page")) before “\(before)”" }
+            if let after = text("after") { return "Move \(quoted("page")) after “\(after)”" }
+            return "Move \(quoted("page")) to \(text("newParent") ?? "the root")"
         case "delete_page": return "Move \(quoted("page")) and everything inside it to the trash"
         case "build_workout":
             let count = (arguments["sections"] as? [Any])?.count ?? 0
@@ -178,6 +181,8 @@ public enum AgentApproval {
             return "Remove attachment \(number.map { String($0) } ?? "") from \(quoted("page")); the file goes to the trash"
         case "delete_history_entry": return "Delete a completed workout from the history"
         case "delete_outdoor_activity": return "Move an outdoor activity and its route to the trash"
+        case "delete_skill_group":
+            return "Delete skill group \(text("group").map { "“\($0)”" } ?? "") from \(text("container").map { "“\($0)”" } ?? "a board"); its skills stay, in no group"
         case "undo": return "Undo the last agent changes"
         default: return "\(tool): \(arguments.keys.sorted().joined(separator: ", "))"
         }
