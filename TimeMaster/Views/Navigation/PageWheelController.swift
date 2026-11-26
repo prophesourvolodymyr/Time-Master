@@ -485,7 +485,7 @@ final class PageWheelController: ObservableObject {
         publishRotation()
         if !moving {
             clock.stop()
-            schedulePreview(top, dwell: 0.16)
+            schedulePreview(top, dwell: restingPreviewDwell)
         }
     }
 
@@ -496,7 +496,13 @@ final class PageWheelController: ObservableObject {
         guard current != lastTop else { return }
         lastTop = current
         tick()
-        if spin.phase == .resting { schedulePreview(current, dwell: 0.16) }
+        if spin.phase == .resting { schedulePreview(current, dwell: restingPreviewDwell) }
+    }
+
+    /// How long the wheel rests on a slice before the page behind follows it: longer while typing, so building a page
+    /// never lands between two keystrokes.
+    private var restingPreviewDwell: Double {
+        query.isEmpty ? 0.16 : 0.45
     }
 
     private func setHovered(_ slice: Int?, now: TimeInterval) {

@@ -226,7 +226,10 @@ final class PageDeckTests: XCTestCase {
         XCTAssertEqual(deck.target, "database")
         XCTAssertFalse(deck.revealed.contains("database"), "the new page starts as its shell")
         XCTAssertEqual(deck.roster.live, ["workouts"], "nothing is built at the first frame")
-        try await Task.sleep(nanoseconds: 600_000_000)
+        let deadline = Date().addingTimeInterval(10)
+        while !deck.isResting, Date() < deadline {
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
         XCTAssertEqual(rested, ["database"])
         XCTAssertEqual(deck.roster.live, ["database"], "the page left behind is let go")
         XCTAssertEqual(deck.left, "database")
