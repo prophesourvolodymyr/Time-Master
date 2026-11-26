@@ -411,6 +411,18 @@ final class AgentOrganizeToolsTests: XCTestCase {
         XCTAssertEqual(try call("update_skill", ["page": "Handstand", "group": "none"])["unchanged"] as? Bool, true)
     }
 
+    func testATutorialPageTakesStatusAndGroupLikeASkill() throws {
+        try folder("Wrestling")
+        try skill("Arm Drag", in: "Wrestling", group: "Hand Fighting")
+        let tutorial = try call("create_skill_page", ["title": "Grip Basics", "parent": "Wrestling", "pageType": "tutorial", "group": "Shots"])["id"] as! String
+        let output = try call("update_skill", ["page": tutorial, "status": "completed", "group": "Hand Fighting", "position": 1])
+        XCTAssertEqual(output["status"] as? String, "completed")
+        XCTAssertEqual(output["group"] as? String, "Hand Fighting")
+        XCTAssertEqual(try database.getPage(id: tutorial).skillStatus, .completed)
+        XCTAssertEqual(try column("Wrestling", group: "Hand Fighting", status: .completed), ["Grip Basics"])
+        XCTAssertEqual(try column("Wrestling", group: "Shots", status: .notStarted), [])
+    }
+
     func testAGroupIsRenamedNotedRecolouredAndMovedWithoutLosingItsSkills() throws {
         try folder("Boxing")
         for title in ["Punches", "Defense", "Footwork"] { try call("create_skill_group", ["parent": "Boxing", "title": title]) }
@@ -955,5 +967,74 @@ final class AgentOrganizeToolsTests: XCTestCase {
         for name in ["reorder_pages", "update_skill", "update_skill_group", "delete_skill_group", "duplicate_page", "list_trash", "restore_from_trash"] {
             XCTAssertTrue(guide.contains("tmax \(name)"), name)
         }
+    }
+
+    func testACopyKeepsAToDoCoverAndAGroupsFilesBecauseMediaKeepTheirNames() throws {
+        try folder("Wrestling")
+        let skillID = try skill("Arm Drag", in: "Wrestling", group: "Hand Fighting")
+        try call("attach_media", ["page": skillID, "path": try file("cover.jpg"), "comment": "the grip"])
+        try call("add_todo", ["page": "Wrestling/Arm Drag", "title": "Drill it", "cover": "1"])
+        let boardID = try pageID("Wrestling")
+        let section = try XCTUnwrap(try database.getPage(id: boardID).skillBoardSections.first)
+        let groupFile = try database.uploadMediaToPage(pageID: SkillGroupID.make(containerID: boardID, sectionID: section.id), sourceURL: URL(fileURLWithPath: try file("group.jpg")))
+
+        let copy = try database.getPage(id: try call("duplicate_page", ["page": "Wrestling/Arm Drag"])["id"] as! String)
+        let original = try database.getPage(id: skillID)
+        XCTAssertNotNil(copy.todos.first?.coverMediaFilename)
+        XCTAssertEqual(copy.todos.first?.coverMediaFilename, original.mediaFilenames.first)
+        XCTAssertEqual(copy.mediaComments.values.sorted(), ["the grip"])
+
+        let boardCopy = try call("duplicate_page", ["page": "Wrestling"])["id"] as! String
+        let groupMedia = SkillGroupID.mediaFolder(containerFolder: try database.resolvePageFolder(id: boardCopy), sectionID: section.id).appendingPathComponent(groupFile)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: groupMedia.path))
+        XCTAssertEqual(try database.getPage(id: boardCopy).skillBoardSections.first?.mediaFilenames, [groupFile])
+    }
+
+    func testNamingTheOriginalsOwnContainerCopiesRightAfterItToo() throws {
+        try folder("Boxing")
+        for name in ["Jab", "Cross"] { try exercise(name, in: "Boxing") }
+        let output = try call("duplicate_page", ["page": "Boxing/Jab", "parent": "Boxing"])
+        XCTAssertEqual(output["path"] as? String, "Boxing/Jab Copy")
+        XCTAssertEqual(try titles(in: "Boxing"), ["Jab", "Jab Copy", "Cross"])
+    }
+
+    func testANoteComesBackFromTheTrashWithItsPictures() throws {
+        try folder("Boxing")
+        let id = try call("create_note_page", ["title": "Theory", "parent": "Boxing", "images": [try file("diagram.jpg")]])["id"] as! String
+        let names = try database.noteAttachmentNames(pageID: id)
+        XCTAssertEqual(try call("list_trash", [:])["total"] as? Int, 0)
+        try call("delete_page", ["page": id])
+        XCTAssertEqual(try trashEntries().first?["kind"] as? String, "note")
+        try call("restore_from_trash", ["item": id])
+        XCTAssertEqual(try database.noteAttachmentNames(pageID: id), names)
+        XCTAssertEqual(try call("get_page", ["page": "Boxing/Theory"])["kind"] as? String, "note")
+    }
+
+    func testRestoringIntoAPageThatCannotHoldPagesIsRefusedAndNothingMoves() throws {
+        try folder("Boxing")
+        try exercise("Jab", in: "Boxing")
+        let cross = try exercise("Cross", in: "Boxing")
+        try call("delete_page", ["page": cross])
+        XCTAssertEqual(failure { _ = try self.call("restore_from_trash", ["item": cross, "parent": "Boxing/Jab"]) }?.code, "invalid_parent")
+        XCTAssertEqual(try trashEntries().count, 1)
+        XCTAssertEqual(try titles(in: "Boxing"), ["Jab"])
+    }
+
+    func testABatchRollsBackACopyAndAMoveWhenALaterStepFails() throws {
+        try folder("Boxing")
+        for name in ["Jab", "Cross"] { try exercise(name, in: "Boxing") }
+        try folder("Footwork")
+        try exercise("Step", in: "Footwork")
+        let error = failure {
+            _ = try self.call("batch", ["operations": [
+                ["tool": "duplicate_page", "arguments": ["page": "Boxing/Jab"]],
+                ["tool": "move_page", "arguments": ["page": "$0.id", "newParent": "Footwork", "position": 1]],
+                ["tool": "update_skill", "arguments": ["page": "Boxing", "status": "learning"]],
+            ]])
+        }
+        XCTAssertEqual(error?.code, "batch_failed")
+        XCTAssertEqual(try titles(in: "Boxing"), ["Jab", "Cross"])
+        XCTAssertEqual(try titles(in: "Footwork"), ["Step"])
+        XCTAssertEqual(try trashEntries().map { $0["title"] as? String }, ["Jab Copy"])
     }
 }

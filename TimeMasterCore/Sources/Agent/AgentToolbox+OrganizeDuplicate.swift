@@ -32,10 +32,10 @@ extension AgentToolbox {
         }
     }
 
-    private func organizeClearForeignTag(_ id: String) -> Bool {
-        guard let page = try? database.getPage(id: id), let typeID = page.typeID else { return false }
+    private func organizeClearForeignTag(_ id: String) throws -> Bool {
+        guard let typeID = try database.getPage(id: id).typeID else { return false }
         if let owner = try? database.skillTypeOwner(of: id), owner.manifest.skillType(typeID) != nil { return false }
-        try? database.setSkillType(nil, for: id)
+        try database.setSkillType(nil, for: id)
         return true
     }
 
@@ -119,7 +119,7 @@ extension AgentToolbox {
                 try database.createPage(manifest: copy, parentID: placement)
                 created.append(newID)
                 try organizeCopyFiles(from: sourceFolder, to: try database.resolvePageFolder(id: newID))
-                if copy.typeID != nil, organizeClearForeignTag(newID) { untagged.append(old) }
+                if copy.typeID != nil, try organizeClearForeignTag(newID) { untagged.append(old) }
             }
             if inPlace {
                 try database.placePage(id: rootID, nextTo: page.id, after: true)
@@ -146,10 +146,11 @@ extension AgentToolbox {
         if let requested, requested != title {
             warnings.append("A page titled '\(requested)' is already there, so the copy is titled '\(title)'.")
         }
-        for old in untagged {
-            let tag = index.tag(of: old)?.title ?? "its tag"
-            warnings.append("'\(old.title)' lost \(tag): it does not exist where the copy sits.")
+        for old in untagged.prefix(3) {
+            let tag = index.tag(of: old).map { "tag '\($0.title)'" } ?? "its tag"
+            warnings.append("The copy of '\(old.title)' is untagged: \(tag) does not exist where the copy sits.")
         }
+        if untagged.count > 3 { warnings.append("\(untagged.count - 3) more copied pages are untagged for the same reason.") }
         if !warnings.isEmpty { value["warnings"] = warnings }
         return AgentToolOutput(value: value, effects: created.map { AgentEffect.createdPage(id: $0) })
     }

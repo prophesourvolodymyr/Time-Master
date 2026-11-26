@@ -43,7 +43,7 @@ Skills on a skill board sit in groups; their order inside a group is set with `u
 1. `tmax list_trash` shows pages and workouts, newest first: `id` (the trash entry), `kind`, `title`, `deleted`, and for a page `from` (the path it came from) and `inside` (pages inside it). `--limit 200` shows more; `more` says how many are left.
 2. `tmax restore_from_trash --item "<id from list_trash>"` brings a page back together with everything inside it, in the folder it came from. When that folder is gone the page returns to the top level and the result says so; `--parent "Boxing"` picks another container. The id of the deleted page or workout works as `--item` too when only one deleted copy exists.
 3. A workout goes back to the Workouts page; it was taken out of its workout groups when it was deleted, so add it to a group again with `update_workout_group`.
-4. Nothing is overwritten: a page or workout that already exists blocks the restore. `tmax undo` after a restore moves it back to the trash.
+4. Nothing is overwritten: a page or workout that already exists blocks the restore. A page whose title is already used in its folder still comes back, with a warning; ids tell the two apart. `tmax undo` after a restore moves it back to the trash.
 5. Nothing here deletes from the trash for good.
 """
     }

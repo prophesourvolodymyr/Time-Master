@@ -170,6 +170,7 @@ extension AgentToolbox {
         let names = ordered.compactMap { titles[$0] }
         let moved = ordered.enumerated().filter { current[$0.offset] != $0.element }.count
         var value: [String: Any] = ["in": parentPath, "order": Array(names.prefix(60))]
+        if let parent { value["id"] = parent.id }
         if names.count > 60 { value["more"] = names.count - 60 }
         if dryRun {
             value["dryRun"] = true

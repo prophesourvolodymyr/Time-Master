@@ -174,6 +174,9 @@ extension AgentToolbox {
         var value: [String: Any] = ["id": stored.id, "path": path, "kind": index.kind(stored)]
         if !inside.isEmpty { value["inside"] = inside.count }
         if let note { value["note"] = note }
+        if index.children(of: destination?.id).contains(where: { AgentValue.fold($0.title) == AgentValue.fold(stored.title) }) {
+            value["warnings"] = ["A page titled '\(stored.title)' is already there; use ids to tell the two apart, or rename one with update_page."]
+        }
         if dryRun {
             value["dryRun"] = true
             value["wouldRestore"] = path
