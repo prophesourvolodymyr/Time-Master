@@ -173,6 +173,11 @@ public enum AgentApproval {
         case "remove_schedule_days":
             let range = text("to").map { "\(text("from") ?? "") to \($0)" } ?? (text("from") ?? "a day")
             return "Take every schedule entry off \(range)" + (text("workout").map { " (only “\($0)”)" } ?? "")
+        case "remove_media":
+            let number = (arguments["index"] as? NSNumber)?.intValue ?? (arguments["index"] as? String).flatMap { Int($0) }
+            return "Remove attachment \(number.map { String($0) } ?? "") from \(quoted("page")); the file goes to the trash"
+        case "delete_history_entry": return "Delete a completed workout from the history"
+        case "delete_outdoor_activity": return "Move an outdoor activity and its route to the trash"
         case "undo": return "Undo the last agent changes"
         default: return "\(tool): \(arguments.keys.sorted().joined(separator: ", "))"
         }
