@@ -8,7 +8,7 @@ struct AgentAccessSettingsView: View {
 
     var body: some View {
         EverSettingsPage(title: "Agent Access") {
-            EverSettingsSection(title: "Access", detail: "Lets AI agents and the tmax command read and build your library through this app, so changes appear here immediately.") {
+            EverSettingsSection(title: "Access", detail: "Lets AI agents and the tmax command read and manage your library, workouts and schedule through this app, so changes appear here immediately.") {
                 Picker("Agent access", selection: $preferences.level) {
                     ForEach(AgentAccessLevel.allCases) { level in
                         Text(level.title).tag(level)

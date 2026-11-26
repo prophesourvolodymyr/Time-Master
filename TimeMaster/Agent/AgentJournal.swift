@@ -73,5 +73,19 @@ final class AgentJournal: @unchecked Sendable {
         defer { try? handle.close() }
         _ = try? handle.seekToEnd()
         try? handle.write(contentsOf: data + Data("\n".utf8))
+        compactIfNeeded()
+    }
+
+    private func compactIfNeeded() {
+        let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? 0
+        guard size > 4_000_000 else { return }
+        var kept = Data()
+        for entry in load().suffix(100) {
+            guard let data = try? encoder.encode(entry) else { continue }
+            kept.append(data)
+            kept.append(Data("\n".utf8))
+        }
+        try? kept.write(to: url, options: .atomic)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
     }
 }

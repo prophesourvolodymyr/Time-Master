@@ -201,6 +201,32 @@ final class AgentScheduleToolsTests: XCTestCase {
         XCTAssertEqual(try titles(10), ["Boxing B"])
     }
 
+    func testManyDatedEntriesAreAddedTogetherOrNotAtAllAndUndoneTogether() throws {
+        let planned: [[String: Any]] = [
+            ["date": key(0), "workout": "Boxing A", "start": "07:00"],
+            ["date": key(9), "workout": "Boxing B", "start": "18:00", "minutes": 40],
+            ["date": key(20), "title": "Mobility", "done": true],
+        ]
+        let output = try toolbox.call("add_schedule_entries", arguments: ["entries": planned], dryRun: false)
+        XCTAssertEqual(output.value["added"] as? Int, 3)
+        XCTAssertEqual(try titles(0), ["Boxing A"])
+        XCTAssertEqual(try entries(9)[0]["minutes"] as? Int, 40)
+        XCTAssertEqual(try entries(20)[0]["done"] as? Bool, true)
+        XCTAssertEqual(try titles(7), [])
+
+        let before = try database.loadConfig().workoutSchedule
+        XCTAssertThrowsError(try call("add_schedule_entries", ["entries": [["date": key(1), "title": "Run"], ["date": key(2), "start": "07:00"]]])) { error in
+            XCTAssertEqual((error as? AgentToolError)?.code, "entry_failed")
+        }
+        XCTAssertEqual(try database.loadConfig().workoutSchedule, before)
+        XCTAssertEqual(try titles(1), [])
+
+        toolbox.revert(output.effects)
+        XCTAssertEqual(try titles(0), [])
+        XCTAssertEqual(try titles(9), [])
+        XCTAssertEqual(try titles(20), [])
+    }
+
     func testBadInputIsRefusedWithAHintAndAnotherSettingSurvivesScheduleChanges() throws {
         var config = try database.loadConfig()
         config.weeklyGoal = 6

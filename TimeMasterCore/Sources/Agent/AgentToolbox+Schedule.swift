@@ -15,6 +15,7 @@ extension AgentToolbox {
         case "delete_schedule_plan": return try deleteSchedulePlan(args, dryRun: dryRun)
         case "select_schedule_plan": return try selectSchedulePlan(args, dryRun: dryRun)
         case "add_schedule_entry": return try addScheduleEntry(args, dryRun: dryRun)
+        case "add_schedule_entries": return try addScheduleEntries(args, dryRun: dryRun)
         case "update_schedule_entry": return try updateScheduleEntry(args, dryRun: dryRun)
         case "remove_schedule_entry": return try removeScheduleEntry(args, dryRun: dryRun)
         case "complete_schedule_entry": return try completeScheduleEntry(args, dryRun: dryRun)
@@ -448,6 +449,39 @@ extension AgentToolbox {
             }
         }
         if args.bool("done") == true { updated.setComplete(true, entryID: entry.id, on: date) }
+        return try commitSchedule(config, previous: schedule, updated: updated, dryRun: dryRun, value: value)
+    }
+
+    private func addScheduleEntries(_ args: AgentArguments, dryRun: Bool) throws -> AgentToolOutput {
+        let items = args.objects("entries")
+        guard !items.isEmpty, items.count <= 200 else {
+            throw AgentToolError("invalid_argument", "Pass between 1 and 200 entries.")
+        }
+        let (config, schedule) = try loadSchedule()
+        var updated = schedule
+        var added: [[String: Any]] = []
+        var hidden = 0
+        for (position, values) in items.enumerated() {
+            do {
+                let date = try scheduleDay(values["date"] as? String ?? "")
+                guard values["workout"] != nil || values["title"] != nil else {
+                    throw AgentToolError("invalid_argument", "An entry needs a workout or a title.", hint: "Pass workout (id or name) or title.")
+                }
+                let entry = try scheduleEntry(from: values, base: nil, defaultWeekday: WeeklyWorkoutSchedule.weekday(date))
+                updated.setEntry(entry, on: date)
+                if values["done"] as? Bool == true { updated.setComplete(true, entryID: entry.id, on: date) }
+                if schedule.selection(for: date)?.isVacation == true { hidden += 1 }
+                let key = WeeklyWorkoutSchedule.dayKey(date)
+                var line: [String: Any] = ["id": entry.id.uuidString, "occurrence": "\(key)/\(entry.id.uuidString)", "date": key, "title": entry.title]
+                if let start = entry.startMinute { line["start"] = clock(start) }
+                added.append(line)
+            } catch {
+                let failure = AgentToolError.translating(error)
+                throw AgentToolError("entry_failed", "Entry \(position) failed: \(failure.message)", hint: failure.hint, details: ["index": position, "cause": failure.code])
+            }
+        }
+        var value: [String: Any] = ["added": added.count, "entries": added]
+        if hidden > 0 { value["warning"] = "\(hidden) entr\(hidden == 1 ? "y is" : "ies are") in a vacation week and stay hidden until a plan is chosen." }
         return try commitSchedule(config, previous: schedule, updated: updated, dryRun: dryRun, value: value)
     }
 

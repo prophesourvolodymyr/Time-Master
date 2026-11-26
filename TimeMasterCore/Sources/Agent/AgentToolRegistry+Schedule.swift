@@ -4,7 +4,7 @@ extension AgentToolRegistry {
     static var scheduleTools: [AgentTool] {
         [
             getSchedule, listSchedulePlans, createSchedulePlan, updateSchedulePlan, deleteSchedulePlan, selectSchedulePlan,
-            addScheduleEntry, updateScheduleEntry, removeScheduleEntry, completeScheduleEntry, setTrainingDays,
+            addScheduleEntry, addScheduleEntries, updateScheduleEntry, removeScheduleEntry, completeScheduleEntry, setTrainingDays,
         ]
     }
 
@@ -123,6 +123,20 @@ extension AgentToolRegistry {
             summary: "Put a workout (or a custom activity) on a day of the schedule, once or every week.",
             risk: .write, executor: .core, coach: true,
             schema: AgentSchema.object(properties, required: ["date"])
+        )
+    }
+
+    static var addScheduleEntries: AgentTool {
+        var properties = entryFields
+        properties["date"] = AgentSchema.string(dayText)
+        properties["done"] = AgentSchema.boolean("Mark it done right away.")
+        return AgentTool(
+            name: "add_schedule_entries",
+            summary: "Put many workouts on specific dates of the schedule in one call, for a program spread over weeks (each entry is one-off, on its date). All are added or none; up to 200.",
+            risk: .write, executor: .core, coach: true,
+            schema: AgentSchema.object([
+                "entries": AgentSchema.array(of: AgentSchema.object(properties, required: ["date"]), "The entries, each with a date and a workout or a title."),
+            ], required: ["entries"])
         )
     }
 
