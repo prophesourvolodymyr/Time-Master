@@ -29,7 +29,7 @@ extension AgentToolRegistry {
                 "comment": AgentSchema.string("New caption in Markdown. Empty text clears it."),
                 "position": AgentSchema.integer("Move the attachment to this place, 1 for the front. The others shift; a number past the end puts it last.", minimum: 1),
                 "learnFirst": AgentSchema.boolean("Skills and tutorials: true flags the file as something to have first (it moves from Attachments to Dependencies), false takes the flag off."),
-                "cover": AgentSchema.boolean("True makes it the page's banner (the cover chosen in the app); false takes the chosen banner off so the first file is the cover again. Without a chosen banner the first file is the cover."),
+                "cover": AgentSchema.boolean("True makes it the page's banner (the cover chosen in the app); false takes the banner choice off when this is the chosen one, so the first file is the cover again. Without a chosen banner the first file is the cover."),
                 "icon": AgentSchema.boolean("True uses this picture as the page's icon picture (the small tile); false clears the icon picture when this is the one. Pictures only."),
             ], required: ["page", "index"])
         )

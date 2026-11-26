@@ -490,7 +490,7 @@ extension AgentToolbox {
             return AgentToolOutput(value: preview)
         }
         var effects: [AgentEffect] = []
-        if let snapshot = pageSnapshot(try database.getPage(id: page.id)) { effects.append(snapshot) }
+        if let snapshot = pageUndoEffect(try database.getPage(id: page.id)) { effects.append(snapshot) }
         var uploadedIcon: String?
         if let iconPicture {
             if let url = iconPicture.url {

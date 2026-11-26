@@ -24,6 +24,7 @@ Read everything inside a page and edit its attachments, captions, link comments,
 5. Several changes go in one call: `tmax update_media --page "Boxing/Jab" --index 3 --position 1 --comment "Best angle" --cover true`.
 6. `tmax remove_media --page "Boxing/Jab" --index 2` removes an attachment after asking the user. The file moves to the library trash (.trash), the later files move up one place, and a banner or icon that pointed at it is cleared. `tmax undo` brings back the entry and its caption but not the file, which then shows `missing: true`.
 7. Notes keep their pictures inside the Markdown: change them with `update_page --markdown-body`, not with these tools.
+8. `tmax attach_media` puts a new file at the end of the list, so its number is the new count of attachments (`--comment` captions it right away, `--make-cover` moves it to the front). To make a new picture the banner, attach it and then run `tmax update_media --page "Boxing/Jab" --index <that number> --cover true`.
 
 ## Links
 - `tmax update_page --page "Wrestling/Arm Drag" --link-urls https://a.example --link-urls https://b.example` replaces the whole list. Comments and learn-first flags stay only on links whose address is passed unchanged.

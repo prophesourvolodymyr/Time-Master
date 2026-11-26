@@ -14,7 +14,7 @@ extension AgentToolbox {
         }
     }
 
-    func pageSnapshot(_ manifest: ExercisePageManifest) -> AgentEffect? {
+    func pageUndoEffect(_ manifest: ExercisePageManifest) -> AgentEffect? {
         guard let data = try? JSONEncoder().encode(manifest), let text = String(data: data, encoding: .utf8) else { return nil }
         return .changedPage(id: manifest.id, previous: text)
     }
@@ -264,7 +264,7 @@ extension AgentToolbox {
         }
         var effects: [AgentEffect] = []
         if !changed.isEmpty {
-            if let snapshot = pageSnapshot(stored) { effects.append(snapshot) }
+            if let snapshot = pageUndoEffect(stored) { effects.append(snapshot) }
             try database.updatePage(id: stored.id, manifest: updated, newParentID: stored.parentID)
         }
         let saved = try database.getPage(id: stored.id)
@@ -289,7 +289,7 @@ extension AgentToolbox {
             return AgentToolOutput(value: ["dryRun": true, "path": target.path, "wouldRemove": entry, "left": left])
         }
         var effects: [AgentEffect] = []
-        if let snapshot = pageSnapshot(target.page) { effects.append(snapshot) }
+        if let snapshot = pageUndoEffect(target.page) { effects.append(snapshot) }
         try database.removeMediaFromPage(pageID: target.page.id, filename: target.filename)
         var value: [String: Any] = ["id": target.page.id, "path": target.path, "removed": entry, "left": left]
         if entry["missing"] == nil {
@@ -387,7 +387,7 @@ extension AgentToolbox {
         }
         var effects: [AgentEffect] = []
         if !changed.isEmpty {
-            if let snapshot = pageSnapshot(stored) { effects.append(snapshot) }
+            if let snapshot = pageUndoEffect(stored) { effects.append(snapshot) }
             try database.updatePage(id: stored.id, manifest: updated, newParentID: stored.parentID)
         }
         let saved = try database.getPage(id: stored.id)
@@ -507,7 +507,7 @@ extension AgentToolbox {
         if !dryRun, after != current {
             var updated = stored
             updated[keyPath: list] = after
-            if let snapshot = pageSnapshot(stored) { effects.append(snapshot) }
+            if let snapshot = pageUndoEffect(stored) { effects.append(snapshot) }
             try database.updatePage(id: stored.id, manifest: updated, newParentID: stored.parentID)
             after = try database.getPage(id: stored.id)[keyPath: list]
         }
