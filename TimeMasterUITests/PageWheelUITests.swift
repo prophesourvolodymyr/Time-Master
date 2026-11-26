@@ -11,6 +11,12 @@ final class PageWheelUITests: XCTestCase {
         try XCTSkipUnless(FileManager.default.fileExists(atPath: Self.dataRoot), "No library copy at \(Self.dataRoot)")
         continueAfterFailure = false
         app.launchEnvironment["TIMEMASTER_DATA_ROOT"] = Self.dataRoot
+        app.launchArguments += [
+            "-tm.navigation.order.v1",
+            "(coach, profile, workouts, home, database, schedule, skills, map, ranked, physique, analytics, settings)",
+            "-tm.navigation.placement", "bottom",
+            "-tm.navigation.editorGuideSeen", "YES"
+        ]
         app.launch()
         app.discardSavedWorkoutIfOffered()
         XCTAssertTrue(bar.waitForExistence(timeout: 30), "the menu bar")
@@ -234,10 +240,9 @@ final class PageWheelUITests: XCTestCase {
         XCTAssertTrue(minuses.firstMatch.waitForExistence(timeout: 4), "red minus buttons in edit mode")
         XCTAssertGreaterThan(minuses.count, 3, "every page carries one")
         keep("20-edit-mode-minus")
-        guard let minus = minuses.allElementsBoundByIndex.first(where: { $0.isHittable }) else {
-            return XCTFail("a minus on screen")
-        }
-        let id = String(minus.identifier.dropFirst("navigation-remove-".count))
+        let id = "workouts"
+        let minus = app.buttons["navigation-remove-\(id)"].firstMatch
+        XCTAssertTrue(minus.isHittable, "the minus on Workouts, beside Home")
         minus.tap()
         RunLoop.current.run(until: Date().addingTimeInterval(0.6))
         XCTAssertFalse(app.buttons["navigation-item-\(id)"].exists, "\(id) left the bar")

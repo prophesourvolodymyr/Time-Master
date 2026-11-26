@@ -533,7 +533,7 @@ struct PageWheelBubble: View {
                     .padding(.horizontal, 8)
                     .padding(.bottom, 10)
                 }
-                .frame(maxHeight: max(60, frame.height - 92))
+                .frame(maxHeight: max(60, frame.height - 64))
                 .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -560,8 +560,8 @@ struct PageWheelBubble: View {
 
     private func header(_ tree: [NavigationSearchNode]) -> String {
         if tree.isEmpty { return "No match" }
-        let pages = tree.map(\.title)
-        return pages.count == 1 ? "Found in \(pages[0])" : "Found in \(pages.dropLast().joined(separator: ", ")) and \(pages.last!)"
+        let count = wheel.results.hits.filter { !$0.entry.isPage }.prefix(NavigationSearchIndex.treeLimit).count
+        return "\(count) \(count == 1 ? "match" : "matches") for “\(wheel.query.trimmingCharacters(in: .whitespaces))”"
     }
 }
 

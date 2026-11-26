@@ -57,7 +57,8 @@ struct PageWheelLayout: Equatable {
             bubble = CGRect(x: center.x + radius + 28, y: center.y - radius, width: max(0, bubbleWidth), height: radius * 2)
             bubbleOnSide = true
         } else {
-            bubble = CGRect(x: bounds.minX + 16, y: below, width: width - 32, height: room * (keyboardUp ? 0.46 : 0.4))
+            bubble = CGRect(x: bounds.minX + 16, y: below, width: width - 32,
+                            height: keyboardUp ? max(120, room - 110) : room * 0.45)
             bubbleOnSide = false
             let top = below + (bubbleHeight > 0 ? min(bubbleHeight, bubble.height) + 10 : 0)
             if searching && keyboardUp {
