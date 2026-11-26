@@ -129,6 +129,24 @@ final class AgentRecordToolsTests: XCTestCase {
         XCTAssertEqual(try historyNames(), ["New", "E5", "E4", "E2"])
     }
 
+    func testHistoryEffectsStayCompactOnALongHistoryAndSurviveTheJournalOnDisk() throws {
+        let entries = (0..<3000).map {
+            HistoryEntry(workoutId: UUID().uuidString, workoutName: "Session \($0)", completedAt: moment(daysAgo: 1 + $0 % 400), durationCompleted: 600, workoutType: .strength)
+        }
+        try database.replaceHistory(entries)
+        let before = try historyText()
+
+        let logged = try output("log_workout", ["name": "Heavy bag", "seconds": 900])
+        let deleted = try output("delete_history_entry", ["id": entries[1500].id])
+        let journal = try JSONEncoder().encode(logged.effects + deleted.effects)
+
+        XCTAssertLessThan(journal.count, 1500)
+        let restored = try JSONDecoder().decode([AgentEffect].self, from: journal)
+        XCTAssertEqual(restored, logged.effects + deleted.effects)
+        toolbox.revert(restored)
+        XCTAssertEqual(try historyText(), before)
+    }
+
     func testUndoingATwiceRevertedEffectChangesNothing() throws {
         let entries = try seedHistory(mixedHistory)
         let deleted = try output("delete_history_entry", ["id": entries[1].id])

@@ -44,8 +44,8 @@ Build the called-punch part of a Boxing workout: a combo section plays rounds of
 
 ## What a combo is
 - A combo is a section of a workout with its own kind, `combo`; it is not a plain bundle. Every round plays all the calls once, in order; each call lasts `secondsPerCall` seconds and a rest comes between rounds. The player says 1-2-3 as "one, two, three".
-- A call is moves joined by dashes. Moves: 1 jab, 2 cross, 3 lead hook, 4 rear hook, 5 lead uppercut, 6 rear uppercut, and the words slip, roll, duck, block, pivot, reset. A call holds 1 to 8 moves, a round up to 40 calls. `1-2-3`, `1 2 3`, `123` and `1,2,slip` read the same; a call is stored as `1-2-slip`.
-- Defaults: 3 rounds, 5 seconds per call, 20 seconds of rest between rounds, 3 seconds to get ready before the first round, calls spoken aloud, shown in the player as a red stage with an optional corner icon.
+- A call is moves joined by dashes. Moves: 1 jab, 2 cross, 3 lead hook, 4 rear hook, 5 lead uppercut, 6 rear uppercut, and the words slip, roll, duck, block, pivot, reset. A call holds 1 to 8 moves, a round up to 40 calls. Write a call as `1-2-3`, `1 2 3` or `123`; `1,2,slip` and `1-2-Slip` are accepted too. It is stored as `1-2-3` or `1-2-slip`.
+- Defaults: 3 rounds, 5 seconds per call, 20 seconds of rest between rounds, 3 seconds to get ready before the first round, calls spoken aloud. The optional `icon` is drawn in the corner of the combo.
 
 ## Steps
 1. `tmax build_workout --json '{"name":"Boxing night","type":"Cardio","sections":[{"name":"Round robin","combo":{"calls":["1-2","1-2-3","1-1-2-slip"],"rounds":4,"secondsPerCall":5,"restBetweenRounds":20,"icon":"flame.fill"}},{"exercise":"Boxing/Shadow Boxing","duration":120}]}'`
