@@ -58,15 +58,23 @@ final class PageWheelGeometryTests: XCTestCase {
         XCTAssertLessThan(middle.center.y - middle.radius, 700)
     }
 
-    func testTheSearchLayoutZoomsTheWheelAboveTheKeyboard() {
+    func testTheSearchFieldSitsOnTopAndTheBubbleHangsUnderItAboveTheWheel() {
         let bounds = CGRect(x: 0, y: 0, width: 393, height: 760)
         let resting = PageWheelLayout(bounds: bounds, searching: false, keyboardUp: false)
+        XCTAssertLessThan(resting.searchBar.minY, 20, "the field is at the top")
+        XCTAssertLessThan(resting.searchBar.maxY, resting.center.y - resting.radius, "the wheel sits under the field")
+        XCTAssertGreaterThanOrEqual(resting.bubble.minY, resting.searchBar.maxY, "the bubble hangs under the field")
+
         let typing = PageWheelLayout(bounds: CGRect(x: 0, y: 0, width: 393, height: 457), searching: true, keyboardUp: true)
         XCTAssertGreaterThan(typing.radius, resting.radius, "the wheel grows while typing")
-        XCTAssertLessThan(typing.searchBar.maxY, 457, "the field stays above the keyboard")
-        XCTAssertLessThan(typing.center.y, typing.searchBar.minY, "the wheel sits above the field")
-        XCTAssertGreaterThan(typing.bubble.height, 60, "there is room for the bubble above the wheel")
-        XCTAssertGreaterThan(resting.searchBar.minY, resting.center.y + resting.radius, "the field sits below the wheel")
+        XCTAssertEqual(typing.searchBar, resting.searchBar, "the field stays where it was")
+        XCTAssertGreaterThan(typing.center.y - typing.radius, typing.searchBar.maxY, "the wheel's top shows under the field")
+        XCTAssertGreaterThan(typing.center.y + typing.radius, 457, "its lower half goes under the keyboard")
+
+        let withBubble = PageWheelLayout(bounds: CGRect(x: 0, y: 0, width: 393, height: 457), searching: true,
+                                         keyboardUp: true, bubbleHeight: 120)
+        XCTAssertEqual(withBubble.center.y - typing.center.y, 130, accuracy: 0.5, "the bubble pushes the wheel down by its height")
+        XCTAssertGreaterThan(withBubble.center.y - withBubble.radius, withBubble.bubble.minY + 120, "the wheel clears the bubble")
     }
 }
 

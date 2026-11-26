@@ -108,8 +108,8 @@ struct SlotCarouselNavigation<Content: View>: View {
 
             ZStack(alignment: .top) {
                 ZStack(alignment: .top) {
-                    PageDeckPages(roster: deck.roster, deck: deck, order: order, page: page)
                     PageDeckShells(deck: deck)
+                    PageDeckPages(roster: deck.roster, deck: deck, order: order, page: page)
                 }
                 .environment(\.slotNavigationContentBounds, contentBounds)
                 .environment(\.slotNavigationArcFrame, restingLayout == .full && showsNavigation

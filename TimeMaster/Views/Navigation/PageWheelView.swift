@@ -58,9 +58,9 @@ struct PageWheelOverlay: View {
                     .scaleEffect(0.86 + 0.14 * searchOpacity(progress), anchor: .top)
                     .allowsHitTesting(wheel.phase == .open)
 
-                if wheel.phase == .open, !wheel.query.isEmpty {
+                if wheel.phase == .open, !wheel.query.isEmpty, !wheel.results.tree.isEmpty || wheel.results.isEmpty {
                     PageWheelBubble(wheel: wheel, layout: layout)
-                        .transition(reduceMotion ? .opacity : .scale(scale: 0.6, anchor: layout.bubbleOnSide ? .leading : .bottom)
+                        .transition(reduceMotion ? .opacity : .scale(scale: 0.6, anchor: layout.bubbleOnSide ? .leading : .top)
                             .combined(with: .opacity))
                 }
             }
@@ -236,18 +236,10 @@ private struct PageWheelFace: View, Animatable {
         let formed = min(1, max(0, (amount - 0.25) / 0.6))
 
         ZStack {
-            PageWheelDisk(
-                geometry: geometry,
-                rotation: rotation,
-                top: top,
-                hovered: hovered,
-                touch: touch,
-                formed: formed,
-                theme: theme
-            )
+            PageWheelDisk(geometry: geometry, rotation: rotation, touch: touch, formed: formed, theme: theme)
 
             if geometry.hubRadius > 6 {
-                PageWheelHub(side: geometry.hubRadius * 1.22, isPressed: touch.map { geometry.distance(to: $0) <= geometry.hubRadius } ?? false)
+                PageWheelHub(side: geometry.hubRadius * 1.3, isPressed: touch.map { geometry.distance(to: $0) <= geometry.hubRadius } ?? false)
                     .position(geometry.center)
                     .opacity(Double(formed))
             }
@@ -293,8 +285,6 @@ private struct PageWheelFace: View, Animatable {
 private struct PageWheelDisk: View {
     let geometry: PageWheelGeometry
     let rotation: CGFloat
-    let top: Int
-    let hovered: Int?
     let touch: CGPoint?
     let formed: CGFloat
     let theme: SlotNavigationTheme
@@ -316,18 +306,6 @@ private struct PageWheelDisk: View {
 
             if geometry.count > 0, formed > 0 {
                 let half = geometry.spacing / 2
-                let topAngle = geometry.angle(of: top, rotation: rotation)
-                context.fill(
-                    wedge(from: topAngle - half, to: topAngle + half),
-                    with: .radialGradient(
-                        Gradient(colors: [Theme.toolbarOrange.opacity(0.42 * formed), Theme.toolbarOrange.opacity(0.08 * formed)]),
-                        center: geometry.point(angle: topAngle, distance: radius * 0.8), startRadius: 0, endRadius: radius * 0.75
-                    )
-                )
-                if let hovered, hovered != top {
-                    let hoverAngle = geometry.angle(of: hovered, rotation: rotation)
-                    context.fill(wedge(from: hoverAngle - half, to: hoverAngle + half), with: .color(.white.opacity(0.09 * formed)))
-                }
                 var separators = Path()
                 for index in 0..<geometry.count {
                     let angle = geometry.angle(of: index, rotation: rotation) + half
@@ -354,32 +332,7 @@ private struct PageWheelDisk: View {
                     center: touch, startRadius: 0, endRadius: 150
                 ), lineWidth: 1.4)
             }
-
-            if formed > 0 {
-                let tip = geometry.point(angle: 0, distance: radius - 2)
-                var pointer = Path()
-                pointer.move(to: CGPoint(x: tip.x - 9, y: tip.y - 9))
-                pointer.addQuadCurve(to: CGPoint(x: tip.x + 9, y: tip.y - 9), control: CGPoint(x: tip.x, y: tip.y - 12))
-                pointer.addLine(to: CGPoint(x: tip.x, y: tip.y + 5))
-                pointer.closeSubpath()
-                var glowing = context
-                glowing.addFilter(.shadow(color: Theme.toolbarOrange.opacity(0.8 * formed), radius: 6))
-                glowing.fill(pointer, with: .color(Theme.toolbarOrange.opacity(Double(formed))))
-            }
         }
-    }
-
-    private func wedge(from start: CGFloat, to end: CGFloat) -> Path {
-        var path = Path()
-        let center = geometry.center
-        let inner = geometry.hubRadius
-        let outer = geometry.radius
-        let startAngle = Angle(radians: Double(start - .pi / 2))
-        let endAngle = Angle(radians: Double(end - .pi / 2))
-        path.addArc(center: center, radius: outer, startAngle: startAngle, endAngle: endAngle, clockwise: false)
-        path.addArc(center: center, radius: inner, startAngle: endAngle, endAngle: startAngle, clockwise: true)
-        path.closeSubpath()
-        return path
     }
 }
 
@@ -426,40 +379,34 @@ private struct PageWheelHub: View {
 
     var body: some View {
         let tile = RoundedRectangle(cornerRadius: side * 0.26, style: .continuous)
-        ZStack {
-            Circle()
-                .fill(Color(hex: "151517"))
-                .overlay(Circle().strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
-                .frame(width: side * 1.32, height: side * 1.32)
-            tile
-                .fill(LinearGradient(colors: [Color(hex: "070505"), Color(hex: "120604")], startPoint: .top, endPoint: .bottom))
-                .overlay {
-                    RadialGradient(
-                        colors: [Color(hex: "FF7A2E").opacity(0.95), Color(hex: "FF5A1F").opacity(0.45), .clear],
-                        center: UnitPoint(x: 0.5, y: 1.08), startRadius: 0, endRadius: side * 0.62
-                    )
-                    .clipShape(tile)
-                }
-                .overlay {
-                    TmaxMark()
-                        .fill(LinearGradient(colors: [.white, Color(hex: "FFE2D0")], startPoint: .top, endPoint: .bottom))
-                        .aspectRatio(TmaxMark.aspectRatio, contentMode: .fit)
-                        .frame(width: side * 0.62)
-                        .offset(y: -side * 0.03)
-                }
-                .overlay(tile.strokeBorder(Color(hex: "4A1408").opacity(0.9), lineWidth: 1))
-                .frame(width: side, height: side)
-                .shadow(color: Color(hex: "FF5A1F").opacity(isPressed ? 0.55 : 0.28), radius: isPressed ? 14 : 8)
-        }
-        .scaleEffect(isPressed ? 0.93 : 1)
-        .animation(isPressed ? EverBounceMotion.squeezeOn : EverBounceMotion.liftOff, value: isPressed)
+        tile
+            .fill(LinearGradient(colors: [Color(hex: "070505"), Color(hex: "120604")], startPoint: .top, endPoint: .bottom))
+            .overlay {
+                RadialGradient(
+                    colors: [Color(hex: "FF7A2E").opacity(0.95), Color(hex: "FF5A1F").opacity(0.45), .clear],
+                    center: UnitPoint(x: 0.5, y: 1.08), startRadius: 0, endRadius: side * 0.62
+                )
+                .clipShape(tile)
+            }
+            .overlay {
+                TmaxMark()
+                    .fill(LinearGradient(colors: [.white, Color(hex: "FFE2D0")], startPoint: .top, endPoint: .bottom))
+                    .aspectRatio(TmaxMark.aspectRatio, contentMode: .fit)
+                    .frame(width: side * 0.62)
+                    .offset(y: -side * 0.03)
+            }
+            .overlay(tile.strokeBorder(Color(hex: "4A1408").opacity(0.9), lineWidth: 1))
+            .frame(width: side, height: side)
+            .shadow(color: Color(hex: "FF5A1F").opacity(isPressed ? 0.55 : 0.28), radius: isPressed ? 14 : 8)
+            .scaleEffect(isPressed ? 0.93 : 1)
+            .animation(isPressed ? EverBounceMotion.squeezeOn : EverBounceMotion.liftOff, value: isPressed)
     }
 }
 
 // MARK: - Search field
 
-/// The liquid glass field below the wheel. Focusing it zooms into it; on the iPhone it rides on top of the keyboard and
-/// the wheel moves up and grows above it.
+/// The liquid glass field at the top of the wheel. Focusing it zooms into it; on the iPhone the wheel then grows right
+/// under it, its lower half going under the keyboard.
 struct PageWheelSearchField: View {
     @ObservedObject var wheel: PageWheelController
     var focused: FocusState<Bool>.Binding
@@ -571,7 +518,7 @@ struct PageWheelBubble: View {
             .padding(.bottom, 8)
 
             if tree.isEmpty {
-                Text(wheel.results.isEmpty ? "Nothing in Tmax matches “\(wheel.query)”." : "Return opens \(wheel.results.best?.title ?? "it").")
+                Text("Nothing in Tmax matches “\(wheel.query)”.")
                     .font(TimeMasterFont.secondary())
                     .foregroundStyle(Theme.textSecondary)
                     .padding(.horizontal, 16)
@@ -599,7 +546,11 @@ struct PageWheelBubble: View {
                 .overlay(PageWheelBubbleShape(tailOnSide: layout.bubbleOnSide).stroke(Color.white.opacity(0.14), lineWidth: 1))
                 .shadow(color: .black.opacity(0.5), radius: 20, y: 8)
         }
-        .frame(width: frame.width, height: frame.height, alignment: layout.bubbleOnSide ? .topLeading : .bottom)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+            if abs(wheel.bubbleHeight - height) > 0.5 { wheel.bubbleHeight = height }
+        }
+        .onDisappear { wheel.bubbleHeight = 0 }
+        .frame(width: frame.width, height: frame.height, alignment: .topLeading)
         .position(x: frame.midX, y: frame.midY)
         .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.82), value: wheel.results.query)
         .accessibilityElement(children: .contain)
@@ -608,7 +559,7 @@ struct PageWheelBubble: View {
     }
 
     private func header(_ tree: [NavigationSearchNode]) -> String {
-        if tree.isEmpty { return wheel.results.isEmpty ? "No match" : "Best match: \(wheel.results.best?.title ?? "")" }
+        if tree.isEmpty { return "No match" }
         let pages = tree.map(\.title)
         return pages.count == 1 ? "Found in \(pages[0])" : "Found in \(pages.dropLast().joined(separator: ", ")) and \(pages.last!)"
     }
@@ -761,12 +712,13 @@ private struct PageWheelMacInput: NSViewRepresentable {
             super.viewDidMoveToWindow()
             stop()
             guard window != nil else { return }
-            monitors.append(NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+            let scrolls = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
                 MainActor.assumeIsolated { self?.scroll(event) ?? false } ? nil : event
-            } as Any)
-            monitors.append(NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            }
+            let keys = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
                 MainActor.assumeIsolated { self?.key(event) ?? false } ? nil : event
-            } as Any)
+            }
+            monitors = [scrolls, keys].compactMap { $0 }
         }
 
         func stop() {

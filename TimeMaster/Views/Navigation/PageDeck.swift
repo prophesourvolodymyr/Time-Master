@@ -25,8 +25,10 @@ final class PageDeck: ObservableObject {
     @Published private(set) var right: String?
     /// 0 shows `left` in full and 1 shows `right`; past either end of the bar the page leans like a rubber band.
     @Published private(set) var split: CGFloat = 0
-    /// Real pages that have been laid out and show over their shells.
+    /// Real pages that have been added to the screen and fade in over their shells.
     @Published private(set) var revealed: Set<String>
+    /// Real pages that have had time to draw: their shells, kept under them until then, are gone.
+    @Published private(set) var settled: Set<String>
     /// The page the deck rests on or is going to: its preferences count and it takes touches once the deck rests.
     @Published private(set) var target: String
     @Published private(set) var isResting = true
@@ -50,6 +52,7 @@ final class PageDeck: ObservableObject {
         left = page
         target = page
         revealed = [page]
+        settled = [page]
         roster = PageDeckRoster(page: page)
     }
 
@@ -126,7 +129,10 @@ final class PageDeck: ObservableObject {
     func go(to id: String, order: [String] = []) {
         dragOrigin = nil
         cancelMotion()
-        if !roster.live.contains(id) { revealed.remove(id) }
+        if !roster.live.contains(id) {
+            revealed.remove(id)
+            settled.remove(id)
+        }
         target = id
         isResting = false
 
@@ -166,13 +172,19 @@ final class PageDeck: ObservableObject {
         settle(on: id, after: duration + 0.02)
     }
 
-    /// The real page `id` has been added to the screen; it shows over its shell once it has been laid out.
+    /// The real page `id` has been added to the screen: it fades in over its shell, which stays under it a moment longer
+    /// in case the page draws its first frame late (a navigation stack shows nothing until its root has laid out).
     func pageAppeared(_ id: String) {
         guard !revealed.contains(id) else { return }
         DispatchQueue.main.async { [weak self] in
             guard let self, self.roster.live.contains(id), !self.revealed.contains(id) else { return }
             withAnimation(self.reduceMotion ? nil : .easeOut(duration: 0.2)) {
                 _ = self.revealed.insert(id)
+            }
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: 700_000_000)
+                guard let self, self.revealed.contains(id) else { return }
+                self.settled.insert(id)
             }
         }
     }
@@ -181,6 +193,7 @@ final class PageDeck: ObservableObject {
     func build(_ id: String) {
         guard !roster.live.contains(id) else { return }
         revealed.remove(id)
+        settled.remove(id)
         roster.live.append(id)
     }
 
@@ -226,6 +239,7 @@ final class PageDeck: ObservableObject {
         let keep = roster.live.filter { $0 == id }
         if keep != roster.live { roster.live = keep }
         revealed = revealed.intersection(keep)
+        settled = settled.intersection(keep)
         onRest(id)
     }
 
@@ -300,13 +314,13 @@ private struct PageDeckOffset: GeometryEffect {
     }
 }
 
-/// The shells of the pages on screen that have no real page showing yet.
+/// The shells of the pages on screen, under the real pages: they fill in until a real page has drawn.
 struct PageDeckShells: View {
     @ObservedObject var deck: PageDeck
 
     var body: some View {
         ZStack(alignment: .top) {
-            ForEach(deck.visiblePages.filter { !deck.revealed.contains($0) }, id: \.self) { id in
+            ForEach(deck.visiblePages.filter { !deck.settled.contains($0) }, id: \.self) { id in
                 if let destination = SlotNavigationDestination(rawValue: id) {
                     PageShell(destination: destination)
                         .modifier(PageDeckOffset(place: deck.place(of: id) ?? 0))

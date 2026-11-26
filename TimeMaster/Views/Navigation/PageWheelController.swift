@@ -26,7 +26,9 @@ struct PageWheelArc: Equatable {
     static let zero = PageWheelArc(peak: .zero, width: 0, sag: 1, pitch: 80, inset: 18)
 }
 
-/// Where the wheel, its search bar and its bubble go inside the space the wheel has.
+/// Where the wheel, its search field and its bubble go inside the space the wheel has: the field at the top, the
+/// thinking bubble hanging under it (beside the wheel on wide windows) and the wheel below. While typing on a phone the
+/// wheel grows and sits right under the field and the bubble, its lower half going under the keyboard.
 struct PageWheelLayout: Equatable {
     var bounds: CGRect
     var center: CGPoint
@@ -38,34 +40,33 @@ struct PageWheelLayout: Equatable {
 
     static let searchHeight: CGFloat = 54
 
-    init(bounds: CGRect, searching: Bool, keyboardUp: Bool) {
+    /// `bubbleHeight` is the height the thinking bubble takes now, 0 while it is hidden.
+    init(bounds: CGRect, searching: Bool, keyboardUp: Bool, bubbleHeight: CGFloat = 0) {
         self.bounds = bounds
         self.searching = searching
         let width = bounds.width
-        let height = bounds.height
         let wide = width >= 760
-        let barWidth = min(width - 40, 520)
-        if searching && keyboardUp && !wide {
-            radius = min(width * 0.5, 230)
-            let barY = bounds.maxY - Self.searchHeight - 10
-            searchBar = CGRect(x: bounds.midX - barWidth / 2, y: barY, width: barWidth, height: Self.searchHeight)
-            center = CGPoint(x: bounds.midX, y: barY - 18)
-            let wheelTop = center.y - radius
-            bubble = CGRect(x: bounds.minX + 16, y: bounds.minY + 10, width: width - 32, height: max(0, wheelTop - bounds.minY - 22))
-            bubbleOnSide = false
+        let barWidth = min(width - 32, 560)
+        searchBar = CGRect(x: bounds.midX - barWidth / 2, y: bounds.minY + 12, width: barWidth, height: Self.searchHeight)
+        let below = searchBar.maxY + 14
+        let room = max(0, bounds.maxY - below)
+        if wide {
+            radius = max(90, min(width * 0.3, room * 0.42, 260))
+            center = CGPoint(x: bounds.midX, y: below + room * 0.48)
+            let bubbleWidth = min(360, (width - radius * 2) / 2 - 40)
+            bubble = CGRect(x: center.x + radius + 28, y: center.y - radius, width: max(0, bubbleWidth), height: radius * 2)
+            bubbleOnSide = true
         } else {
-            radius = max(90, min(width * 0.43, height * 0.29, wide ? 250 : 210))
-            center = CGPoint(x: bounds.midX, y: bounds.minY + height * (wide ? 0.47 : 0.43))
-            let barY = min(center.y + radius + 28, bounds.maxY - Self.searchHeight - 12)
-            searchBar = CGRect(x: bounds.midX - barWidth / 2, y: barY, width: barWidth, height: Self.searchHeight)
-            if wide {
-                let bubbleWidth = min(360, (width - radius * 2) / 2 - 40)
-                bubble = CGRect(x: center.x + radius + 28, y: center.y - radius, width: max(0, bubbleWidth), height: radius * 2)
-                bubbleOnSide = true
+            bubble = CGRect(x: bounds.minX + 16, y: below, width: width - 32, height: room * (keyboardUp ? 0.46 : 0.4))
+            bubbleOnSide = false
+            let top = below + (bubbleHeight > 0 ? min(bubbleHeight, bubble.height) + 10 : 0)
+            if searching && keyboardUp {
+                radius = min(width * 0.5, 230)
+                center = CGPoint(x: bounds.midX, y: top + radius + 4)
             } else {
-                let wheelTop = center.y - radius
-                bubble = CGRect(x: bounds.minX + 16, y: bounds.minY + 10, width: width - 32, height: max(0, wheelTop - bounds.minY - 22))
-                bubbleOnSide = false
+                let space = max(0, bounds.maxY - top)
+                radius = max(90, min(width * 0.43, space * 0.42, 210))
+                center = CGPoint(x: bounds.midX, y: max(top + radius + 8, top + space * 0.44))
             }
         }
     }
@@ -110,6 +111,8 @@ final class PageWheelController: ObservableObject {
     var bounds: CGRect = .zero
     /// The top of the on-screen keyboard in the wheel's space while it shows.
     @Published var keyboardTop: CGFloat?
+    /// The thinking bubble's height while it shows; the wheel makes room for it under the search field.
+    @Published var bubbleHeight: CGFloat = 0
     var arc = PageWheelArc.zero
     var reduceMotion = false
     var search: NavigationSearchModel?
@@ -132,11 +135,14 @@ final class PageWheelController: ObservableObject {
     private var previewTask: Task<Void, Never>?
     private var closeTask: Task<Void, Never>?
     private var formedAt: TimeInterval?
-    private var hoverSince: TimeInterval = 0
-    private var hoverChangedAfterForming = false
+    /// Where the finger last came to rest and since when: a page opens behind the wheel, and on release, only once the
+    /// finger holds on a slice, never while it only passes over slices on its way.
+    private var holdAnchor: CGPoint?
+    private var holdSince: TimeInterval = 0
     private var pullDistance: CGFloat = 220
     private var spinStart: CGPoint?
-    private var selectedAtOpen: String?
+    /// The finger came down on the hub: moving it points at a slice like a marking menu, and lifting opens that slice.
+    private var touchOnHub = false
 
     init() {
         clock.tick = { [weak self] time, step in self?.frame(time: time, step: step) }
@@ -148,7 +154,8 @@ final class PageWheelController: ObservableObject {
         if let keyboardTop {
             area.size.height = min(area.height, max(220, keyboardTop - area.minY))
         }
-        return PageWheelLayout(bounds: area, searching: searchFocused || !query.isEmpty, keyboardUp: keyboardTop != nil)
+        return PageWheelLayout(bounds: area, searching: searchFocused || !query.isEmpty, keyboardUp: keyboardTop != nil,
+                               bubbleHeight: bubbleHeight)
     }
 
     func geometry(at progress: CGFloat? = nil) -> PageWheelGeometry {
@@ -172,15 +179,13 @@ final class PageWheelController: ObservableObject {
     // MARK: Opening from the bar
 
     /// A finger on the bar started pulling up. `selection` is the page on screen, which the wheel opens on.
-    func beginPull(selection: Int, now: TimeInterval = PageWheelClock.now) {
+    func beginPull(selection: Int) {
         guard !items.isEmpty, phase == .closed || phase == .closing else { return }
         closeTask?.cancel()
-        let geometry = layout
-        pullDistance = min(max((arc.peak.y - geometry.center.y) * 0.72, 150), 260)
+        pullDistance = min(max((arc.peak.y - layout.center.y) * 0.72, 150), 260)
         place(at: selection)
-        selectedAtOpen = items.indices.contains(selection) ? items[selection].id : nil
         formedAt = nil
-        hoverChangedAfterForming = false
+        holdAnchor = nil
         hovered = nil
         query = ""
         results = .empty
@@ -188,10 +193,9 @@ final class PageWheelController: ObservableObject {
         search?.prepare(wheelPages: items.map(\.id))
         setPhase(.pulling)
         AppInteractionHaptics.shared.beganReveal()
-        _ = now
     }
 
-    /// The pulling finger moved: `translation` from where it started, `location` where it is now (global).
+    /// The pulling finger moved: `translation` from where it started, `location` where it is now (wheel space).
     func pull(translation: CGSize, location: CGPoint, now: TimeInterval = PageWheelClock.now) {
         guard phase == .pulling else { return }
         let raw = -translation.height / pullDistance
@@ -211,15 +215,16 @@ final class PageWheelController: ObservableObject {
             return
         }
         setHovered(geometry(at: 1).slice(at: location, rotation: rotation), now: now)
+        trackHold(at: location, now: now)
     }
 
-    /// The pulling finger lifted. A slice it deliberately rested on opens; a pull that went far enough leaves the wheel
-    /// open; a short one falls back into the bar.
+    /// The pulling finger lifted. A slice it held on opens; a pull that went far enough leaves the wheel open on the
+    /// page that was showing; a short one falls back into the bar.
     func endPull(translation: CGSize, predicted: CGSize, now: TimeInterval = PageWheelClock.now) {
         guard phase == .pulling else { return }
         touch = nil
         stretch = 0
-        if let hovered, isHoverArmed(now: now) {
+        if let hovered, isHeld(now: now) {
             commit(hovered)
             return
         }
@@ -227,6 +232,7 @@ final class PageWheelController: ObservableObject {
         let projected = -predicted.height / pullDistance
         if progress >= 0.38 || projected >= 0.85 {
             open()
+            schedulePreview(top, dwell: 0)
         } else {
             close(committing: nil)
         }
@@ -253,23 +259,32 @@ final class PageWheelController: ObservableObject {
 
     // MARK: Using the open wheel
 
-    /// A finger came down on the open wheel at `location` (global).
+    /// A finger came down on the open wheel at `location`.
     func touchBegan(at location: CGPoint, now: TimeInterval = PageWheelClock.now) {
         guard phase == .open else { return }
         touch = location
         spinStart = location
+        let geometry = geometry(at: 1)
+        touchOnHub = geometry.distance(to: location) <= geometry.hubRadius
         if spin.phase == .settling {
             spin.grab(at: now)
             clock.stop()
         }
     }
 
-    /// The finger moved; past a few points on the ring it turns the wheel.
+    /// The finger moved: from the hub it points at the slice in its direction; on the ring, past a few points, it turns
+    /// the wheel.
     func touchMoved(to location: CGPoint, from start: CGPoint, now: TimeInterval = PageWheelClock.now) {
         guard phase == .open else { return }
         touch = location
         let geometry = geometry(at: 1)
-        guard geometry.distance(to: start) > geometry.hubRadius * 0.7 else { return }
+        if touchOnHub {
+            let slice = geometry.distance(to: location) > geometry.hubRadius
+                ? geometry.slice(at: location, rotation: rotation) : nil
+            setHovered(slice, now: now)
+            trackHold(at: location, now: now)
+            return
+        }
         guard let previous = spinStart else {
             spinStart = location
             return
@@ -285,14 +300,24 @@ final class PageWheelController: ObservableObject {
     }
 
     /// The finger lifted. Without travel it was a tap: a slice opens (turning to the top first), the hub opens the
-    /// slice at the top. A spin coasts on and settles.
+    /// slice at the top. A drag from the hub opens the slice it points at. A spin coasts on and settles.
     func touchEnded(at location: CGPoint, travelled: CGFloat, now: TimeInterval = PageWheelClock.now) {
         guard phase == .open else { return }
+        let fromHub = touchOnHub
         touch = nil
         spinStart = nil
+        touchOnHub = false
         if spin.phase == .tracking {
             spin.release(at: now)
             clock.start()
+            return
+        }
+        if fromHub, travelled >= 10 {
+            if let hovered {
+                commit(hovered)
+            } else {
+                setHovered(nil, now: now)
+            }
             return
         }
         guard travelled < 10 else { return }
@@ -319,6 +344,7 @@ final class PageWheelController: ObservableObject {
         let slice = geometry.distance(to: location) <= geometry.radius * 1.08
             ? geometry.slice(at: location, rotation: rotation) : nil
         setHovered(slice, now: now)
+        trackHold(at: location, now: now)
     }
 
     /// Two-finger scrolls and arrow keys turn the wheel one or more slices.
@@ -474,20 +500,27 @@ final class PageWheelController: ObservableObject {
 
     private func setHovered(_ slice: Int?, now: TimeInterval) {
         guard slice != hovered else { return }
-        if formedAt != nil, hovered != nil, slice != nil { hoverChangedAfterForming = true }
         hovered = slice
-        hoverSince = now
-        if let slice {
+        holdAnchor = nil
+        if slice != nil {
             tick()
-            schedulePreview(slice, dwell: 0.18)
-        } else {
             previewTask?.cancel()
+        } else {
+            schedulePreview(top, dwell: 0.25)
         }
     }
 
-    private func isHoverArmed(now: TimeInterval) -> Bool {
-        guard formedAt != nil, hovered != nil else { return false }
-        return hoverChangedAfterForming || now - hoverSince >= 0.3
+    /// The finger or the pointer is at `location`: moving more than a few points starts a new hold, and holding on a
+    /// slice opens its page behind the wheel.
+    private func trackHold(at location: CGPoint, now: TimeInterval) {
+        if let anchor = holdAnchor, hypot(location.x - anchor.x, location.y - anchor.y) <= 14 { return }
+        holdAnchor = location
+        holdSince = now
+        if let hovered { schedulePreview(hovered, dwell: 0.22) }
+    }
+
+    private func isHeld(now: TimeInterval) -> Bool {
+        hovered != nil && holdAnchor != nil && now - holdSince >= 0.2
     }
 
     private func schedulePreview(_ index: Int, dwell: Double) {

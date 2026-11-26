@@ -429,6 +429,7 @@
 		503AAAF4D7ECC2DB86C6CF5A /* PhysiqueDeletionStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEACC97F37B0389CF666C31C /* PhysiqueDeletionStatusView.swift */; };
 		5096DC9813F2D0312B136FF6 /* KeyNavModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D26C329CEB8C6F73DBFC8C9 /* KeyNavModifiers.swift */; };
 		509AF75C21A4991BD8E064C0 /* PhysiqueRulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5932D6F8B34C716C35BE39EE /* PhysiqueRulesView.swift */; };
+		50CD21EAFE8187B8C2E05C49 /* PageWheelUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B4753E617E8C562CB77C20 /* PageWheelUITests.swift */; };
 		50DA339EE8C7EF070D76D618 /* OutdoorPineGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 746E0E8210EFD993244CDD40 /* OutdoorPineGeometry.swift */; };
 		50DC51E347F7F34211473C79 /* ChecklistPictureImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AA14B39489535D951847C6E /* ChecklistPictureImporter.swift */; };
 		50FAEEBE894280B155D00EE4 /* HomePlanningWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5D6241163ACDE8F1C88209B /* HomePlanningWidgets.swift */; };
@@ -1357,6 +1358,7 @@
 		00334E54350C0BED693944CC /* SkillTypeEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillTypeEditorSheet.swift; sourceTree = "<group>"; };
 		00707D7837F42000DDDB3D84 /* PlayerCoverImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerCoverImage.swift; sourceTree = "<group>"; };
 		01618C53E4137D7AC1CB4DCF /* OutdoorActivityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorActivityStore.swift; sourceTree = "<group>"; };
+		01B4753E617E8C562CB77C20 /* PageWheelUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageWheelUITests.swift; sourceTree = "<group>"; };
 		0276C58D2043E228F48EF23D /* PhysiqueSafetyHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiqueSafetyHubView.swift; sourceTree = "<group>"; };
 		0277E8EAC54A87487B40EC00 /* ImportSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportSheetView.swift; sourceTree = "<group>"; };
 		0292416DDFFC8D27FA92A4BB /* PhysiqueBattleStageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiqueBattleStageView.swift; sourceTree = "<group>"; };
@@ -2084,6 +2086,7 @@
 				C8F264F3DABC59ABA805571B /* DatabaseCoverTests.swift */,
 				0B8829C8089C12BEC8EFEA6C /* OutdoorRideEndToEndTests.swift */,
 				1C43508BAD6948505C29F8E4 /* OutdoorRouteRecordingUITests.swift */,
+				01B4753E617E8C562CB77C20 /* PageWheelUITests.swift */,
 				4CA3309BB574878A0B0DEA03 /* PhysiquePoseGuideAccessibilityTests.swift */,
 				7A7F511B1E55EEB167AA45C9 /* TypeBoardDragTests.swift */,
 				DC2CD271A1A3B94DA68F4D85 /* UITestSupport.swift */,
@@ -4723,6 +4726,7 @@
 				8EE971B491299EA4A63D2EB6 /* DatabaseCoverTests.swift in Sources */,
 				33B91A2434A40488D46D3D2F /* OutdoorRideEndToEndTests.swift in Sources */,
 				212C12128B809802961F0EFF /* OutdoorRouteRecordingUITests.swift in Sources */,
+				50CD21EAFE8187B8C2E05C49 /* PageWheelUITests.swift in Sources */,
 				36F7D74DCF5AA3817E1C1870 /* PhysiquePoseGuideAccessibilityTests.swift in Sources */,
 				5991A9D012A553D3B516D111 /* TypeBoardDragTests.swift in Sources */,
 				3660F907B58320A55927E8CA /* UITestSupport.swift in Sources */,
