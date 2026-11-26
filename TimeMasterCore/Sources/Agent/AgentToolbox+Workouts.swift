@@ -15,6 +15,15 @@ extension AgentToolbox {
         let rest = max(0, raw["restAfter"] as? Int ?? restAfter)
         let name = (raw["name"] as? String).flatMap { $0.isEmpty ? nil : $0 }
         let untimed = raw["untimed"] as? Bool ?? false
+        if let spec = raw["combo"] as? [String: Any] {
+            guard raw["exercise"] == nil, raw["bundle"] == nil else {
+                throw AgentToolError("invalid_argument", "\(label): give exactly one of exercise, bundle or combo.")
+            }
+            try rejectComboConflicts(raw, label: label)
+            var section = try makeComboSection(spec, name: name, restAfter: rest, untimed: untimed, prepareTime: raw["prepareTime"] as? Int, label: label)
+            _ = try applyRestExercises(raw, to: &section, restFallback: rest, index: pages, label: label)
+            return section
+        }
         if let spec = raw["bundle"] as? [String: Any] {
             guard raw["exercise"] == nil else {
                 throw AgentToolError("invalid_argument", "\(label): give either exercise or bundle, not both.")
@@ -33,7 +42,7 @@ extension AgentToolbox {
             return section
         }
         guard raw["exercise"] != nil else {
-            throw AgentToolError("invalid_argument", "\(label): give an exercise for a timed section, or a bundle.")
+            throw AgentToolError("invalid_argument", "\(label): give an exercise for a timed section, a bundle or a combo.")
         }
         let page = try workoutExercisePage(raw["exercise"], index: pages, label: label)
         var section = WorkoutSectionManifest(
@@ -57,18 +66,32 @@ extension AgentToolbox {
         return try items.enumerated().map { entry in
             let item = entry.element
             let place = "\(label).bundle.exercises[\(entry.offset)]"
-            let page = try workoutExercisePage(item["exercise"], index: pages, label: place)
-            let rest = item["restAfter"] as? Int ?? page.restAfter ?? 5
-            var slot = WorkoutSetSlotManifest(
-                exerciseID: page.id,
-                name: (item["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? page.title,
-                duration: item["duration"] as? Int ?? page.duration ?? 30,
-                repCount: item["repCount"] as? Int,
-                restAfter: rest,
-                prepareTime: 0
-            )
+            let phrase = (item["callout"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            var slot: WorkoutSetSlotManifest
+            if !phrase.isEmpty {
+                guard item["exercise"] == nil else {
+                    throw AgentToolError("invalid_argument", "\(place): give either exercise or callout, not both.")
+                }
+                slot = WorkoutSetSlotManifest(
+                    exerciseID: "", name: phrase, duration: item["duration"] as? Int ?? 5,
+                    restAfter: item["restAfter"] as? Int ?? 0, prepareTime: 0
+                )
+            } else {
+                guard item["exercise"] != nil else {
+                    throw AgentToolError("invalid_argument", "\(place): give an exercise or a callout.", hint: "Each entry is {exercise, duration, restAfter} or {callout, duration}.")
+                }
+                let page = try workoutExercisePage(item["exercise"], index: pages, label: place)
+                slot = WorkoutSetSlotManifest(
+                    exerciseID: page.id,
+                    name: (item["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? page.title,
+                    duration: item["duration"] as? Int ?? page.duration ?? 30,
+                    repCount: item["repCount"] as? Int,
+                    restAfter: item["restAfter"] as? Int ?? page.restAfter ?? 5,
+                    prepareTime: 0
+                )
+            }
             if let references = Self.references(item["restExercise"]), !references.isEmpty {
-                let chosen = try restExercisePages(references, seconds: rest, index: pages, label: "\(place).restExercise", key: "restAfter")
+                let chosen = try restExercisePages(references, seconds: slot.restAfter, index: pages, label: "\(place).restExercise", key: "restAfter")
                 slot.restExerciseID = chosen[0].id
                 slot.restExerciseAlternativeIDs = chosen.dropFirst().map(\.id)
             }
@@ -119,20 +142,35 @@ extension AgentToolbox {
         return copy
     }
 
+    func workoutColor(_ value: String?) throws -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let digits = trimmed.hasPrefix("#") ? String(trimmed.dropFirst()) : trimmed
+        guard digits.count == 6, digits.allSatisfy(\.isHexDigit) else {
+            throw AgentToolError("invalid_argument", "'colorHex' is not a color: '\(value)'.", hint: "Use six hex digits such as FF9500.")
+        }
+        return digits.uppercased()
+    }
+
     func buildWorkout(_ args: AgentArguments, dryRun: Bool) throws -> AgentToolOutput {
         let index = try AgentPageIndex(database: database)
         let name = try args.requiredString("name")
         let type = try resolveType(args.string("type")) ?? .strength
+        let color = try workoutColor(args.string("colorHex"))
         let raw = args.objects("sections")
         guard !raw.isEmpty else { throw AgentToolError("invalid_argument", "A workout needs at least one section.") }
         let restBetween = max(0, args.int("restBetweenSections") ?? 30)
         let sections = try raw.enumerated().map { entry in
             try sectionManifest(entry.element, index: index, position: entry.offset, restAfter: entry.offset == raw.count - 1 ? 0 : restBetween)
         }
-        let manifest = WorkoutManifest(id: UUID().uuidString, name: name, type: type, sections: sections, restBetweenSections: restBetween)
+        var manifest = WorkoutManifest(id: UUID().uuidString, name: name, type: type, sections: sections, restBetweenSections: restBetween)
+        if let color { manifest.colorHex = color }
+        if let style = args.string("coverStyle").flatMap(WorkoutCoverStyle.init(rawValue:)) { manifest.coverStyle = style }
         var summary: [String: Any] = ["name": name, "type": type.name, "sections": sections.count, "totalSeconds": manifest.totalDuration]
-        let bundles = sections.filter { $0.mode == .bundle }.count
+        let bundles = sections.filter { $0.mode == .bundle && !$0.isCombo }.count
         if bundles > 0 { summary["bundles"] = bundles }
+        let combos = sections.filter(\.isPlayableCombo).count
+        if combos > 0 { summary["combos"] = combos }
         if dryRun {
             summary["dryRun"] = true
             return AgentToolOutput(value: summary)
@@ -161,8 +199,10 @@ extension AgentToolbox {
         let groupTitles = Dictionary(groups.flatMap { group in group.workoutIDs.map { ($0, group.title) } }, uniquingKeysWith: { first, _ in first })
         let items = all.map { workout -> [String: Any] in
             var item: [String: Any] = ["name": workout.name, "type": workout.type.name, "sections": workout.sections.count, "totalSeconds": workout.totalDuration]
-            let bundles = workout.sections.filter { $0.mode == .bundle }.count
+            let bundles = workout.sections.filter { $0.mode == .bundle && !$0.isCombo }.count
             if bundles > 0 { item["bundles"] = bundles }
+            let combos = workout.sections.filter(\.isPlayableCombo).count
+            if combos > 0 { item["combos"] = combos }
             if repeated.contains(AgentValue.fold(workout.name)) { item["id"] = workout.id }
             if let group = groupTitles[workout.id] { item["group"] = group }
             return item
@@ -181,10 +221,17 @@ extension AgentToolbox {
             let labels = ids.map { label($0, "rest exercise") }
             return labels.count > 1 ? labels : labels.first
         }
+        func shownName(_ slot: WorkoutSetSlotManifest) -> String {
+            slot.alias.flatMap { $0.isEmpty ? nil : $0 } ?? slot.name
+        }
         let sections = workout.sections.enumerated().map { entry -> [String: Any] in
             let section = entry.element
             var item: [String: Any] = ["position": entry.offset + 1, "seconds": section.calculatedDuration]
-            if section.mode == .bundle {
+            if section.isPlayableCombo {
+                item.merge(comboSummary(section)) { _, new in new }
+                let rounds = bundleSetSlots(of: section)
+                if rounds.count > 1, let rest = restLabel(rounds[0].restExerciseChoices) { item["restExercise"] = rest }
+            } else if section.mode == .bundle {
                 item["kind"] = "bundle"
                 item["name"] = section.name
                 item["order"] = section.bundleOrder.rawValue
@@ -198,13 +245,23 @@ extension AgentToolbox {
                 }
                 let rounds = setSlots.map { set in
                     set.children.map { exercise -> [String: Any] in
-                        var entry: [String: Any] = ["exercise": label(exercise.exerciseID, exercise.alias.flatMap { $0.isEmpty ? nil : $0 } ?? exercise.name), "duration": exercise.duration, "restAfter": exercise.playbackRest]
+                        var entry: [String: Any]
+                        if exercise.nestedWorkoutID != nil {
+                            entry = ["workout": shownName(exercise)]
+                        } else if exercise.exerciseID.isEmpty {
+                            entry = ["callout": shownName(exercise)]
+                        } else {
+                            entry = ["exercise": label(exercise.exerciseID, shownName(exercise))]
+                            if let page = pages?.byID[exercise.exerciseID], shownName(exercise) != page.title { entry["name"] = shownName(exercise) }
+                        }
+                        entry["duration"] = exercise.duration
+                        entry["restAfter"] = exercise.playbackRest
+                        if let reps = exercise.repCount { entry["repCount"] = reps }
                         if let rest = restLabel(exercise.restExerciseChoices) { entry["restExercise"] = rest }
                         return entry
                     }
                 }
-                let signature = { (round: [[String: Any]]) in round.map { "\($0["exercise"] ?? "")|\($0["duration"] ?? 0)|\($0["restAfter"] ?? 0)|\($0["restExercise"] ?? "")" } }
-                if let first = rounds.first, rounds.allSatisfy({ signature($0) == signature(first) }) {
+                if let first = rounds.first, rounds.allSatisfy({ ($0 as NSArray).isEqual(first as NSArray) }) {
                     item["exercises"] = first
                 } else {
                     item["rounds"] = rounds
@@ -212,7 +269,10 @@ extension AgentToolbox {
             } else {
                 item["kind"] = "exercise"
                 item["exercise"] = label(section.exerciseID, section.name)
+                if let page = pages?.byID[section.exerciseID], section.name != page.title { item["name"] = section.name }
                 item["duration"] = section.duration
+                if let reps = section.repCount { item["repCount"] = reps }
+                if section.prepareTime != 4 { item["prepareTime"] = section.prepareTime }
                 if section.sets > 1 {
                     item["sets"] = section.sets
                     item["restBetweenSets"] = section.restBetweenSets
@@ -229,10 +289,16 @@ extension AgentToolbox {
             if let row = section.bigRestRow, let rest = restLabel(row.exerciseChoices) { item["restAfterExercise"] = rest }
             return item
         }
-        return AgentToolOutput(value: [
+        var value: [String: Any] = [
             "id": workout.id, "name": workout.name, "type": workout.type.name, "totalSeconds": workout.totalDuration,
             "restBetweenSections": workout.restBetweenSections, "sections": sections,
-        ])
+        ]
+        if workout.colorHex.uppercased() != "FFFFFF" { value["colorHex"] = workout.colorHex }
+        if workout.coverStyle != .exerciseThumbnails { value["coverStyle"] = workout.coverStyle.rawValue }
+        if workout.imageFilename != nil { value["coverImage"] = true }
+        if !workout.musicTrackFilenames.isEmpty { value["musicTracks"] = workout.musicTrackFilenames.count }
+        if workout.musicTimeline != nil { value["musicTimeline"] = true }
+        return AgentToolOutput(value: value)
     }
 
     func deleteWorkout(_ args: AgentArguments, dryRun: Bool) throws -> AgentToolOutput {

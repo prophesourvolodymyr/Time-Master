@@ -68,7 +68,8 @@ public enum AgentEffect: Codable, Equatable {
     case changedWorkout(id: String, previous: String)
     case changedSchedule(previous: String)
     case changedPage(id: String, previous: String)
-    case changedHistory(previous: String)
+    case loggedHistoryEntry(id: String)
+    case removedHistoryEntry(entry: String)
 }
 
 public struct AgentToolOutput {

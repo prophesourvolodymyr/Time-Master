@@ -137,10 +137,10 @@ public final class AgentToolbox {
                     let manifest = try JSONDecoder().decode(ExercisePageManifest.self, from: Data(previous.utf8))
                     try database.updatePage(id: id, manifest: manifest, newParentID: manifest.parentID)
                     notes.append("Restored page \(id) to how it was.")
-                case .changedHistory(let previous):
-                    let entries = try JSONDecoder().decode([HistoryEntry].self, from: Data(previous.utf8))
-                    try database.replaceHistory(entries)
-                    notes.append("Restored the workout history to how it was.")
+                case .loggedHistoryEntry(let id):
+                    notes.append(try revertLoggedHistoryEntry(id))
+                case .removedHistoryEntry(let entry):
+                    notes.append(try revertRemovedHistoryEntry(entry))
                 }
             } catch {
                 notes.append("Could not reverse \(effect): \(AgentToolError.translating(error).message)")

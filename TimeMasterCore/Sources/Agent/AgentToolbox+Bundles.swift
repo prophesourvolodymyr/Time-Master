@@ -12,7 +12,7 @@ extension AgentToolbox {
         }
     }
 
-    private static let sectionKeys = ["exercise", "bundle", "name", "duration", "sets", "repCount", "restBetweenSets", "prepareTime", "restAfter", "untimed", "restExercise", "restAfterExercise"]
+    private static let sectionKeys = ["exercise", "bundle", "combo", "name", "duration", "sets", "repCount", "restBetweenSets", "prepareTime", "restAfter", "untimed", "restExercise", "restAfterExercise"]
 
     private func sectionIndex(_ reference: String, in workout: WorkoutManifest) throws -> Int {
         let text = reference.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -40,7 +40,7 @@ extension AgentToolbox {
         )
     }
 
-    private func setRest(_ seconds: Int, onSlot slot: inout WorkoutSetSlotManifest) {
+    func setRest(_ seconds: Int, onSlot slot: inout WorkoutSetSlotManifest) {
         let value = max(0, seconds)
         slot.restAfter = value
         if value > 0 {
@@ -77,7 +77,7 @@ extension AgentToolbox {
         let position = min(max(1, args.int("position") ?? workout.sections.count + 1), workout.sections.count + 1)
         let isLast = position == workout.sections.count + 1
         let section = try sectionManifest(raw, index: index, position: position - 1, restAfter: isLast ? 0 : workout.restBetweenSections)
-        var extra: [String: Any] = ["position": position, "kind": section.mode == .bundle ? "bundle" : "exercise"]
+        var extra: [String: Any] = ["position": position, "kind": section.agentKind]
         if isLast, let previous = workout.sections.indices.last,
            workout.sections[previous].customRestAfter == 0, (workout.sections[previous].bigRestRow?.duration ?? 0) == 0 {
             setRest(workout.restBetweenSections, on: &workout.sections[previous])
@@ -112,7 +112,17 @@ extension AgentToolbox {
             workout.restBetweenSections = max(0, value)
             changed.append("restBetweenSections")
         }
-        guard !changed.isEmpty else { throw AgentToolError("invalid_argument", "Nothing to change.", hint: "Pass name, type or restBetweenSections.") }
+        if let color = try workoutColor(args.string("colorHex")) {
+            workout.colorHex = color
+            changed.append("colorHex")
+        }
+        if let style = args.string("coverStyle").flatMap(WorkoutCoverStyle.init(rawValue:)) {
+            workout.coverStyle = style
+            changed.append("coverStyle")
+        }
+        guard !changed.isEmpty else {
+            throw AgentToolError("invalid_argument", "Nothing to change.", hint: "Pass name, type, restBetweenSections, colorHex or coverStyle.")
+        }
         return try save(workout, dryRun: dryRun, changed: changed)
     }
 
@@ -134,7 +144,26 @@ extension AgentToolbox {
             section.isTimerEnabled = !untimed
             changed.append("untimed")
         }
-        if section.mode == .bundle {
+        if !section.isPlayableCombo, args.values["combo"] != nil {
+            throw AgentToolError(
+                "invalid_argument", "Section \(position + 1) is not a combo.",
+                hint: "Combos are created with the combo argument of build_workout or add_workout_section; a section cannot be turned into one."
+            )
+        }
+        if section.isPlayableCombo {
+            guard args.values["bundle"] == nil else {
+                throw AgentToolError(
+                    "invalid_argument", "Section \(position + 1) is a combo, not a plain bundle.",
+                    hint: "Change it with the combo argument: calls, rounds, secondsPerCall, restBetweenRounds, icon, name, order, voice."
+                )
+            }
+            try rejectComboConflicts(args.values, label: "section \(position + 1)")
+            let topName = args.string("name").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.flatMap { $0.isEmpty ? nil : $0 }
+            changed += try applyCombo(
+                args.values["combo"] as? [String: Any] ?? [:], name: topName, prepareTime: args.int("prepareTime"),
+                to: &section, label: "section \(position + 1)"
+            )
+        } else if section.mode == .bundle {
             for key in ["duration", "repCount"] where args.has(key) {
                 throw AgentToolError("invalid_argument", "'\(key)' does not apply to a bundle.", hint: "Set each exercise's duration inside bundle.exercises.")
             }
@@ -150,7 +179,7 @@ extension AgentToolbox {
             changed += applyTimed(args, to: &section)
         }
         changed += try applyRestExercises(args.values, to: &section, restFallback: workout.restBetweenSections, index: index, label: "section \(position + 1)")
-        if !Set(changed).isDisjoint(with: ["sets", "restBetweenSets", "restAfter"]) {
+        if !Set(changed).isDisjoint(with: ["sets", "restBetweenSets", "restAfter", "rounds", "restBetweenRounds"]) {
             try validateRestExercises(section, index: index, label: "section \(position + 1)")
         }
         workout.sections[position] = section
@@ -167,7 +196,7 @@ extension AgentToolbox {
         guard !changed.isEmpty else {
             throw AgentToolError("invalid_argument", "Nothing to change.", hint: "Pass at least one field besides workout and section.")
         }
-        return try save(workout, dryRun: dryRun, changed: changed, extra: ["position": finalPosition + 1, "kind": section.mode == .bundle ? "bundle" : "exercise"])
+        return try save(workout, dryRun: dryRun, changed: changed, extra: ["position": finalPosition + 1, "kind": section.agentKind])
     }
 
     private func applyBundle(_ spec: [String: Any], to section: inout WorkoutSectionManifest, index pages: AgentPageIndex) throws -> [String] {
