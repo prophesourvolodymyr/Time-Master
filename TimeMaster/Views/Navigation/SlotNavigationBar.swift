@@ -123,17 +123,22 @@ struct SlotCarouselNavigationBar: View, Animatable {
     @State private var edgeScrollTask: Task<Void, Never>?
     @State private var edgeDirection = 0
     @GestureState private var itemGestureActive = false
-    @GestureState private var touchIsActive = false
+    @GestureState private var reelIsTracking = false
+    @State private var holdsExpansion = false
+    @State private var reelTicks = SlotReelTicks()
     @State private var notificationDismissalToken = 0
     #if os(macOS)
+    @GestureState private var touchIsActive = false
     /// Moves the strip outside the editor on the Mac: two-finger scrolls, drags, clicks and selections made elsewhere.
     @StateObject private var reel: SlotReel
     @State private var reelDragTranslation: CGFloat = 0
     /// Keeps the editor's scroll position on screen until the reel takes the strip over after editing ends.
     @State private var editorHoldsStrip = false
+    #endif
     /// How far above the arc line a scroll still counts as the bar's: the selected icon rises past the line.
     private static let scrollReach: CGFloat = 16
-    #endif
+    private static let tapSlop: CGFloat = 14
+    private static let settleVelocityLimit: CGFloat = 6
 
     private static let coordinateSpace = "navigation-arc-editor"
     private enum SlotRole { case page, catalog, prepend, append }
@@ -204,7 +209,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
         set { expansion = newValue.first; editingAmount = newValue.second }
     }
 
-    private var expandedAmount: CGFloat { min(max(expansion, 0), 1) }
+    private var expandedAmount: CGFloat { holdsExpansion ? 1 : min(max(expansion, 0), 1) }
     private var effectiveDragIntensity: CGFloat { reduceMotion ? 0 : dragIntensity * expandedAmount * (1 - editProgress) }
     private var editProgress: CGFloat { reduceMotion ? 0 : min(max(editingAmount, 0), 1) }
     private var arcScaleX: CGFloat { 1 + effectiveDragIntensity * Self.switchSurfaceStretch + editProgress * 0.12 }
@@ -235,7 +240,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
         #if os(macOS)
         touchIsActive || reel.isTracking
         #else
-        touchIsActive
+        reelIsTracking
         #endif
     }
 
@@ -263,11 +268,16 @@ struct SlotCarouselNavigationBar: View, Animatable {
             }
         }
         .coordinateSpace(name: Self.coordinateSpace)
+        #if os(macOS)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .updating($touchIsActive) { _, active, _ in active = true }
         )
-        .onChange(of: isInteracting, perform: onInteractionChanged)
+        #endif
+        .onChange(of: isInteracting) { active in
+            withAnimation(active ? dragExpansionAnimation : dragWindDownAnimation) { holdsExpansion = active }
+            onInteractionChanged(active)
+        }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("carousel-navigation")
         .accessibilityValue(isEditing ? strings.editingValue : (expandedAmount < 0.5 ? strings.compactValue : strings.expandedValue))
@@ -326,7 +336,6 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 }
                 .frame(width: size.width, height: size.height)
                 .clipped()
-                .contentShape(Rectangle())
                 if let liftedItem {
                     liftedIcon(liftedItem)
                         .position(x: liftedItem.center.x, y: liftedItem.center.y - mainOriginY)
@@ -335,7 +344,11 @@ struct SlotCarouselNavigationBar: View, Animatable {
                         .zIndex(100)
                 }
             }
-            .contentShape(Rectangle())
+            .contentShape(SlotArcHitShape(
+                surfaceHeight: surfaceHeight, curveOffset: curveOffset, expansion: expandedAmount,
+                scaleX: arcScaleX, scaleY: arcScaleY, lift: 24 * editProgress,
+                reach: Self.scrollReach, placement: placement
+            ))
             #if os(macOS)
             .background {
                 SlotReelScroll(
@@ -347,7 +360,17 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 )
             }
             #endif
-            .gesture(dragGesture(size: size, slotWidth: slotWidth, fallbackOffset: centeredOffset))
+            .highPriorityGesture(
+                reelGesture(size: size, slotWidth: slotWidth, fallbackOffset: centeredOffset),
+                including: isEditing ? .subviews : .all
+            )
+            .gesture(editorScrollGesture(size: size), including: isEditing ? .all : .subviews)
+            .onChange(of: reelIsTracking) { tracking in
+                guard !tracking else { return }
+                DispatchQueue.main.async {
+                    if !reelIsTracking { cancelReel(size: size, slotWidth: slotWidth) }
+                }
+            }
             .onAppear {
                 if !hasMeasured {
                     reelOffset = centeredOffset
@@ -556,6 +579,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
         .onTapGesture {
             guard liftedItem == nil, !item.isPending else { return }
             if !isEditing {
+                if items.indices.contains(index) { AppInteractionHaptics.shared.settled() }
                 settle(on: index, viewportWidth: size.width, slotWidth: slotWidth, projectedTranslation: 0)
             } else if configuration == nil {
                 switch role {
@@ -671,7 +695,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 }
                 var transaction = Transaction()
                 transaction.animation = nil
-                withTransaction(transaction) { catalogOffset = catalogStartOffset + value.translation.width }
+                withTransaction(transaction) { catalogOffset = catalogStartOffset + value.translation.width.slotFinite() }
             }.onEnded { _ in
                 guard liftedItem == nil else { return }
                 catalogIsScrolling = false
@@ -713,7 +737,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
         }
         var transaction = Transaction()
         transaction.animation = nil
-        withTransaction(transaction) { reelOffset = dragStartOffset + value.translation.width }
+        withTransaction(transaction) { reelOffset = dragStartOffset + value.translation.width.slotFinite() }
     }
 
     private func finishEditorScroll(size: CGSize) {
@@ -736,15 +760,16 @@ struct SlotCarouselNavigationBar: View, Animatable {
                     catalogIsScrolling = false
                     liftedItem = LiftedItem(
                         item: item, originalIndex: index,
-                        grabOffset: CGSize(width: drag.startLocation.x - center.x, height: drag.startLocation.y - center.y),
-                        location: drag.location, insertion: index
+                        grabOffset: CGSize(width: drag.startLocation.x.slotFinite() - center.x,
+                                           height: drag.startLocation.y.slotFinite() - center.y),
+                        location: drag.location.slotFinite, insertion: index
                     )
                 }
-                updateLift(location: drag.location, size: size)
+                updateLift(location: drag.location.slotFinite, size: size)
             }
             .onEnded { value in
                 guard case let .second(true, drag?) = value else { cancelLift(); return }
-                updateLift(location: drag.location, size: size)
+                updateLift(location: drag.location.slotFinite, size: size)
                 guard let lifted = liftedItem else { return }
                 cancelLift()
                 withAnimation(editorAnimation) {
@@ -764,11 +789,11 @@ struct SlotCarouselNavigationBar: View, Animatable {
         let point = lifted.center
         let localY = placedY(point.y - mainOriginY, height: size.height)
         lifted.removes = lifted.originalIndex != nil && localY < -16
-        if !lifted.removes, localY >= -8, localY <= size.height + 32,
+        let column = (point.x - reelOffset) / slotWidth(for: size.width)
+        if !lifted.removes, column.isFinite, localY >= -8, localY <= size.height + 32,
            point.x >= -24, point.x <= size.width + 24 {
             let remaining = items.count - (lifted.originalIndex == nil ? 0 : 1)
-            let raw = Int(floor((point.x - reelOffset) / slotWidth(for: size.width)))
-            lifted.insertion = min(max(raw, 0), max(remaining, 0))
+            lifted.insertion = min(max(Int(floor(column)), 0), max(remaining, 0))
         } else {
             lifted.insertion = nil
         }
@@ -935,68 +960,116 @@ struct SlotCarouselNavigationBar: View, Animatable {
         reduceMotion ? nil : .easeOut(duration: 0.24)
     }
 
-    private func dragGesture(size: CGSize, slotWidth: CGFloat, fallbackOffset: CGFloat) -> some Gesture {
+    private func reelGesture(size: CGSize, slotWidth: CGFloat, fallbackOffset: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 8, coordinateSpace: .local)
+            .updating($reelIsTracking) { value, tracking, _ in
+                if !tracking, Self.isSideways(value.translation) { tracking = true }
+            }
             .onChanged { value in
-                if isEditing {
-                    scrollEditor(value, size: size)
-                    return
-                }
-                if !isDragging {
-                    guard abs(value.translation.width) > abs(value.translation.height) * 1.3 else { return }
-                    isDragging = true
-                    #if os(macOS)
-                    reelDragTranslation = 0
-                    #else
-                    dragStartOffset = hasMeasured ? reelOffset : fallbackOffset
-                    withAnimation(dragExpansionAnimation) {
-                        dragIntensity = reduceMotion ? 0 : 1
-                    }
-                    #endif
-                }
-                #if os(macOS)
-                reel.track((reelDragTranslation - value.translation.width) / slotWidth)
-                reelDragTranslation = value.translation.width
-                #else
-                let rawOffset = dragStartOffset + value.translation.width
-                let boundedOffset = rubberBand(
-                    rawOffset,
-                    minimum: minimumOffset(viewportWidth: size.width, slotWidth: slotWidth),
-                    maximum: maximumOffset(viewportWidth: size.width, slotWidth: slotWidth)
-                )
-                var transaction = Transaction()
-                transaction.animation = nil
-                withTransaction(transaction) { reelOffset = boundedOffset }
-                onPageDrag((offset(for: 0, viewportWidth: size.width, slotWidth: slotWidth) - boundedOffset) / slotWidth)
-                #endif
+                trackReel(value, size: size, slotWidth: slotWidth, fallbackOffset: fallbackOffset)
             }
             .onEnded { value in
-                if isEditing {
-                    finishEditorScroll(size: size)
-                    return
-                }
-                guard isDragging else { return }
-                #if os(macOS)
-                isDragging = false
-                reel.release()
-                #else
-                let projectedOffset = dragStartOffset + value.predictedEndTranslation.width
-                let targetIndex = index(
-                    for: projectedOffset,
-                    viewportWidth: size.width,
-                    slotWidth: slotWidth
-                )
-                isDragging = false
-                withAnimation(dragWindDownAnimation) { dragIntensity = 0 }
-                settle(
-                    on: targetIndex,
-                    viewportWidth: size.width,
-                    slotWidth: slotWidth,
-                    projectedTranslation: value.predictedEndTranslation.width - value.translation.width
-                )
-                onPageDragEnded()
-                #endif
+                releaseReel(value, size: size, slotWidth: slotWidth, fallbackOffset: fallbackOffset)
             }
+    }
+
+    private func editorScrollGesture(size: CGSize) -> some Gesture {
+        DragGesture(minimumDistance: 8, coordinateSpace: .local)
+            .onChanged { value in scrollEditor(value, size: size) }
+            .onEnded { _ in finishEditorScroll(size: size) }
+    }
+
+    private static func isSideways(_ translation: CGSize) -> Bool {
+        translation.width.isFinite && translation.height.isFinite
+            && abs(translation.width) > abs(translation.height) * 1.3
+    }
+
+    private func trackReel(_ value: DragGesture.Value, size: CGSize, slotWidth: CGFloat, fallbackOffset: CGFloat) {
+        guard !isEditing else { return }
+        let translation = value.translation.slotFinite
+        if !isDragging {
+            guard Self.isSideways(translation) else { return }
+            isDragging = true
+            #if os(macOS)
+            reelDragTranslation = 0
+            #else
+            dragStartOffset = hasMeasured ? reelOffset : fallbackOffset
+            reelTicks.begin(at: selection)
+            withAnimation(dragExpansionAnimation) {
+                dragIntensity = reduceMotion ? 0 : 1
+            }
+            #endif
+        }
+        #if os(macOS)
+        reel.track((reelDragTranslation - translation.width) / slotWidth)
+        reelDragTranslation = translation.width
+        #else
+        let boundedOffset = rubberBand(
+            dragStartOffset + translation.width,
+            minimum: minimumOffset(viewportWidth: size.width, slotWidth: slotWidth),
+            maximum: maximumOffset(viewportWidth: size.width, slotWidth: slotWidth)
+        )
+        var transaction = Transaction()
+        transaction.animation = nil
+        withTransaction(transaction) { reelOffset = boundedOffset }
+        reelTicks.cross(index(for: boundedOffset, viewportWidth: size.width, slotWidth: slotWidth))
+        onPageDrag((offset(for: 0, viewportWidth: size.width, slotWidth: slotWidth) - boundedOffset) / slotWidth)
+        #endif
+    }
+
+    private func releaseReel(_ value: DragGesture.Value, size: CGSize, slotWidth: CGFloat, fallbackOffset: CGFloat) {
+        guard !isEditing else { return }
+        let translation = value.translation.slotFinite
+        guard isDragging else {
+            selectSlot(at: value.startLocation.x, travel: translation, size: size, slotWidth: slotWidth,
+                       fallbackOffset: fallbackOffset)
+            return
+        }
+        #if os(macOS)
+        isDragging = false
+        reel.release()
+        #else
+        let reach = CGFloat(max(items.count, 1)) * slotWidth
+        let predicted = value.predictedEndTranslation.width.slotFinite(translation.width)
+        let projected = min(max(predicted, translation.width - reach), translation.width + reach)
+        let targetIndex = index(for: dragStartOffset + projected, viewportWidth: size.width, slotWidth: slotWidth)
+        isDragging = false
+        withAnimation(dragWindDownAnimation) { dragIntensity = 0 }
+        AppInteractionHaptics.shared.settled()
+        settle(
+            on: targetIndex,
+            viewportWidth: size.width,
+            slotWidth: slotWidth,
+            projectedTranslation: projected - translation.width
+        )
+        onPageDragEnded()
+        #endif
+    }
+
+    private func selectSlot(at x: CGFloat, travel: CGSize, size: CGSize, slotWidth: CGFloat, fallbackOffset: CGFloat) {
+        guard x.isFinite, slotWidth > 0, hypot(travel.width, travel.height) <= Self.tapSlop else { return }
+        let strip = stripOffset(viewportWidth: size.width, slotWidth: slotWidth, centeredOffset: fallbackOffset)
+        let column = ((x - strip) / slotWidth).rounded(.down)
+        guard column.isFinite, column >= 0, column < CGFloat(items.count) else { return }
+        AppInteractionHaptics.shared.settled()
+        settle(on: Int(column), viewportWidth: size.width, slotWidth: slotWidth, projectedTranslation: 0)
+    }
+
+    private func cancelReel(size: CGSize, slotWidth: CGFloat) {
+        guard isDragging, !isEditing else { return }
+        isDragging = false
+        #if os(macOS)
+        reel.release()
+        #else
+        withAnimation(dragWindDownAnimation) { dragIntensity = 0 }
+        settle(
+            on: index(for: reelOffset, viewportWidth: size.width, slotWidth: slotWidth),
+            viewportWidth: size.width,
+            slotWidth: slotWidth,
+            projectedTranslation: 0
+        )
+        onPageDragEnded()
+        #endif
     }
 
     private func settle(
@@ -1015,7 +1088,8 @@ struct SlotCarouselNavigationBar: View, Animatable {
         let targetOffset = offset(for: index, viewportWidth: viewportWidth, slotWidth: slotWidth)
         let currentOffset = hasMeasured ? reelOffset : targetOffset
         let remainingDistance = max(abs(targetOffset - currentOffset), 1)
-        let normalizedVelocity = projectedTranslation / remainingDistance
+        let normalizedVelocity = min(max((projectedTranslation / remainingDistance).slotFinite(),
+                                         -Self.settleVelocityLimit), Self.settleVelocityLimit)
         let animation: Animation = reduceMotion
             ? .easeOut(duration: 0.16)
             : .interpolatingSpring(stiffness: 260, damping: 28, initialVelocity: Double(normalizedVelocity))
@@ -1029,7 +1103,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
     }
 
     private func slotWidth(for viewportWidth: CGFloat) -> CGFloat {
-        min(max(viewportWidth * 0.22, 76), 92)
+        min(max(viewportWidth.slotFinite() * 0.22, 76), 92)
     }
 
     private func offset(for index: Int, viewportWidth: CGFloat, slotWidth: CGFloat) -> CGFloat {
@@ -1045,19 +1119,86 @@ struct SlotCarouselNavigationBar: View, Animatable {
     }
 
     private func index(for proposedOffset: CGFloat, viewportWidth: CGFloat, slotWidth: CGFloat) -> Int {
-        guard !items.isEmpty else { return 0 }
+        guard !items.isEmpty, slotWidth > 0 else { return 0 }
         let boundedOffset = min(
-            max(proposedOffset, minimumOffset(viewportWidth: viewportWidth, slotWidth: slotWidth)),
+            max(proposedOffset.slotFinite(reelOffset), minimumOffset(viewportWidth: viewportWidth, slotWidth: slotWidth)),
             maximumOffset(viewportWidth: viewportWidth, slotWidth: slotWidth)
         )
         let rawIndex = (viewportWidth / 2 - slotWidth / 2 - boundedOffset) / slotWidth
+        guard rawIndex.isFinite else { return min(max(selection, 0), items.count - 1) }
         return min(max(Int(rawIndex.rounded()), 0), items.count - 1)
     }
 
     private func rubberBand(_ value: CGFloat, minimum: CGFloat, maximum: CGFloat) -> CGFloat {
+        guard value.isFinite else { return maximum }
         if value < minimum { return minimum - (minimum - value) * 0.22 }
         if value > maximum { return maximum + (value - maximum) * 0.22 }
         return value
+    }
+}
+
+private final class SlotReelTicks {
+    private var slot: Int?
+    private var lastTick: TimeInterval = 0
+
+    func begin(at slot: Int) {
+        self.slot = slot
+    }
+
+    @MainActor
+    func cross(_ next: Int) {
+        guard let slot, next != slot else { return }
+        self.slot = next
+        let now = SlotReel.now
+        guard now - lastTick >= SlotReel.tickSpacing else { return }
+        lastTick = now
+        AppInteractionHaptics.shared.selectionChanged()
+    }
+}
+
+private struct SlotArcHitShape: Shape {
+    let surfaceHeight: CGFloat
+    let curveOffset: CGFloat
+    let expansion: CGFloat
+    let scaleX: CGFloat
+    let scaleY: CGFloat
+    let lift: CGFloat
+    let reach: CGFloat
+    let placement: SlotNavigationPlacement
+
+    func path(in rect: CGRect) -> Path {
+        let surface = CGRect(
+            x: rect.minX, y: placement == .bottom ? rect.maxY - surfaceHeight : rect.minY,
+            width: rect.width, height: surfaceHeight
+        )
+        let anchorY = placement == .bottom ? rect.maxY : rect.minY
+        let transform = CGAffineTransform(translationX: rect.midX, y: anchorY - lift * placement.outwardSign)
+            .scaledBy(x: scaleX, y: scaleY)
+            .translatedBy(x: -rect.midX, y: -anchorY)
+        let shape = SlotArcGeometry.surfacePath(
+            in: surface, edgeExtension: 0, curveOffset: curveOffset, expansion: expansion, placement: placement
+        ).applying(transform)
+        var path = shape
+        path.addPath(shape.applying(CGAffineTransform(translationX: 0, y: -reach * placement.outwardSign)))
+        return path
+    }
+}
+
+private extension CGFloat {
+    func slotFinite(_ fallback: CGFloat = 0) -> CGFloat {
+        isFinite ? self : fallback
+    }
+}
+
+private extension CGSize {
+    var slotFinite: CGSize {
+        CGSize(width: width.slotFinite(), height: height.slotFinite())
+    }
+}
+
+private extension CGPoint {
+    var slotFinite: CGPoint {
+        CGPoint(x: x.slotFinite(), y: y.slotFinite())
     }
 }
 

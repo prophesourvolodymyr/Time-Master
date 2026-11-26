@@ -27,9 +27,14 @@ struct SlotNavigationOverlayState {
         return true
     }
 
-    static func acceptsReveal(start: CGPoint, translation: CGSize, viewportHeight: CGFloat) -> Bool {
+    static func beginsReveal(start: CGPoint, translation: CGSize, viewportHeight: CGFloat) -> Bool {
         start.y >= max(0, viewportHeight - 56)
-            && translation.height <= -48
+            && translation.height < 0
             && abs(translation.height) > abs(translation.width) * 1.25
+    }
+
+    static func acceptsReveal(start: CGPoint, translation: CGSize, viewportHeight: CGFloat) -> Bool {
+        beginsReveal(start: start, translation: translation, viewportHeight: viewportHeight)
+            && translation.height <= -48
     }
 }

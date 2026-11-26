@@ -79,7 +79,8 @@ enum SlotArcGeometry {
     }
 
     private static func parameter(at x: CGFloat, in rect: CGRect) -> CGFloat {
-        let target = min(max((x - rect.minX) / rect.width, 0), 1)
+        let fraction = (x - rect.minX) / rect.width
+        let target = fraction.isNaN ? 0.5 : min(max(fraction, 0), 1)
         var t = target
         for _ in 0..<6 {
             t = min(max(t - (horizontalPosition(at: t) - target) / horizontalDerivative(at: t), 0), 1)

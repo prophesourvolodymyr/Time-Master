@@ -111,31 +111,6 @@ extension View {
     }
 }
 
-// MARK: - Bar geometry published to the host
-
-struct SlotNavigationBarFramePreferenceKey: PreferenceKey {
-    static let defaultValue: CGRect = .zero
-
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
-        let next = nextValue()
-        if next != .zero {
-            value = next
-        }
-    }
-}
-
-/// Publishes the bar frame into `SlotNavigationBarFramePreferenceKey`.
-struct SlotNavigationBarFrameReader: View {
-    var body: some View {
-        GeometryReader { proxy in
-            Color.clear
-                .preference(key: SlotNavigationBarFramePreferenceKey.self, value: proxy.frame(in: .global))
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-}
-
 // MARK: - Arc lens frame
 
 private struct SlotNavigationArcFrameKey: EnvironmentKey {
@@ -562,12 +537,34 @@ struct SlotNavigationClearanceState {
 /// Runs the clearance state outside SwiftUI state, so a measurement that changes nothing the bar reacts to re-renders
 /// nothing; the container only learns which context, if any, needs the inline bar.
 final class SlotNavigationClearanceTracker {
+    private static let decisionChangeLimit = 4
     private var state = SlotNavigationClearanceState()
+    private var decisionChanges = 0
+    private var pinnedContext: SlotNavigationClearanceContext?
 
     func observe(_ measurement: SlotNavigationContentClearance) -> SlotNavigationClearanceContext? {
+        guard let context = measurement.context else {
+            if let pinnedContext { return pinnedContext }
+            guard let current = state.context, state.requiresInline(in: current) else { return nil }
+            return current
+        }
+        let sameContext = state.context == context
+        if !sameContext {
+            decisionChanges = 0
+            pinnedContext = nil
+        }
+        if pinnedContext == context { return context }
+        let before = sameContext ? state.requiresInline(in: context) : nil
         state.observe(measurement)
-        guard let context = state.context, state.requiresInline(in: context) else { return nil }
-        return context
+        let after = state.requiresInline(in: context)
+        if let before, before != after {
+            decisionChanges += 1
+            if decisionChanges >= Self.decisionChangeLimit {
+                pinnedContext = context
+                return context
+            }
+        }
+        return after ? context : nil
     }
 }
 

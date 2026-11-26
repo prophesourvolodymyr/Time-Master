@@ -341,6 +341,7 @@
 		3F04890210C4E0380960C712 /* PhysiqueBattleStageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0292416DDFFC8D27FA92A4BB /* PhysiqueBattleStageView.swift */; };
 		3FDDB2DD7C66DD9644B456C5 /* ImportedProfileControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26AC4F7C7EFFB1CD39BC51FE /* ImportedProfileControls.swift */; };
 		4012521E65B694979C8431FD /* ImportLinkParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2943661F89E1216004DD7D0 /* ImportLinkParser.swift */; };
+		40565E0F39438E670A8BA82A /* HomeLongPressBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CDC8DADE4E9BAE1133EF3DC /* HomeLongPressBridge.swift */; };
 		4078C46F40FEDB6054AE1055 /* PageWidgetWorkoutsTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = D77CAE50B0D572D1A59C387E /* PageWidgetWorkoutsTile.swift */; };
 		408A3749AC93ECD68CF94B10 /* WorkoutRemindersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A7A902D00787142161E1D0 /* WorkoutRemindersView.swift */; };
 		40F8C35813FC4251DE3F8DCA /* PhysiqueHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 406AF671090880E4532944AE /* PhysiqueHistoryView.swift */; };
@@ -577,6 +578,7 @@
 		72ACD7CBC2D5A50B47D0681D /* OutdoorTrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED34D6AA29BFFF933FDE19E8 /* OutdoorTrip.swift */; };
 		72D7C68C05374223CD37BFB9 /* SectionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7EEE9EC6D1BCA35970E2AA0 /* SectionRow.swift */; };
 		730B85B106958D90594B8222 /* RankedCameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3F67B7413575FEDD277F0A8 /* RankedCameraPreview.swift */; };
+		735BA039249EE2BF73180CC4 /* HomeLongPressBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CDC8DADE4E9BAE1133EF3DC /* HomeLongPressBridge.swift */; };
 		736FA91C75523689C2804E20 /* ProfileAchievementShield.swift in Sources */ = {isa = PBXBuildFile; fileRef = F30D976A251E8E8B97D99849 /* ProfileAchievementShield.swift */; };
 		739DA636ACD0391FCE217CA6 /* PhysiqueScoreValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = EACEC824C3691CAF808F05AA /* PhysiqueScoreValue.swift */; };
 		74A46913D0AC2B516C8ACFFC /* PhysiqueLobbyHero.swift in Sources */ = {isa = PBXBuildFile; fileRef = C241F9F3B13CDEDF2772C561 /* PhysiqueLobbyHero.swift */; };
@@ -1590,6 +1592,7 @@
 		5BF6CF0CE5B14D38B3B3DFF4 /* MacVideoWorkspaceModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoWorkspaceModel.swift; sourceTree = "<group>"; };
 		5BFCCDEF643DBD3FB9964F9C /* CollectibleMarketView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectibleMarketView.swift; sourceTree = "<group>"; };
 		5C133EDBB452DFEF8D08CD3C /* RankedCamera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankedCamera.swift; sourceTree = "<group>"; };
+		5CDC8DADE4E9BAE1133EF3DC /* HomeLongPressBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeLongPressBridge.swift; sourceTree = "<group>"; };
 		5D582991CAE01E1427BA7D5B /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		5D8438B95610122E253F3F30 /* SkillMilestonesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillMilestonesSection.swift; sourceTree = "<group>"; };
 		5E287CB0142E9444C0E8CE06 /* BackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupManager.swift; sourceTree = "<group>"; };
@@ -3062,6 +3065,7 @@
 				A1982E564F4214D2342CB79D /* HomeDashboardView.swift */,
 				9DF7C62837E81E42A4E6A392 /* HomeDateLine.swift */,
 				998D26F4FC8669D8CD6FFE8C /* HomeInsightsModel.swift */,
+				5CDC8DADE4E9BAE1133EF3DC /* HomeLongPressBridge.swift */,
 				F5D6241163ACDE8F1C88209B /* HomePlanningWidgets.swift */,
 				A480AD8CCC16DAF111B35EA8 /* HomeWidgetCanvas.swift */,
 				487BB009B64020E921C85437 /* HomeWidgetComponents.swift */,
@@ -3568,6 +3572,7 @@
 				3C78B30A4D2FEA02CA65C8F9 /* HomeDayOneLogic.swift in Sources */,
 				83D4258EAAC4D8891BA4DCB8 /* HomeInsights.swift in Sources */,
 				84DA7B5E9C90EF7393EFB82E /* HomeInsightsModel.swift in Sources */,
+				735BA039249EE2BF73180CC4 /* HomeLongPressBridge.swift in Sources */,
 				50FAEEBE894280B155D00EE4 /* HomePlanningWidgets.swift in Sources */,
 				58F48894A2463CFC841E7755 /* HomeToday.swift in Sources */,
 				6C4A94D8E37BEE0F25824ABA /* HomeWidget.swift in Sources */,
@@ -4191,6 +4196,7 @@
 				18B99CA8FA752A2523F76968 /* HomeDayOneLogic.swift in Sources */,
 				4157C8230E51925357B05393 /* HomeInsights.swift in Sources */,
 				93DFE53FA1BF5FB07089D3C5 /* HomeInsightsModel.swift in Sources */,
+				40565E0F39438E670A8BA82A /* HomeLongPressBridge.swift in Sources */,
 				F3C6C981827CA1084C69EB6C /* HomePlanningWidgets.swift in Sources */,
 				C4AF43C7C1323D3F6C8B8DEC /* HomeToday.swift in Sources */,
 				D8A1E60796D329D723DD081E /* HomeWidget.swift in Sources */,

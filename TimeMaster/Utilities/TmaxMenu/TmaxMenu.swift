@@ -148,7 +148,6 @@ struct TmaxMenu<Content: View, Label: View>: View {
         .environment(\.everBouncePops, false)
         .everBounce(isOpen, in: Rectangle(), kind: .lift(lift), lights: false)
         .background(TmaxMenuAnchor(box: anchor))
-        .onAppear { AppInteractionHaptics.shared.preparePress() }
     }
 
     private func open() {

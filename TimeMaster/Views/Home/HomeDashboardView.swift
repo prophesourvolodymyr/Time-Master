@@ -69,11 +69,15 @@ struct HomeDashboardView: View {
             .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { date in
                 now = date
             }
+            #if os(iOS)
+            .background(HomeLongPressBridge(enabled: !isEditing) { setEditing(true) })
+            #else
             .simultaneousGesture(
                 LongPressGesture(minimumDuration: 0.6, maximumDistance: 10)
                     .onEnded { _ in setEditing(true) },
                 including: isEditing ? .subviews : .all
             )
+            #endif
             .oneHandedActions(id: "home", actions: homeActions)
             .workoutPlayerPage(item: $playerWorkout) { workout in
                 WorkoutPlayerView(workout: workout)
