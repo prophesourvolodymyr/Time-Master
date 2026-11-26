@@ -382,7 +382,9 @@ final class MediaTrimModel: ObservableObject {
                 MediaRevisions.shared.bump(source)
             case .addNew:
                 guard let pageID else { return false }
-                try MediaClipWriter.addClip(trimmed, after: source, toPage: pageID, token: token)
+                try await Task.detached(priority: .userInitiated) {
+                    try MediaClipWriter.addClip(trimmed, after: source, toPage: pageID, token: token)
+                }.value
                 DatabaseStore.shared.reload()
             }
             return true

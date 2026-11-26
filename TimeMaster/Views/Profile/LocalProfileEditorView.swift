@@ -34,8 +34,10 @@ struct LocalProfileEditorView: View {
                                 }
                             }
                         }
-                        if let filename = draft.bannerFilename, let image = PhotoManager.shared.loadPhoto(filename: filename) {
-                            platformImage(image).resizable().scaledToFill()
+                        if let filename = draft.bannerFilename {
+                            ProfilePhotoImage(filename: filename, pointSize: ProfileStyle.readableWidth) {
+                                Color.white.opacity(0.06)
+                            }
                                 .frame(maxWidth: .infinity).aspectRatio(2.6, contentMode: .fit).clipped()
                                 .clipShape(RoundedRectangle(cornerRadius: ProfileStyle.corner))
                         }
@@ -171,8 +173,15 @@ struct LocalProfileEditorView: View {
             do {
                 guard let data = try await item.loadTransferable(type: Data.self) else { throw CocoaError(.fileReadCorruptFile) }
                 try Task.checkCancellation()
-                guard let image = PhotoPlatformImage(data: data) else { throw CocoaError(.fileReadCorruptFile) }
-                guard let filename = PhotoManager.shared.savePhoto(image) else { throw CocoaError(.fileWriteUnknown) }
+                let filename = try await Task.detached(priority: .userInitiated) { () throws -> String in
+                    guard let image = PhotoPlatformImage(data: data) else { throw CocoaError(.fileReadCorruptFile) }
+                    guard let saved = PhotoManager.shared.savePhoto(image) else { throw CocoaError(.fileWriteUnknown) }
+                    return saved
+                }.value
+                if Task.isCancelled {
+                    PhotoManager.shared.deletePhoto(filename: filename)
+                    throw CancellationError()
+                }
                 temporaryFilenames.insert(filename)
                 if isAvatar { draft.avatarFilename = filename } else { draft.bannerFilename = filename }
             } catch is CancellationError {

@@ -11,26 +11,21 @@ import AppKit
 struct MainTabView: View {
     let workoutStore: WorkoutStore
     private let databaseStore = DatabaseStore.shared
-    @StateObject private var databaseNavigationState = DatabaseNavigationState(pageTravel: true)
     private let aiStore = AIStore.shared
-    @StateObject private var outdoorStore = OutdoorActivityStore()
     private let musicLibraryStore = MusicLibraryStore.shared
-    @StateObject private var outdoorPreferencesStore = OutdoorRecordingPreferencesStore()
+    @StateObject private var objects = MainTabObjects()
     @StateObject private var navigationLayout = SlotNavigationLayoutStore()
-    @StateObject private var profileStore = LocalProfileStore()
     @State private var selectedDestination: String? = SlotNavigationDestination.home.rawValue
     @State private var lastPageDestination = SlotNavigationDestination.home.rawValue
     @State private var scheduleWeek = WeeklyWorkoutSchedule.weekStart(Date())
     @State private var requestedWorkoutID: UUID?
     @State private var requestedRankedVariation: RankedVariation?
     @State private var requestedAnalyticsTracker: AnalyticsTracker?
-    @StateObject private var skillsNavigationState = DatabaseNavigationState(pageTravel: true)
     @State private var workoutsNavigationPath: [Workout] = []
     #if os(iOS)
     @State private var activeOutdoorKind: OutdoorActivityKind?
     @State private var activeOutdoorPlannedRoute: PlannedRoute?
     @State private var activeOutdoorActivityID: UUID?
-    @StateObject private var outdoorRecorder: OutdoorLocationRecorder
     #endif
 #if os(macOS)
     @FocusState private var keyboardFocused: Bool
@@ -39,13 +34,16 @@ struct MainTabView: View {
 
     init(workoutStore: WorkoutStore) {
         self.workoutStore = workoutStore
-#if os(iOS)
-        let outdoor = MainTabOutdoorObjects()
-        _outdoorStore = StateObject(wrappedValue: outdoor.store)
-        _outdoorPreferencesStore = StateObject(wrappedValue: outdoor.preferences)
-        _outdoorRecorder = StateObject(wrappedValue: outdoor.recorder)
-#endif
     }
+
+    private var databaseNavigationState: DatabaseNavigationState { objects.databaseNavigationState }
+    private var skillsNavigationState: DatabaseNavigationState { objects.skillsNavigationState }
+    private var outdoorStore: OutdoorActivityStore { objects.outdoorStore }
+    private var outdoorPreferencesStore: OutdoorRecordingPreferencesStore { objects.outdoorPreferencesStore }
+    private var profileStore: LocalProfileStore { objects.profileStore }
+    #if os(iOS)
+    private var outdoorRecorder: OutdoorLocationRecorder { objects.outdoorRecorder }
+    #endif
 
     /// The bar is taller on macOS, where the arc has always carried more of the surface.
     private static var barHeight: CGFloat {
@@ -74,15 +72,12 @@ struct MainTabView: View {
                 detailView
                     #if os(iOS)
                     .overlay(alignment: .topTrailing) {
-                        if selectedPage != .map, outdoorRecorder.isLiveSession {
-                            OutdoorLiveWorkoutStatusWidget(
+                        if selectedPage != .map {
+                            MainTabOutdoorStatusOverlay(
                                 recorder: outdoorRecorder,
                                 preferences: outdoorPreferencesStore,
                                 onOpenMap: openActiveOutdoorMap
                             )
-                            .padding(.top, 8)
-                            .padding(.trailing, 12)
-                            .zIndex(100)
                         }
                     }
                     #endif
@@ -251,13 +246,11 @@ struct MainTabView: View {
 #if os(iOS)
     @ViewBuilder
     private var mapDestination: some View {
-        OutdoorRouteRecordingView(
-            kind: outdoorRecorder.activeActivity?.kind ?? .run,
+        MainTabOutdoorMapDestination(
+            recorder: outdoorRecorder,
             store: outdoorStore,
             preferences: outdoorPreferencesStore,
             musicLibrary: musicLibraryStore,
-            initialActivityID: outdoorRecorder.activeActivity?.id,
-            recordingSession: outdoorRecorder,
             onExit: { selectedDestination = lastPageDestination }
         )
     }
@@ -365,12 +358,66 @@ struct MainTabView: View {
 #endif
 }
 
-#if os(iOS)
 @MainActor
-private final class MainTabOutdoorObjects {
-    lazy var store = OutdoorActivityStore()
-    lazy var preferences = OutdoorRecordingPreferencesStore()
-    lazy var recorder = OutdoorLocationRecorder(kind: .run, store: store, preferences: preferences)
+private final class MainTabObjects: ObservableObject {
+    let databaseNavigationState = DatabaseNavigationState(pageTravel: true)
+    let skillsNavigationState = DatabaseNavigationState(pageTravel: true)
+    let outdoorStore: OutdoorActivityStore
+    let outdoorPreferencesStore: OutdoorRecordingPreferencesStore
+    let profileStore = LocalProfileStore()
+    #if os(iOS)
+    let outdoorRecorder: OutdoorLocationRecorder
+    #endif
+
+    init() {
+        let store = OutdoorActivityStore()
+        let preferences = OutdoorRecordingPreferencesStore()
+        outdoorStore = store
+        outdoorPreferencesStore = preferences
+        #if os(iOS)
+        outdoorRecorder = OutdoorLocationRecorder(kind: .run, store: store, preferences: preferences)
+        #endif
+    }
+}
+
+#if os(iOS)
+private struct MainTabOutdoorStatusOverlay: View {
+    @ObservedObject var recorder: OutdoorLocationRecorder
+    let preferences: OutdoorRecordingPreferencesStore
+    let onOpenMap: () -> Void
+
+    var body: some View {
+        if recorder.isLiveSession {
+            OutdoorLiveWorkoutStatusWidget(
+                recorder: recorder,
+                preferences: preferences,
+                onOpenMap: onOpenMap
+            )
+            .padding(.top, 8)
+            .padding(.trailing, 12)
+            .zIndex(100)
+        }
+    }
+}
+
+private struct MainTabOutdoorMapDestination: View {
+    @ObservedObject var recorder: OutdoorLocationRecorder
+    let store: OutdoorActivityStore
+    let preferences: OutdoorRecordingPreferencesStore
+    let musicLibrary: MusicLibraryStore
+    let onExit: () -> Void
+
+    var body: some View {
+        OutdoorRouteRecordingView(
+            kind: recorder.activeActivity?.kind ?? .run,
+            store: store,
+            preferences: preferences,
+            musicLibrary: musicLibrary,
+            initialActivityID: recorder.activeActivity?.id,
+            recordingSession: recorder,
+            onExit: onExit
+        )
+    }
 }
 #endif
 

@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import TimeMasterCore
 
 @MainActor
 final class HomeInsightsModel: ObservableObject {
@@ -11,6 +12,24 @@ final class HomeInsightsModel: ObservableObject {
     private var now: Date
     private var digest: HomeLibraryDigest
     private var cancellables: Set<AnyCancellable> = []
+    private var key: Key?
+
+    private struct Key: Equatable {
+        var history: Int
+        var workouts: Int
+        var groups: [WorkoutGroup]
+        var schedule: WeeklyWorkoutSchedule
+        var typeSchedules: [TypeSchedule]
+        var trainingDays: Set<Int>
+        var restDays: Set<String>
+        var goal: Int
+        var now: Date
+        var calendar: Calendar
+        var library: ObjectIdentifier
+        var rootExercises: Int
+        var activities: [OutdoorActivity]
+        var routes: [PlannedRoute]
+    }
 
     init(workouts: WorkoutStore, library: DatabaseStore, outdoor: OutdoorActivityStore, now: Date = Date()) {
         self.workouts = workouts
@@ -45,12 +64,32 @@ final class HomeInsightsModel: ObservableObject {
         if library.skillLibrary.snapshotToken != digest.token {
             digest = HomeLibraryDigest.make(from: library)
         }
+        let calendar = Calendar.current
+        let key = Key(
+            history: workouts.historyRevision,
+            workouts: workouts.workoutsRevision,
+            groups: workouts.workoutGroups,
+            schedule: workouts.weeklySchedule,
+            typeSchedules: workouts.typeSchedules,
+            trainingDays: workouts.trainingDays,
+            restDays: workouts.restDays,
+            goal: workouts.weeklyGoal,
+            now: now,
+            calendar: calendar,
+            library: digest.token,
+            rootExercises: library.rootExercises.count,
+            activities: outdoor.activities,
+            routes: outdoor.plannedRoutes
+        )
+        guard key != self.key else { return }
+        self.key = key
         let next = HomeInsights.make(
             workouts: workouts,
             libraryStore: library,
             digest: digest,
             outdoor: outdoor,
-            now: now
+            now: now,
+            calendar: calendar
         )
         if next != insights { insights = next }
     }

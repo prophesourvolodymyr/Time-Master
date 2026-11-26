@@ -117,7 +117,7 @@ struct PageCreationSheet: View {
 
     let existingPage: ExercisePage?
     let onSave: (ExercisePageManifest, String?) throws -> Void
-    let onSaveWithMedia: ((ExercisePageManifest, String?, Data?, [(filename: String, data: Data)]) throws -> Void)?
+    let onSaveWithMedia: ((ExercisePageManifest, String?, [(filename: String, url: URL)]) async throws -> Void)?
     @State private var libraryToken: ExerciseLibraryAccess.Token
 
     @State private var pageKind: ExercisePageManifest.PageKind
@@ -162,6 +162,7 @@ struct PageCreationSheet: View {
     @State private var draftSavedMessage: String?
     @State private var saveErrorMessage: String?
     @State private var autosaveTask: Task<Void, Never>?
+    @State private var isSaving = false
     @State private var noSkills: Bool
     @State private var widgetSelection: PageWidgetSelection
     /// The tiles last chosen in this form, so going to Automatic or None and back to Choose… keeps them.
@@ -178,7 +179,7 @@ struct PageCreationSheet: View {
         parentID: String? = nil,
         initialPageType: PageType? = nil,
         onSave: @escaping (ExercisePageManifest, String?) throws -> Void,
-        onSaveWithMedia: ((ExercisePageManifest, String?, Data?, [(filename: String, data: Data)]) throws -> Void)? = nil
+        onSaveWithMedia: ((ExercisePageManifest, String?, [(filename: String, url: URL)]) async throws -> Void)? = nil
     ) {
         self.existingPage = page
         self.onSave = onSave
@@ -285,6 +286,7 @@ struct PageCreationSheet: View {
                     .padding(.top, 16)
                     .padding(.bottom, 28)
                     .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: pageType)
+                    .disabled(isSaving)
                 }
                 .scrollDismissesKeyboard(.immediately)
             }
@@ -314,6 +316,7 @@ struct PageCreationSheet: View {
                 AppToolbar.item(placement: .cancellationAction) {
                     Button("Cancel") { requestCancel() }
                         .buttonStyle(TimeMasterToolbarTextButtonStyle())
+                        .disabled(isSaving)
                 }
                 if existingPage == nil {
                     AppToolbar.item(placement: .primaryAction) {
@@ -433,6 +436,7 @@ struct PageCreationSheet: View {
                 if !didDiscard { persistDraftIfNeeded() }
             }
         }
+        .interactiveDismissDisabled(isSaving)
     }
 
     private var draftsButton: some View {
@@ -1309,16 +1313,21 @@ struct PageCreationSheet: View {
                         horizontalPadding: 18,
                         tint: canDraft ? Theme.toolbarOrange : Color(white: 0.42)
                     ))
-                    .disabled(!canDraft)
+                    .disabled(!canDraft || isSaving)
                     .accessibilityLabel("Save draft")
                 }
 
                 Button {
                     savePage()
                 } label: {
-                    Text(existingPage == nil ? "Create Page" : "Save Changes")
-                        .font(TimeMasterFont.black(17, relativeTo: .body))
-                        .frame(maxWidth: .infinity)
+                    HStack(spacing: 10) {
+                        if isSaving {
+                            TmaxLoadingIndicator(size: 18)
+                        }
+                        Text(existingPage == nil ? "Create Page" : "Save Changes")
+                            .font(TimeMasterFont.black(17, relativeTo: .body))
+                    }
+                    .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(TimeMasterActionButtonStyle(
                     prominent: true,
@@ -1326,7 +1335,7 @@ struct PageCreationSheet: View {
                     fillsWidth: true,
                     tint: canSave ? Theme.toolbarOrange : Color(white: 0.42)
                 ))
-                .disabled(!canSave)
+                .disabled(!canSave || isSaving)
                 .accessibilityHint(canSave ? "" : "Add a title first")
             }
         }
@@ -1524,7 +1533,7 @@ struct PageCreationSheet: View {
 
     @discardableResult
     private func persistDraftIfNeeded() -> Bool {
-        guard existingPage == nil, !didSavePage, !didDiscard, hasDraftContent else { return false }
+        guard existingPage == nil, !didSavePage, !didDiscard, !isSaving, hasDraftContent else { return false }
         let draft = makeDraft()
         let sources = Dictionary(uniqueKeysWithValues: pendingMediaFiles.map { ($0.filename, $0.temporaryURL) })
         do {
@@ -1575,34 +1584,56 @@ struct PageCreationSheet: View {
     }
 
     private func savePage() {
-        guard canSave else { return }
+        guard canSave, !isSaving else { return }
+        let media: [(filename: String, url: URL)]
         do {
-            let mediaData = try mediaFilenames.compactMap { filename -> (filename: String, data: Data)? in
+            media = try mediaFilenames.compactMap { filename -> (filename: String, url: URL)? in
                 guard let pending = pendingMediaFiles.first(where: { $0.filename == filename }) else {
                     if existingPage == nil { throw FileSystemHelper.Error.notFound(filename) }
                     return nil
                 }
-                return (filename: filename, data: try Data(contentsOf: pending.temporaryURL))
+                return (filename: filename, url: pending.temporaryURL)
             }
-            var manifest = makeManifest()
-            if existingPage == nil { manifest.mediaFilenames = [] }
-            try ExerciseLibraryAccess.shared.perform(token: libraryToken) {
-                if existingPage == nil, let onSaveWithMedia {
-                    try onSaveWithMedia(manifest, draftParentID, nil, mediaData)
-                } else {
-                    try onSave(manifest, draftParentID)
-                    if existingPage == nil && !mediaData.isEmpty {
-                        try uploadMediaAfterFallbackSave(pageID: manifest.id, mediaData: mediaData)
-                    }
-                }
-                if existingPage == nil { draftStore.delete(id: draftID) }
-            }
-            didSavePage = true
-            autosaveTask?.cancel()
-            cleanupTemporaryMedia()
-            dismiss()
         } catch {
             saveErrorMessage = error.localizedDescription
+            return
+        }
+        var manifest = makeManifest()
+        if existingPage == nil { manifest.mediaFilenames = [] }
+        isSaving = true
+        autosaveTask?.cancel()
+        Task { @MainActor [manifest] in
+            do {
+                try await persistPage(manifest, media: media)
+                didSavePage = true
+                cleanupTemporaryMedia()
+                dismiss()
+            } catch {
+                saveErrorMessage = error.localizedDescription
+            }
+            isSaving = false
+        }
+    }
+
+    @MainActor
+    private func persistPage(_ manifest: ExercisePageManifest, media: [(filename: String, url: URL)]) async throws {
+        guard ExerciseLibraryAccess.shared.isCurrent(libraryToken) else {
+            throw ExerciseLibraryAccess.AccessError.accountChanged
+        }
+        if existingPage == nil, let onSaveWithMedia {
+            try await onSaveWithMedia(manifest, draftParentID, media)
+        } else {
+            try ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+                try onSave(manifest, draftParentID)
+            }
+            if existingPage == nil && !media.isEmpty {
+                try await uploadMediaAfterFallbackSave(pageID: manifest.id, media: media)
+            }
+        }
+        if existingPage == nil {
+            try? ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+                draftStore.delete(id: draftID)
+            }
         }
     }
 
@@ -1704,32 +1735,24 @@ struct PageCreationSheet: View {
         }
     }
 
+    @MainActor
     private func uploadMediaAfterFallbackSave(
         pageID: String,
-        mediaData: [(filename: String, data: Data)]
-    ) throws {
+        media: [(filename: String, url: URL)]
+    ) async throws {
+        let comments = mediaComments
+        let token = libraryToken
         do {
-            for (filename, data) in mediaData {
-                let temporaryURL = FileManager.default.temporaryDirectory
-                    .appendingPathComponent(UUID().uuidString + "-" + URL(fileURLWithPath: filename).lastPathComponent)
-                defer { try? FileManager.default.removeItem(at: temporaryURL) }
-                try data.write(to: temporaryURL, options: .atomic)
-                let savedFilename = try DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: temporaryURL)
-                if let comment = mediaComments[filename] {
-                    try DatabaseManager.shared.updateMediaComment(pageID: pageID, filename: savedFilename, comment: comment)
+            try await Task.detached(priority: .userInitiated) {
+                try ExerciseLibraryAccess.shared.perform(token: token) {
+                    try DatabaseStore.attachMedia(media, comments: comments, toNewPage: pageID)
                 }
-            }
+            }.value
         } catch {
-            let saveError = error
-            do {
-                try DatabaseManager.shared.deletePage(id: pageID)
-            } catch {
-                throw FileSystemHelper.Error.writeFailed("\(saveError.localizedDescription) Cleanup failed: \(error.localizedDescription)")
-            }
-            databaseStore.reloadImmediately()
-            throw saveError
+            await databaseStore.reloadAndWait()
+            throw error
         }
-        databaseStore.reloadImmediately()
+        await databaseStore.reloadAndWait()
     }
 
     private func cleanupTemporaryMedia() {

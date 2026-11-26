@@ -28,6 +28,8 @@ struct HomeDashboardView: View {
     @State private var now = Date()
     @State private var planRequest: HomePlanRequest?
 
+    private static let minuteTicks = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+
     var body: some View {
         HomeInsightsHost(workouts: store, library: databaseStore, outdoor: outdoorStore, now: now) { insights in
             dashboard(insights)
@@ -66,7 +68,7 @@ struct HomeDashboardView: View {
             .onAppear {
                 now = Date()
             }
-            .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { date in
+            .onReceive(Self.minuteTicks) { date in
                 now = date
             }
             #if os(iOS)

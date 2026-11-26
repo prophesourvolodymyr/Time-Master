@@ -353,7 +353,7 @@ struct BatchConfirmView: View {
                     target: target,
                     libraryToken: libraryToken,
                     reloadDatabase: {
-                        databaseStore.reloadImmediately()
+                        await databaseStore.reloadAndWait()
                     }
                 )
             } catch {
@@ -363,7 +363,7 @@ struct BatchConfirmView: View {
             }
         }
 
-        databaseStore.reloadImmediately()
+        await databaseStore.reloadAndWait()
         isSaving = false
         onComplete()
     }
@@ -434,7 +434,7 @@ struct BatchConfirmView: View {
         )
         do {
             try databaseStore.createPage(manifest: manifest, parentID: nil)
-            databaseStore.reloadImmediately()
+            databaseStore.reload()
             let destinationID = destinationID(for: manifest.id, kind: .new)
             for item in nonEmptyItems {
                 cardDestinationIDs[item.id] = destinationID

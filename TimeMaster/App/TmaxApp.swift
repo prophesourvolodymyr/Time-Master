@@ -43,12 +43,15 @@ struct TmaxApp: App {
 
 private struct TmaxRootView: View {
     @ObservedObject var startup: TmaxStartupModel
-    @StateObject private var resumeManager = WorkoutResumeManager.shared
+    private let resumeManager = WorkoutResumeManager.shared
     @ObservedObject private var cloudAccount = CloudAccountStore.shared
 #if os(macOS)
     @Environment(\.openWindow) private var openWindow
 #endif
-    @ObservedObject private var databaseSync = DatabaseSyncStore.shared
+    private let databaseSync = DatabaseSyncStore.shared
+    @State private var changingAccount = DatabaseSyncStore.shared.changingAccount
+    @State private var libraryGeneration = DatabaseSyncStore.shared.libraryGeneration
+    @State private var libraryReload: UUID?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @State private var showResumePrompt = false
@@ -77,8 +80,12 @@ private struct TmaxRootView: View {
         case loading, zooming, revealing, finished
     }
 
+    private var switchingLibrary: Bool {
+        changingAccount || libraryReload != nil
+    }
+
     private var contentIsReady: Bool {
-        startup.isReady && !databaseSync.changingAccount
+        startup.isReady && !switchingLibrary
             && startup.workoutStore != nil && startup.databaseStore != nil
     }
 
@@ -93,12 +100,12 @@ private struct TmaxRootView: View {
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            if startup.isReady, !databaseSync.changingAccount,
+            if startup.isReady, !switchingLibrary,
                let store = startup.workoutStore, let database = startup.databaseStore {
                 MainTabView(workoutStore: store)
                     .environmentObject(store)
                     .environmentObject(database)
-                    .id(databaseSync.libraryGeneration)
+                    .id(libraryGeneration)
                     .allowsHitTesting(launchPhase == .finished)
                     .accessibilityHidden(launchPhase != .finished)
                     .task(id: launchPhase == .finished) {
@@ -120,7 +127,7 @@ private struct TmaxRootView: View {
             }
             if !contentIsReady || launchPhase != .finished {
                 TmaxLoadingState(
-                    title: startup.isReady ? (databaseSync.changingAccount ? "Switching exercise library..." : "Opening Tmax…") : startup.status,
+                    title: startup.isReady ? (switchingLibrary ? "Switching exercise library..." : "Opening Tmax…") : startup.status,
                     showsQuote: true,
                     isFinishing: launchPhase == .zooming || launchPhase == .revealing,
                     departureProgress: departureProgress,
@@ -179,11 +186,23 @@ private struct TmaxRootView: View {
                 NotificationManager.shared.refreshMissedDayNudges(schedules: store.typeSchedules, history: store.historyEntries)
             }
         }
+        .onReceive(databaseSync.$changingAccount) { value in
+            if changingAccount != value { changingAccount = value }
+        }
+        .onReceive(databaseSync.$libraryGeneration) { value in
+            if libraryGeneration != value { libraryGeneration = value }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .exerciseLibraryDidSync)) { notification in
+            guard let database = startup.databaseStore else { return }
             if notification.userInfo?["accountChanged"] as? Bool == true {
-                startup.databaseStore?.reloadImmediately()
+                let reload = UUID()
+                libraryReload = reload
+                Task { @MainActor in
+                    await database.reloadAndWait()
+                    if libraryReload == reload { libraryReload = nil }
+                }
             } else {
-                startup.databaseStore?.reload()
+                database.reload()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .deviceSyncDidStoreChanges)) { notification in
@@ -205,7 +224,7 @@ private struct TmaxRootView: View {
                 if cloudAccount.presentsRecovery {
                     RankedAccountView()
                 } else {
-                    resumePrompt
+                    TmaxResumePromptHost(resumeManager: resumeManager) { resumePrompt }
                 }
             }
             .keyNavHost()
@@ -331,6 +350,13 @@ private struct TmaxRootView: View {
         guard let workout = requested ?? scheduled ?? fallback, !workout.sections.isEmpty else { return }
         resumePlayerWorkout = workout
     }
+}
+
+private struct TmaxResumePromptHost<Content: View>: View {
+    @ObservedObject var resumeManager: WorkoutResumeManager
+    @ViewBuilder let content: () -> Content
+
+    var body: some View { content() }
 }
 
 extension Notification.Name {

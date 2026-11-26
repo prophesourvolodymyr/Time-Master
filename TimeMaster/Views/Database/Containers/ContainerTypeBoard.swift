@@ -35,12 +35,11 @@ struct ContainerTypeBoard: View {
         .sheet(item: $creation) { request in
             PageCreationSheet(parentID: folder.manifest.id, initialPageType: .exercise) { manifest, parentID in
                 try store.createPage(manifest: request.tagged(manifest), parentID: parentID)
-            } onSaveWithMedia: { manifest, parentID, coverData, mediaData in
-                try store.createPageWithMedia(
+            } onSaveWithMedia: { manifest, parentID, media in
+                try await store.createPageWithMedia(
                     manifest: request.tagged(manifest),
                     parentID: parentID,
-                    coverData: coverData,
-                    mediaData: mediaData
+                    media: media
                 )
             }
             .environmentObject(workoutStore)

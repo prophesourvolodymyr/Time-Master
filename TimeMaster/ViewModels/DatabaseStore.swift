@@ -59,39 +59,57 @@ class DatabaseStore: ObservableObject {
         let generation = reloadGeneration
 
         let workItem = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-
-            let snapshot: (() -> Void)? = {
-                if self.isV2PageMigrated {
-                    guard let snapshot = self.pageSnapshotIfReadable() else { return nil }
-                    return {
-                        guard self.reloadGeneration == generation else { return }
-                        if self.apply(snapshot) { self.libraryRevision &+= 1 }
-                    }
-                }
-
-                if self.isV1Migrated {
-                    let snapshot = self.legacySnapshotFromFileSystem()
-                    return {
-                        guard self.reloadGeneration == generation else { return }
-                        self.rootFolders = snapshot.folders
-                        self.rootExercises = snapshot.exercises
-                    }
-                }
-
-                let folders = self.defaultFolders()
-                return {
-                    guard self.reloadGeneration == generation else { return }
-                    self.rootFolders = folders
-                }
-            }()
-
-            guard let snapshot else { return }
-            DispatchQueue.main.async(execute: snapshot)
+            guard let self, let loaded = self.loadedLibrary() else { return }
+            DispatchQueue.main.async {
+                guard self.reloadGeneration == generation else { return }
+                self.applyLoaded(loaded)
+            }
         }
 
         reloadWorkItem = workItem
         DispatchQueue.global(qos: .userInitiated).async(execute: workItem)
+    }
+
+    @MainActor
+    func reloadAndWait() async {
+        reloadWorkItem?.cancel()
+        reloadWorkItem = nil
+        reloadGeneration &+= 1
+        let generation = reloadGeneration
+        let loaded = await Task.detached(priority: .userInitiated) { [self] in
+            loadedLibrary() ?? .pages(Self.snapshot(flat: [], roots: []))
+        }.value
+        guard reloadGeneration == generation else { return }
+        applyLoaded(loaded)
+    }
+
+    private enum LoadedLibrary {
+        case pages(PageSnapshot)
+        case legacy(folders: [ExerciseFolder], exercises: [Exercise])
+        case defaults([ExerciseFolder])
+    }
+
+    private func loadedLibrary() -> LoadedLibrary? {
+        if isV2PageMigrated {
+            return pageSnapshotIfReadable().map(LoadedLibrary.pages)
+        }
+        if isV1Migrated {
+            let snapshot = legacySnapshotFromFileSystem()
+            return .legacy(folders: snapshot.folders, exercises: snapshot.exercises)
+        }
+        return .defaults(defaultFolders())
+    }
+
+    private func applyLoaded(_ loaded: LoadedLibrary) {
+        switch loaded {
+        case .pages(let snapshot):
+            if apply(snapshot) { libraryRevision &+= 1 }
+        case .legacy(let folders, let exercises):
+            rootFolders = folders
+            rootExercises = exercises
+        case .defaults(let folders):
+            rootFolders = folders
+        }
     }
 
     func reloadImmediately() {
@@ -166,6 +184,7 @@ class DatabaseStore: ObservableObject {
         rootPages = snapshot.roots
         derived.index = snapshot.index
         derived.skillLibrary = snapshot.library
+        derived.pageTree = snapshot.roots
         return true
     }
 
@@ -311,52 +330,52 @@ class DatabaseStore: ObservableObject {
         reload()
     }
 
+    @MainActor
     func createPageWithMedia(
         manifest: ExercisePageManifest,
         parentID: String?,
-        coverData: Data?,
-        mediaData: [(filename: String, data: Data)]
-    ) throws {
+        media: [(filename: String, url: URL)]
+    ) async throws {
         var persistedManifest = manifest
         persistedManifest.parentID = parentID ?? manifest.parentID
-        var uploads = mediaData
-        if let coverData {
-            let filename = persistedManifest.coverImageFilename ?? "cover.jpg"
-            uploads.insert((filename: filename, data: coverData), at: 0)
-        }
         persistedManifest.coverImageFilename = nil
-        if !uploads.isEmpty {
+        if !media.isEmpty {
             persistedManifest.mediaFilenames = []
             persistedManifest.mediaComments = [:]
         }
+        let comments = manifest.mediaComments
         let libraryToken = ExerciseLibraryAccess.shared.capture()
-        try ExerciseLibraryAccess.shared.perform(token: libraryToken) {
-            let database = DatabaseManager.shared
-            let temporaryDirectory = FileManager.default.temporaryDirectory
-                .appendingPathComponent("Tmax Page Media-\(UUID().uuidString)", isDirectory: true)
-            defer { try? FileManager.default.removeItem(at: temporaryDirectory) }
-            try FileManager.default.createDirectory(at: temporaryDirectory, withIntermediateDirectories: true)
-            try database.createPage(manifest: persistedManifest, parentID: parentID)
-            do {
-                for (filename, data) in uploads {
-                    let temporaryURL = temporaryDirectory.appendingPathComponent(UUID().uuidString + "-" + URL(fileURLWithPath: filename).lastPathComponent)
-                    try data.write(to: temporaryURL, options: .atomic)
-                    let savedFilename = try database.uploadMediaToPage(pageID: persistedManifest.id, sourceURL: temporaryURL)
-                    if let comment = manifest.mediaComments[filename] {
-                        try database.updateMediaComment(pageID: persistedManifest.id, filename: savedFilename, comment: comment)
-                    }
-                }
-            } catch {
-                let saveError = error
-                do {
-                    try database.deletePage(id: persistedManifest.id)
-                } catch {
-                    throw FileSystemHelper.Error.writeFailed("\(saveError.localizedDescription) Cleanup failed: \(error.localizedDescription)")
-                }
-                throw saveError
+        try await Task.detached(priority: .userInitiated) { [persistedManifest] in
+            try ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+                try DatabaseManager.shared.createPage(manifest: persistedManifest, parentID: parentID)
+                try DatabaseStore.attachMedia(media, comments: comments, toNewPage: persistedManifest.id)
             }
+        }.value
+        await reloadAndWait()
+    }
+
+    static func attachMedia(
+        _ media: [(filename: String, url: URL)],
+        comments: [String: String],
+        toNewPage pageID: String
+    ) throws {
+        let database = DatabaseManager.shared
+        do {
+            for (filename, url) in media {
+                let savedFilename = try database.uploadMediaToPage(pageID: pageID, sourceURL: url)
+                if let comment = comments[filename] {
+                    try database.updateMediaComment(pageID: pageID, filename: savedFilename, comment: comment)
+                }
+            }
+        } catch {
+            let saveError = error
+            do {
+                try database.deletePage(id: pageID)
+            } catch {
+                throw FileSystemHelper.Error.writeFailed("\(saveError.localizedDescription) Cleanup failed: \(error.localizedDescription)")
+            }
+            throw saveError
         }
-        reloadImmediately()
     }
 
 

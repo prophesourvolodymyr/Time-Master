@@ -3,23 +3,21 @@ import SwiftUI
 import UIKit
 #endif
 
-private enum HistoryItem: Identifiable {
-    case workout(WorkoutHistoryEntry)
-    case outdoor(OutdoorActivity)
-
-    var id: String {
-        switch self {
-        case .workout(let entry): "workout-\(entry.id.uuidString)"
-        case .outdoor(let activity): "outdoor-\(activity.id.uuidString)"
-        }
+private struct HistoryItem: Identifiable {
+    enum Source {
+        case workout(WorkoutHistoryEntry)
+        case outdoor(OutdoorActivity)
     }
 
-    var date: Date {
-        switch self {
-        case .workout(let entry): entry.completedAt
-        case .outdoor(let activity): activity.startedAt
-        }
-    }
+    let id: String
+    let date: Date
+    let source: Source
+}
+
+private struct HistoryItemsKey: Equatable {
+    let store: ObjectIdentifier
+    let revision: Int
+    let outdoor: [OutdoorActivity]
 }
 
 struct HistoryView: View {
@@ -30,12 +28,23 @@ struct HistoryView: View {
     @State private var showingClearAlert = false
     @State private var selectedOutdoorActivity: OutdoorActivity?
 
-    private var items: [HistoryItem] {
-        (store.historyEntries.map(HistoryItem.workout) + outdoorStore.establishedActivities.map(HistoryItem.outdoor))
-            .sorted { $0.date > $1.date }
+    @StateObject private var itemsMemo = ValueMemo<HistoryItemsKey, [HistoryItem]>()
+
+    private func loadItems() -> [HistoryItem] {
+        let key = HistoryItemsKey(store: ObjectIdentifier(store), revision: store.historyRevision, outdoor: outdoorStore.activities)
+        return itemsMemo.value(for: key) {
+            let workouts = store.historyEntries.map {
+                HistoryItem(id: "workout-\($0.id.uuidString)", date: $0.completedAt, source: .workout($0))
+            }
+            let outdoor = outdoorStore.establishedActivities.map {
+                HistoryItem(id: "outdoor-\($0.id.uuidString)", date: $0.startedAt, source: .outdoor($0))
+            }
+            return (workouts + outdoor).sorted { $0.date > $1.date }
+        }
     }
 
     var body: some View {
+        let items = loadItems()
             ZStack {
                 Theme.background.ignoresSafeArea()
                 if items.isEmpty {
@@ -47,7 +56,7 @@ struct HistoryView: View {
                 } else {
                     List {
                         ForEach(items) { item in
-                            switch item {
+                            switch item.source {
                             case .workout(let entry):
                                 HistoryRow(entry: entry)
                                     .keyNavTarget(id: item.id, role: .primary, shape: .roundedRectangle(cornerRadius: 0))
@@ -230,11 +239,13 @@ struct HistoryRow: View {
         .padding(.vertical, 8)
     }
 
+    private static let dateFormatter = CachedDateFormatter {
+        $0.dateStyle = .medium
+        $0.timeStyle = .short
+    }
+
     private func formatDate(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        f.timeStyle = .short
-        return f.string(from: date)
+        Self.dateFormatter.string(from: date)
     }
 
     private func formatDuration(_ seconds: Int) -> String {

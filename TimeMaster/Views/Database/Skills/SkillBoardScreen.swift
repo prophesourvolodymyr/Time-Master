@@ -184,8 +184,8 @@ struct SkillBoardScreen: View {
         .sheet(isPresented: $showingDetailedCreation) {
             PageCreationSheet(parentID: boardID, initialPageType: .skill) { manifest, parentID in
                 try store.createPage(manifest: manifest, parentID: parentID)
-            } onSaveWithMedia: { manifest, parentID, coverData, mediaData in
-                try store.createPageWithMedia(manifest: manifest, parentID: parentID, coverData: coverData, mediaData: mediaData)
+            } onSaveWithMedia: { manifest, parentID, media in
+                try await store.createPageWithMedia(manifest: manifest, parentID: parentID, media: media)
             }
             .environmentObject(store)
             .environmentObject(workoutStore)

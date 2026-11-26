@@ -92,9 +92,7 @@ struct CollectibleProfileCover: View {
     var body: some View {
         GeometryReader { geometry in
             Group {
-                if let filename = profile.bannerFilename, let image = PhotoManager.shared.loadPhoto(filename: filename) {
-                    platformImage(image).resizable().scaledToFill()
-                } else {
+                ProfilePhotoImage(filename: profile.bannerFilename, pointSize: max(geometry.size.width, geometry.size.height)) {
                     ProfileCoverArtwork()
                 }
             }

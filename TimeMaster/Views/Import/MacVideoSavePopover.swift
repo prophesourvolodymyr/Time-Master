@@ -708,7 +708,7 @@ struct MacVideoSavePopover: View {
 
         do {
             try databaseStore.createPage(manifest: manifest, parentID: nil)
-            databaseStore.reloadImmediately()
+            databaseStore.reload()
             selectedTargetID = manifest.id
             saveErrorMessage = nil
         } catch {
@@ -747,7 +747,7 @@ struct MacVideoSavePopover: View {
         saveErrorMessage = nil
         let extraURLs = pendingAdditionalMedia.map(\.url)
         let libraryToken = ExerciseLibraryAccess.shared.capture()
-        Task {
+        Task { @MainActor in
             do {
                 try await MacVideoDatabaseImporter.save(
                     draft: draft,
@@ -758,7 +758,7 @@ struct MacVideoSavePopover: View {
                     additionalMediaURLs: extraURLs,
                     clipComment: clipComment,
                     reloadDatabase: {
-                        databaseStore.reloadImmediately()
+                        await databaseStore.reloadAndWait()
                     }
                 )
                 onDraftRenamed(trimmedTitle)

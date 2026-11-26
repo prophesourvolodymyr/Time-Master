@@ -179,21 +179,81 @@ extension View {
 
 
 
+private struct ProfilePhotoRequest: Equatable {
+    let filename: String?
+    let pixelSize: Int
+}
+
+private struct ProfilePhotoResult {
+    let filename: String
+    let image: PhotoPlatformImage
+}
+
+struct ProfilePhotoImage<Placeholder: View>: View {
+    let filename: String?
+    let pointSize: CGFloat
+    @ViewBuilder var placeholder: Placeholder
+    @Environment(\.displayScale) private var displayScale
+    @State private var result: ProfilePhotoResult?
+
+    private var request: ProfilePhotoRequest {
+        ProfilePhotoRequest(filename: filename, pixelSize: PhotoManager.pixelBucket(for: pointSize * displayScale))
+    }
+
+    var body: some View {
+        let request = request
+        Group {
+            if let image = currentImage(for: request) {
+                platformImage(image).resizable().scaledToFill()
+            } else {
+                placeholder
+            }
+        }
+        .task(id: request) { await load(request) }
+    }
+
+    private func currentImage(for request: ProfilePhotoRequest) -> PhotoPlatformImage? {
+        guard let filename = request.filename else { return nil }
+        if let cached = PhotoManager.shared.cachedProfileImage(filename: filename, maxPixelSize: CGFloat(request.pixelSize)) {
+            return cached
+        }
+        if let result, result.filename == filename { return result.image }
+        return nil
+    }
+
+    private func load(_ request: ProfilePhotoRequest) async {
+        guard let filename = request.filename else {
+            result = nil
+            return
+        }
+        let size = CGFloat(request.pixelSize)
+        let image: PhotoPlatformImage?
+        if let cached = PhotoManager.shared.cachedProfileImage(filename: filename, maxPixelSize: size) {
+            image = cached
+        } else {
+            image = await PhotoManager.shared.loadProfileImage(filename: filename, maxPixelSize: size)
+        }
+        guard !Task.isCancelled else { return }
+        if let image {
+            result = ProfilePhotoResult(filename: filename, image: image)
+        } else {
+            result = nil
+        }
+    }
+}
+
 struct ProfileAvatar: View {
     let profile: LocalUserProfile
     var size: CGFloat = 44
+    var imagePoints: CGFloat?
 
     var body: some View {
-        Group {
-            if let filename = profile.avatarFilename, let image = PhotoManager.shared.loadPhoto(filename: filename) {
-                platformImage(image).resizable().scaledToFill()
-            } else {
-                Image(systemName: "person.fill")
-                    .font(.system(size: size * 0.45, weight: .medium))
-                    .foregroundStyle(StoreArtworkStyle.mono.ink)
-                    .frame(width: size, height: size)
-                    .background(StoreArtworkStyle.mono.color, in: Circle())
-            }
+        ProfilePhotoImage(filename: profile.avatarFilename, pointSize: imagePoints ?? size) {
+            Image(systemName: "person.fill")
+                .font(.system(size: size * 0.45, weight: .medium))
+                .foregroundStyle(StoreArtworkStyle.mono.ink)
+                .frame(width: size, height: size)
+                .background(StoreArtworkStyle.mono.color, in: Circle())
         }
         .frame(width: size, height: size)
         .clipShape(Circle())

@@ -46,7 +46,7 @@ enum MacVideoDatabaseImporter {
         additionalMediaURLs: [URL],
         clipComment: String = "",
         database: DatabaseManager = .shared,
-        reloadDatabase: @escaping @MainActor () -> Void
+        reloadDatabase: @escaping @MainActor () async -> Void
     ) async throws {
         let temporaryDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent("TimeMaster Video Export-\(UUID().uuidString)", isDirectory: true)
@@ -405,7 +405,7 @@ enum VideoEditorDatabaseImporter {
         target: Target,
         libraryToken: ExerciseLibraryAccess.Token,
         database: DatabaseManager = .shared,
-        reloadDatabase: @escaping @MainActor () -> Void
+        reloadDatabase: @escaping @MainActor () async -> Void
     ) async throws {
         guard !item.mediaList.isEmpty else {
             throw ImportError.noMedia

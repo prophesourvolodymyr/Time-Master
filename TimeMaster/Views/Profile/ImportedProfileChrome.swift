@@ -100,7 +100,7 @@ extension ProfileView {
         return ZStack(alignment: .topLeading) {
             profileBanner(width: width, coverHeight: coverHeight, progress: layoutProgress)
 
-            profileAvatar(size: avatarSize)
+            profileAvatar(size: avatarSize, imagePoints: expandedAvatar)
                 .position(
                     x: interpolate(width / 2, compactAvatarX, avatarProgress),
                     y: interpolate(expandedCenter, compactHeight / 2, avatarProgress)
@@ -295,9 +295,9 @@ extension ProfileView {
     }
 
 
-    private func profileAvatar(size: CGFloat) -> some View {
+    private func profileAvatar(size: CGFloat, imagePoints: CGFloat) -> some View {
         ZStack(alignment: .bottomTrailing) {
-            ProfileAvatar(profile: profile, size: size)
+            ProfileAvatar(profile: profile, size: size, imagePoints: imagePoints)
                 .overlay(Circle().stroke(palette.background, lineWidth: size / 20))
             if let item = collectible(.avatar) {
                 CollectibleAvatarRing(item: item, active: collectibleArtworkActive)

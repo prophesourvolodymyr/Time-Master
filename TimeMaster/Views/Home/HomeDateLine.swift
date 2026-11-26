@@ -43,11 +43,12 @@ struct HomeDateLine: View {
     }
 
     var body: some View {
+        let dateText = date.formatted(.dateTime.weekday(.wide).month(.wide).day())
         if reduceMotion || scenePhase != .active {
-            HomeDateRow(date: date, streak: streak, glint: nil)
+            HomeDateRow(dateText: dateText, streak: streak, glint: nil)
         } else {
             TimelineView(GlintSchedule()) { timeline in
-                HomeDateRow(date: date, streak: streak, glint: Self.glint(at: timeline.date.timeIntervalSinceReferenceDate))
+                HomeDateRow(dateText: dateText, streak: streak, glint: Self.glint(at: timeline.date.timeIntervalSinceReferenceDate))
             }
         }
     }
@@ -74,15 +75,11 @@ struct GlintSchedule: TimelineSchedule {
 
 /// The date line drawn for one moment; `glint` is where the glint is across it (nil for none).
 struct HomeDateRow: View {
-    let date: Date
+    let dateText: String
     let streak: Int
     var glint: Double?
 
     @ScaledMetric(relativeTo: .subheadline) private var flameSize: CGFloat = 30
-
-    private var dateText: String {
-        date.formatted(.dateTime.weekday(.wide).month(.wide).day())
-    }
 
     var body: some View {
         textRow(flame: true)

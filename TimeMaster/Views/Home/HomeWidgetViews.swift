@@ -16,7 +16,6 @@ struct HomeWidgetContent: View {
     let onBrowseDatabase: () -> Void
     let onCreateWorkout: () -> Void
     let onStartOutdoor: (OutdoorActivityKind, PlannedRoute?, UUID?) -> Void
-    @ObservedObject private var resumeManager = WorkoutResumeManager.shared
     let onSkipScheduledWorkout: (ScheduledWorkout) -> Void
     let insights: HomeInsights
     let onPlanWorkout: (Date, UUID?) -> Void
@@ -214,9 +213,15 @@ struct HomeWidgetContent: View {
         }
     }
 
-    @ViewBuilder
     private var resumeWorkout: some View {
-        if let state = resumeManager.resumeState, let workout = workoutStore.workout(id: state.workoutId) {
+        HomeResumeObserver { state in
+            resumeCard(state)
+        }
+    }
+
+    @ViewBuilder
+    private func resumeCard(_ state: ResumeState?) -> some View {
+        if let state, let workout = workoutStore.workout(id: state.workoutId) {
             HomeWidgetChrome(art: .stopwatch, spot: .home(widget.footprint)) {
                 HomeFeatureLayout(
                     footprint: widget.footprint,
@@ -905,6 +910,19 @@ struct HomeWidgetContent: View {
         if minutes == 0 { return "\(remaining)s" }
         if remaining == 0 { return "\(minutes)m" }
         return "\(minutes)m \(remaining)s"
+    }
+}
+
+private struct HomeResumeObserver<Content: View>: View {
+    @ObservedObject private var resumeManager = WorkoutResumeManager.shared
+    let content: (ResumeState?) -> Content
+
+    init(@ViewBuilder content: @escaping (ResumeState?) -> Content) {
+        self.content = content
+    }
+
+    var body: some View {
+        content(resumeManager.resumeState)
     }
 }
 

@@ -19,6 +19,7 @@ class PhotoManager {
     private let documentsDirectory: URL
     private let cache = NSCache<NSString, PhotoPlatformImage>()
     private let fileCache = NSCache<NSString, PhotoPlatformImage>()
+    private let profileImageCache = NSCache<NSString, PhotoPlatformImage>()
 
     private init() {
         documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -27,6 +28,8 @@ class PhotoManager {
         cache.totalCostLimit = 64 * 1024 * 1024
         fileCache.countLimit = 40
         fileCache.totalCostLimit = 48 * 1024 * 1024
+        profileImageCache.countLimit = 24
+        profileImageCache.totalCostLimit = 24 * 1024 * 1024
     }
 
     private var photosDirectory: URL {
@@ -63,6 +66,7 @@ class PhotoManager {
         let fileURL = photosDirectory.appendingPathComponent(filename)
         do {
             try data.write(to: fileURL)
+            forgetProfileImages(filename: filename)
             return filename
         } catch {
             print("Error saving photo: \(error)")
@@ -87,6 +91,7 @@ class PhotoManager {
     func deletePhoto(filename: String) {
         let fileURL = photosDirectory.appendingPathComponent(filename)
         try? fileManager.removeItem(at: fileURL)
+        forgetProfileImages(filename: filename)
     }
 
     func photoURL(for filename: String) -> URL {
@@ -148,6 +153,7 @@ class PhotoManager {
     func deleteMedia(filename: String) {
         let fileURL = photosDirectory.appendingPathComponent(filename)
         try? fileManager.removeItem(at: fileURL)
+        forgetProfileImages(filename: filename)
     }
 
     #if os(iOS)
@@ -296,9 +302,38 @@ extension PhotoManager {
         #endif
     }
 
+    private static func profileImageKey(filename: String, bucket: Int) -> NSString {
+        "\(filename)#\(bucket)" as NSString
+    }
+
+    func cachedProfileImage(filename: String, maxPixelSize: CGFloat) -> PhotoPlatformImage? {
+        profileImageCache.object(forKey: Self.profileImageKey(filename: filename, bucket: Self.pixelBucket(for: maxPixelSize)))
+    }
+
+    func loadProfileImage(filename: String, maxPixelSize: CGFloat) async -> PhotoPlatformImage? {
+        let bucket = Self.pixelBucket(for: maxPixelSize)
+        let key = Self.profileImageKey(filename: filename, bucket: bucket)
+        if let cached = profileImageCache.object(forKey: key) { return cached }
+        let url = photosDirectory.appendingPathComponent(filename)
+        let image = await Task.detached(priority: .userInitiated, operation: { () -> PhotoPlatformImage? in
+            Self.downsampledImage(at: url, maxPixelSize: CGFloat(bucket))
+        }).value
+        guard let image else { return nil }
+        guard fileManager.fileExists(atPath: url.path) else { return nil }
+        profileImageCache.setObject(image, forKey: key, cost: Int(image.size.width * image.size.height * 4))
+        return image
+    }
+
+    private func forgetProfileImages(filename: String) {
+        for bucket in Self.pixelBuckets {
+            profileImageCache.removeObject(forKey: Self.profileImageKey(filename: filename, bucket: bucket))
+        }
+    }
+
     func clearCache() {
         cache.removeAllObjects()
         fileCache.removeAllObjects()
+        profileImageCache.removeAllObjects()
     }
 }
 

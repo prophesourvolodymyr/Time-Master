@@ -31,6 +31,256 @@ final class GoalsManager: ObservableObject {
     }
 }
 
+final class ValueMemo<Key: Equatable, Value>: ObservableObject {
+    private var stored: (key: Key, value: Value)?
+
+    func value(for key: Key, make: () -> Value) -> Value {
+        if let known = stored, known.key == key { return known.value }
+        let made = make()
+        stored = (key, made)
+        return made
+    }
+}
+
+final class CachedDateFormatter {
+    private let configure: (DateFormatter) -> Void
+    private var formatter: DateFormatter?
+    private var locale: Locale?
+    private var timeZone: TimeZone?
+    private var calendar: Calendar?
+
+    init(_ configure: @escaping (DateFormatter) -> Void) {
+        self.configure = configure
+    }
+
+    func string(from date: Date) -> String {
+        let locale = Locale.current
+        let timeZone = TimeZone.current
+        let calendar = Calendar.current
+        if let known = formatter, self.locale == locale, self.timeZone == timeZone, self.calendar == calendar {
+            return known.string(from: date)
+        }
+        let made = DateFormatter()
+        configure(made)
+        formatter = made
+        self.locale = locale
+        self.timeZone = timeZone
+        self.calendar = calendar
+        return made.string(from: date)
+    }
+}
+
+private struct HistoryRevisionKey: Equatable {
+    let store: ObjectIdentifier
+    let revision: Int
+}
+
+private struct FilteredEntriesKey: Equatable {
+    let store: ObjectIdentifier
+    let revision: Int
+    let type: WorkoutType
+}
+
+private enum OutdoorDayCounts {
+    private struct Key: Equatable {
+        let calendar: Calendar
+        let starts: [TimeInterval]
+    }
+
+    private final class Memo {
+        var key: Key?
+        var counts: [Date: Int] = [:]
+    }
+
+    private static let memo = Memo()
+
+    static func counts(for activities: [OutdoorActivity], calendar: Calendar) -> [Date: Int] {
+        guard !activities.isEmpty else { return [:] }
+        let key = Key(calendar: calendar, starts: activities.map { $0.startedAt.timeIntervalSinceReferenceDate })
+        if memo.key == key { return memo.counts }
+        var counts: [Date: Int] = [:]
+        for activity in activities {
+            counts[calendar.startOfDay(for: activity.startedAt), default: 0] += 1
+        }
+        memo.key = key
+        memo.counts = counts
+        return counts
+    }
+}
+
+private final class ActivityDayFacts {
+    private let store: WorkoutStore
+    private let outdoor: [Date: Int]
+    private var counts: [Date: Int] = [:]
+    private var rests: [Date: Bool] = [:]
+    private var schedules: [Date: Bool] = [:]
+
+    init(store: WorkoutStore, outdoor: [Date: Int]) {
+        self.store = store
+        self.outdoor = outdoor
+    }
+
+    func count(on day: Date) -> Int {
+        if let known = counts[day] { return known }
+        let value = store.scheduleActivityCount(on: day) + (outdoor[day] ?? 0)
+        counts[day] = value
+        return value
+    }
+
+    func isRest(on day: Date) -> Bool {
+        if let known = rests[day] { return known }
+        let value = store.isRestDay(day)
+        rests[day] = value
+        return value
+    }
+
+    func isScheduled(on day: Date) -> Bool {
+        if let known = schedules[day] { return known }
+        let value = store.isScheduledDay(day)
+        schedules[day] = value
+        return value
+    }
+}
+
+private final class HeatmapWindow {
+    private struct Key: Equatable {
+        let today: Date
+        let calendar: Calendar
+        let locale: Locale
+        let weeks: Int
+    }
+
+    private final class Memo {
+        var key: Key?
+        var window: HeatmapWindow?
+    }
+
+    private static let memo = Memo()
+
+    let calendar: Calendar
+    let weeks: Int
+    let days: [Date]
+
+    lazy var dayNumbers: [String] = days.map { $0.formatted(.dateTime.day()) }
+    lazy var spokenDates: [String] = days.map { $0.formatted(date: .complete, time: .omitted) }
+    lazy var dayKeys: [String] = days.map { WeeklyWorkoutSchedule.dayKey($0, calendar: calendar) }
+    lazy var monthLabels: [String] = (0..<weeks).map { (week: Int) -> String in
+        let date = days[week]
+        let startsMonth = week == 0 || !calendar.isDate(date, equalTo: days[week - 1], toGranularity: .month)
+        return startsMonth ? date.formatted(.dateTime.month(.abbreviated)) : ""
+    }
+
+    private init(today: Date, calendar: Calendar, weeks: Int) {
+        self.calendar = calendar
+        self.weeks = weeks
+        let weekday = calendar.component(.weekday, from: today)
+        let thisMonday = calendar.date(byAdding: .day, value: -((weekday + 5) % 7), to: today) ?? today
+        let mondays = (0..<weeks).map { week in
+            calendar.date(byAdding: .weekOfYear, value: -(weeks - 1 - week), to: thisMonday) ?? today
+        }
+        var days: [Date] = []
+        days.reserveCapacity(7 * weeks)
+        for day in 0..<7 {
+            for monday in mondays {
+                let date = calendar.date(byAdding: .day, value: day, to: monday) ?? today
+                days.append(calendar.startOfDay(for: date))
+            }
+        }
+        self.days = days
+    }
+
+    static func current(weeks: Int, now: Date) -> HeatmapWindow {
+        let calendar = Calendar.current
+        let key = Key(today: calendar.startOfDay(for: now), calendar: calendar, locale: Locale.current, weeks: weeks)
+        if let window = memo.window, memo.key == key { return window }
+        let window = HeatmapWindow(today: key.today, calendar: calendar, weeks: weeks)
+        memo.key = key
+        memo.window = window
+        return window
+    }
+}
+
+private final class MonthWindow {
+    private struct Key: Hashable {
+        let first: Date
+        let calendar: Calendar
+        let locale: Locale
+    }
+
+    private final class Cache {
+        var windows: [Key: MonthWindow] = [:]
+    }
+
+    private static let cache = Cache()
+
+    let calendar: Calendar
+    let days: [Date]
+    let leadingBlanks: Int
+
+    var rows: Int { (leadingBlanks + days.count + 6) / 7 }
+
+    lazy var dayNumbers: [Int] = days.map { calendar.component(.day, from: $0) }
+    lazy var spokenDates: [String] = days.map { $0.formatted(date: .complete, time: .omitted) }
+    lazy var dayKeys: [String] = days.map { WeeklyWorkoutSchedule.dayKey($0, calendar: calendar) }
+
+    private init(first: Date?, calendar: Calendar) {
+        self.calendar = calendar
+        guard let first, let range = calendar.range(of: .day, in: .month, for: first) else {
+            days = []
+            leadingBlanks = 0
+            return
+        }
+        leadingBlanks = (calendar.component(.weekday, from: first) + 5) % 7
+        days = (0..<range.count).compactMap { offset in
+            calendar.date(byAdding: .day, value: offset, to: first).map { calendar.startOfDay(for: $0) }
+        }
+    }
+
+    static func window(first: Date?, calendar: Calendar) -> MonthWindow {
+        guard let first else { return MonthWindow(first: nil, calendar: calendar) }
+        let key = Key(first: first, calendar: calendar, locale: Locale.current)
+        if let known = cache.windows[key] { return known }
+        if cache.windows.count >= 36 { cache.windows.removeAll() }
+        let made = MonthWindow(first: first, calendar: calendar)
+        cache.windows[key] = made
+        return made
+    }
+}
+
+private struct MonthSummary {
+    var workoutDays = 0
+    var restDays = 0
+    var missedDays = 0
+}
+
+private struct CalendarDayContext {
+    let now: Date
+    let today: Date
+    let facts: ActivityDayFacts
+    let highlight: (start: Date, end: Date)?
+
+    func isHighlighted(_ day: Date) -> Bool {
+        guard let highlight else { return false }
+        return day >= highlight.start && day < highlight.end
+    }
+
+    func workoutDays(in window: MonthWindow) -> Int {
+        window.days.reduce(0) { facts.count(on: $1) > 0 ? $0 + 1 : $0 }
+    }
+
+    func summary(of window: MonthWindow) -> MonthSummary {
+        var summary = MonthSummary()
+        for day in window.days {
+            let count = facts.count(on: day)
+            let isRest = facts.isRest(on: day)
+            if count > 0 { summary.workoutDays += 1 }
+            if isRest { summary.restDays += 1 }
+            if day <= now, !isRest, count == 0, facts.isScheduled(on: day) { summary.missedDays += 1 }
+        }
+        return summary
+    }
+}
+
 // MARK: - AnalyticsView
 
 struct AnalyticsView: View {
@@ -40,6 +290,7 @@ struct AnalyticsView: View {
     @Binding var requestedTracker: AnalyticsTracker?
     @State private var selectedType: WorkoutType? = nil
     @State private var showingClearAlert = false
+    @StateObject private var entriesMemo = ValueMemo<FilteredEntriesKey, [WorkoutHistoryEntry]>()
 
     init(requestedTracker: Binding<AnalyticsTracker?> = .constant(nil)) {
         _requestedTracker = requestedTracker
@@ -47,7 +298,10 @@ struct AnalyticsView: View {
 
     private var filteredEntries: [WorkoutHistoryEntry] {
         guard let type = selectedType else { return store.historyEntries }
-        return store.historyEntries.filter { $0.workoutType == type }
+        let key = FilteredEntriesKey(store: ObjectIdentifier(store), revision: store.historyRevision, type: type)
+        return entriesMemo.value(for: key) {
+            store.historyEntries.filter { $0.workoutType == type }
+        }
     }
 
     private var currentGoal: Int {
@@ -151,7 +405,9 @@ struct AnalyticsView: View {
     // MARK: Scroll content
 
     private var analyticsScroll: some View {
-        let week = WorkoutWeekSummary(entries: filteredEntries)
+        let entries = filteredEntries
+        let outdoor = outdoorStore.establishedActivities
+        let week = WorkoutWeekSummary(entries: entries)
         return ScrollViewReader { scroll in
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 20) {
@@ -173,20 +429,20 @@ struct AnalyticsView: View {
                     }
                     if let type = selectedType, currentGoal > 0 {
                         WeeklyGoalCard(
-                            entries: filteredEntries,
+                            entries: entries,
                             goal: currentGoal,
                             typeName: type.name
                         )
                     }
-                    LifetimeStatsStrip(entries: filteredEntries)
-                    if selectedType == nil, !outdoorStore.establishedActivities.isEmpty {
-                        OutdoorAnalyticsSummary(activities: outdoorStore.establishedActivities)
+                    LifetimeStatsStrip(entries: entries)
+                    if selectedType == nil, !outdoor.isEmpty {
+                        OutdoorAnalyticsSummary(activities: outdoor)
                     }
                     if selectedType == nil {
                         TypeAnalyticsBreakdown()
                     }
-                    ActivityHeatmap(entries: filteredEntries, outdoorActivities: outdoorStore.establishedActivities)
-                    HistoryListSection(entries: filteredEntries, store: store)
+                    ActivityHeatmap(entries: entries, outdoorActivities: outdoor)
+                    HistoryListSection(entries: entries)
                 }
                 .padding(16)
             }
@@ -246,15 +502,33 @@ struct AnalyticsView: View {
 private struct OutdoorAnalyticsSummary: View {
     let activities: [OutdoorActivity]
 
+    private var totals: (runs: Int, walks: Int, rides: Int, meters: Double) {
+        var runs = 0
+        var walks = 0
+        var rides = 0
+        var meters = 0.0
+        for activity in activities {
+            switch activity.kind {
+            case .run: runs += 1
+            case .walk: walks += 1
+            case .bike: rides += 1
+            case .runWalk: break
+            }
+            meters += activity.distanceMeters
+        }
+        return (runs, walks, rides, meters)
+    }
+
     var body: some View {
+        let totals = self.totals
         HStack(spacing: 0) {
-            cell(icon: "figure.run", value: "\(activities.filter { $0.kind == .run }.count)", label: "Run")
+            cell(icon: "figure.run", value: "\(totals.runs)", label: "Run")
             Divider().frame(height: 42)
-            cell(icon: "figure.walk", value: "\(activities.filter { $0.kind == .walk }.count)", label: "Walk")
+            cell(icon: "figure.walk", value: "\(totals.walks)", label: "Walk")
             Divider().frame(height: 42)
-            cell(icon: "bicycle", value: "\(activities.filter { $0.kind == .bike }.count)", label: "Bike")
+            cell(icon: "bicycle", value: "\(totals.rides)", label: "Bike")
             Divider().frame(height: 42)
-            cell(icon: "point.topleft.down.curvedto.point.bottomright.up", value: String(format: "%.1f km", activities.reduce(0) { $0 + $1.distanceMeters } / 1000), label: "Distance")
+            cell(icon: "point.topleft.down.curvedto.point.bottomright.up", value: String(format: "%.1f km", totals.meters / 1000), label: "Distance")
         }
         .padding(16)
         .background(Theme.surface)
@@ -279,11 +553,12 @@ private struct WeeklyGoalCard: View {
     let typeName: String
 
     private var sessionsThisWeek: Int {
-        entries.filter { $0.completedAt >= Self.mondayOfThisWeek }.count
+        let monday = Self.mondayOfThisWeek
+        return entries.reduce(0) { $1.completedAt >= monday ? $0 + 1 : $0 }
     }
 
-    private var progress: Double {
-        min(Double(sessionsThisWeek) / Double(max(goal, 1)), 1.0)
+    private func progressFraction(sessions: Int) -> Double {
+        min(Double(sessions) / Double(max(goal, 1)), 1.0)
     }
 
     private var daysElapsedThisWeek: Int {
@@ -291,10 +566,10 @@ private struct WeeklyGoalCard: View {
         return (weekday + 5) % 7 + 1  // 1=Mon … 7=Sun
     }
 
-    private var statusInfo: (text: String, color: Color) {
-        if sessionsThisWeek >= goal { return ("Goal Met!", .green) }
+    private func statusInfo(sessions: Int) -> (text: String, color: Color) {
+        if sessions >= goal { return ("Goal Met!", .green) }
         let needed = Int(floor(Double(goal) * Double(daysElapsedThisWeek) / 7.0))
-        return sessionsThisWeek >= needed
+        return sessions >= needed
             ? ("On Track", .orange)
             : ("Behind", .red)
     }
@@ -308,11 +583,13 @@ private struct WeeklyGoalCard: View {
     }
 
     var body: some View {
+        let sessions = sessionsThisWeek
+        let info = statusInfo(sessions: sessions)
         VStack(spacing: 20) {
-            ringView
-            Text(statusInfo.text)
+            ringView(sessions: sessions, info: info)
+            Text(info.text)
                 .font(TimeMasterFont.rowTitle())
-                .foregroundColor(statusInfo.color)
+                .foregroundColor(info.color)
         }
         .frame(maxWidth: .infinity)
         .padding(24)
@@ -320,20 +597,21 @@ private struct WeeklyGoalCard: View {
         .cornerRadius(16)
     }
 
-    private var ringView: some View {
-        ZStack {
+    private func ringView(sessions: Int, info: (text: String, color: Color)) -> some View {
+        let fraction = progressFraction(sessions: sessions)
+        return ZStack {
             Circle()
                 .stroke(Color.white.opacity(0.1), lineWidth: 14)
                 .frame(width: 160, height: 160)
             Circle()
-                .trim(from: 0, to: CGFloat(progress))
-                .stroke(statusInfo.color,
+                .trim(from: 0, to: CGFloat(fraction))
+                .stroke(info.color,
                         style: StrokeStyle(lineWidth: 14, lineCap: .round))
                 .frame(width: 160, height: 160)
                 .rotationEffect(.degrees(-90))
-                .animation(.easeOut(duration: 0.7), value: progress)
+                .animation(.easeOut(duration: 0.7), value: fraction)
             VStack(spacing: 2) {
-                Text("\(sessionsThisWeek)")
+                Text("\(sessions)")
                     .font(TimeMasterFont.black(48, relativeTo: .largeTitle))
                     .monospacedDigit()
                     .foregroundColor(Theme.textPrimary)
@@ -427,15 +705,21 @@ private struct StreakCard: View {
 private struct TypeAnalyticsBreakdown: View {
     @EnvironmentObject private var store: WorkoutStore
     @StateObject private var goals = GoalsManager.shared
+    @StateObject private var presentTypeIDs = ValueMemo<HistoryRevisionKey, Set<String>>()
 
     private var types: [WorkoutType] {
-        WorkoutType.all(custom: store.customWorkoutTypes).filter { type in
-            store.historyEntries.contains { $0.workoutType.id == type.id } ||
+        let key = HistoryRevisionKey(store: ObjectIdentifier(store), revision: store.historyRevision)
+        let present = presentTypeIDs.value(for: key) {
+            Set(store.historyEntries.map { $0.workoutType.id })
+        }
+        return WorkoutType.all(custom: store.customWorkoutTypes).filter { type in
+            present.contains(type.id) ||
             store.typeSchedules.contains { $0.type.id == type.id && $0.isActive }
         }
     }
 
     var body: some View {
+        let types = self.types
         VStack(alignment: .leading, spacing: 12) {
             Text("By Workout Type")
                 .font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
@@ -560,16 +844,26 @@ struct ActivityHeatmap: View {
     @State private var cellSize: CGFloat = 18
     @ScaledMetric(relativeTo: .caption2) private var monthLabelHeight = 16.0
 
+    private struct Cell {
+        let date: Date
+        let isFuture: Bool
+        let count: Int
+        let fill: Color
+    }
+
     private var columns: [GridItem] {
         Array(repeating: GridItem(onSelectDate == nil ? .flexible() : .fixed(44), spacing: gap), count: weeksCount)
     }
 
     var body: some View {
+        let now = Date()
+        let window = HeatmapWindow.current(weeks: weeksCount, now: now)
+        let cells = heatmapCells(window: window, now: now)
         Group {
             if onSelectDate != nil {
-                card
+                card(window: window, cells: cells)
             } else {
-                Button { showCalendar = true } label: { card }
+                Button { showCalendar = true } label: { card(window: window, cells: cells) }
                     .buttonStyle(TimeMasterCardButtonStyle())
             }
         }
@@ -579,18 +873,30 @@ struct ActivityHeatmap: View {
         }
     }
 
+    private func heatmapCells(window: HeatmapWindow, now: Date) -> [Cell] {
+        let outdoor = OutdoorDayCounts.counts(for: outdoorActivities, calendar: window.calendar)
+        let facts = ActivityDayFacts(store: store, outdoor: outdoor)
+        return window.days.map { day -> Cell in
+            if day > now {
+                return Cell(date: day, isFuture: true, count: 0, fill: Color.white.opacity(0.03))
+            }
+            let count = facts.count(on: day)
+            return Cell(date: day, isFuture: false, count: count, fill: fill(day: day, count: count, facts: facts))
+        }
+    }
+
     @ViewBuilder
-    private var card: some View {
+    private func card(window: HeatmapWindow, cells: [Cell]) -> some View {
         if home {
-            WidgetCard(tint: .graphite) { cardContent.padding(16) }
+            WidgetCard(tint: .graphite) { cardContent(window: window, cells: cells).padding(16) }
         } else {
-            cardContent
+            cardContent(window: window, cells: cells)
                 .padding(16)
                 .modifier(TimeMasterCardSurface())
         }
     }
 
-    private var cardContent: some View {
+    private func cardContent(window: HeatmapWindow, cells: [Cell]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(onSelectDate == nil ? "Activity" : "Last 24 weeks")
@@ -612,22 +918,20 @@ struct ActivityHeatmap: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack(spacing: gap) {
                                     ForEach(0..<weeksCount, id: \.self) { week in
-                                        let date = dateFor(week: week, day: 0)
-                                        let startsMonth = week == 0 || !Calendar.current.isDate(date, equalTo: dateFor(week: week - 1, day: 0), toGranularity: .month)
-                                        Text(startsMonth ? date.formatted(.dateTime.month(.abbreviated)) : "")
+                                        Text(window.monthLabels[week])
                                             .font(TimeMasterFont.micro())
                                             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                                             .foregroundStyle(.secondary)
                                             .frame(width: 44, height: monthLabelHeight)
                                     }
                                 }
-                                heatmapGrid
+                                heatmapGrid(window: window, cells: cells)
                             }
                         }
                             .onAppear { scroll.scrollTo(7 * weeksCount - 1, anchor: .trailing) }
                     }
                 } else {
-                    heatmapGrid
+                    heatmapGrid(window: window, cells: cells)
                 }
             }
         }
@@ -644,25 +948,17 @@ struct ActivityHeatmap: View {
         }
     }
 
-    private var heatmapGrid: some View {
+    private func heatmapGrid(window: HeatmapWindow, cells: [Cell]) -> some View {
         LazyVGrid(columns: columns, spacing: gap) {
             ForEach(0..<(7 * weeksCount), id: \.self) { idx in
-                let w = idx % weeksCount
-                let d = idx / weeksCount
-                let date = dateFor(week: w, day: d)
-                let isFuture = date > Date()
-                let isRest = store.isRestDay(date)
-                let isScheduled = store.isScheduledDay(date)
-                let count = isFuture ? 0 : workoutCount(on: date) + outdoorCount(on: date)
-                let hasActivity = count > 0
-
+                let cell = cells[idx]
                 Group {
                     if let onSelectDate {
-                        Button { onSelectDate(date) } label: {
+                        Button { onSelectDate(cell.date) } label: {
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(cellBackground(isFuture: isFuture, isRest: isRest, hasWorkout: hasActivity, count: count, isScheduled: isScheduled))
+                                .fill(cell.fill)
                                 .overlay {
-                                    Text(date.formatted(.dateTime.day()))
+                                    Text(window.dayNumbers[idx])
                                         .font(TimeMasterFont.black(11, relativeTo: .caption2))
                                         .monospacedDigit()
                                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
@@ -672,12 +968,12 @@ struct ActivityHeatmap: View {
                         }
                         .buttonStyle(TimeMasterCardButtonStyle())
                         .keyNavShape(.roundedRectangle(cornerRadius: 12))
-                        .disabled(isFuture)
-                        .accessibilityLabel("\(date.formatted(date: .complete, time: .omitted)), \(count) workouts")
-                        .accessibilityIdentifier("activity.day.\(WeeklyWorkoutSchedule.dayKey(date))")
+                        .disabled(cell.isFuture)
+                        .accessibilityLabel("\(window.spokenDates[idx]), \(cell.count) workouts")
+                        .accessibilityIdentifier("activity.day.\(window.dayKeys[idx])")
                     } else {
                         RoundedRectangle(cornerRadius: 4, style: .continuous)
-                            .fill(cellBackground(isFuture: isFuture, isRest: isRest, hasWorkout: hasActivity, count: count, isScheduled: isScheduled))
+                            .fill(cell.fill)
                             .aspectRatio(1, contentMode: .fit)
                     }
                 }
@@ -698,49 +994,29 @@ struct ActivityHeatmap: View {
         cellSize = max(computed, 1)
     }
 
-    private func dateFor(week: Int, day: Int) -> Date {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: Date())
-        let weekday = cal.component(.weekday, from: today)
-        let daysFromMon = (weekday + 5) % 7
-        let thisMonday = cal.date(byAdding: .day, value: -daysFromMon, to: today) ?? today
-        let targetMonday = cal.date(byAdding: .weekOfYear, value: -(weeksCount - 1 - week), to: thisMonday) ?? today
-        return cal.date(byAdding: .day, value: day, to: targetMonday) ?? today
-    }
-
-    private func workoutCount(on date: Date) -> Int {
-        store.scheduleActivityCount(on: date)
-    }
-
-    private func outdoorCount(on date: Date) -> Int {
-        outdoorActivities.filter { Calendar.current.isDate($0.startedAt, inSameDayAs: date) }.count
-    }
-
-    private func cellBackground(isFuture: Bool, isRest: Bool, hasWorkout: Bool, count: Int, isScheduled: Bool) -> Color {
-        if home { return homeCellBackground(isFuture: isFuture, isRest: isRest, hasWorkout: hasWorkout, count: count) }
-        if isFuture { return Color.white.opacity(0.03) }
-        if isRest { return Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.5) }
-        if hasWorkout {
+    private func fill(day: Date, count: Int, facts: ActivityDayFacts) -> Color {
+        if home { return homeFill(day: day, count: count, facts: facts) }
+        if facts.isRest(on: day) { return Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.5) }
+        if count > 0 {
             switch count {
             case 1: return Color(red: 0.1, green: 0.7, blue: 0.35)
             case 2: return Color(red: 0.1, green: 0.6, blue: 0.25)
             default: return Color(red: 0.05, green: 0.45, blue: 0.15)
             }
         }
-        if isScheduled { return Color.red.opacity(0.4) }
+        if facts.isScheduled(on: day) { return Color.red.opacity(0.4) }
         return Color.white.opacity(0.06)
     }
 
-    private func homeCellBackground(isFuture: Bool, isRest: Bool, hasWorkout: Bool, count: Int) -> Color {
-        if isFuture { return Color.white.opacity(0.03) }
-        if hasWorkout {
+    private func homeFill(day: Date, count: Int, facts: ActivityDayFacts) -> Color {
+        if count > 0 {
             switch count {
             case 1: return WidgetTint.orange.base.opacity(0.55)
             case 2: return WidgetTint.orange.base.opacity(0.8)
             default: return WidgetTint.orange.base
             }
         }
-        if isRest { return Color.white.opacity(0.12) }
+        if facts.isRest(on: day) { return Color.white.opacity(0.12) }
         return Color.white.opacity(0.07)
     }
 }
@@ -752,7 +1028,6 @@ private struct CalendarDaySelection: Identifiable {
 
 private struct CalendarActivitySheet: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: WorkoutStore
     let entries: [WorkoutHistoryEntry]
     let outdoorActivities: [OutdoorActivity]
     @State private var selectedDay: CalendarDaySelection?
@@ -767,7 +1042,7 @@ private struct CalendarActivitySheet: View {
                     if !outdoorActivities.isEmpty {
                         OutdoorAnalyticsSummary(activities: outdoorActivities)
                     }
-                    HistoryListSection(entries: entries, store: store)
+                    HistoryListSection(entries: entries)
                 }
                 .padding(20)
                 .frame(maxWidth: 680)
@@ -830,21 +1105,10 @@ struct CalendarPage: View {
 
     private let calendar = Calendar.current
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
+    private static let monthNameFormatter = CachedDateFormatter { $0.dateFormat = "MMMM" }
 
     private var currentYear: Int {
         calendar.component(.year, from: currentMonth)
-    }
-
-    private var monthDays: [Date?] {
-        guard let range = calendar.range(of: .day, in: .month, for: currentMonth),
-              let first = calendar.date(from: calendar.dateComponents([.year, .month], from: currentMonth))
-        else { return [] }
-        let offset = (calendar.component(.weekday, from: first) + 5) % 7
-        var days: [Date?] = Array(repeating: nil, count: offset)
-        for d in 1...range.count {
-            days.append(calendar.date(byAdding: .day, value: d - 1, to: first)!)
-        }
-        return days
     }
 
     private var monthTitle: String {
@@ -852,6 +1116,7 @@ struct CalendarPage: View {
     }
 
     var body: some View {
+        let context = dayContext()
         NavigationStack {
             VStack(spacing: 0) {
                 calendarHeader
@@ -860,9 +1125,9 @@ struct CalendarPage: View {
                     VStack(spacing: 20) {
                         periodNavigation
                         if showYearView {
-                            yearOverview
+                            yearOverview(context)
                         } else {
-                            monthDetail
+                            monthDetail(context)
                         }
                         legendRow
                     }
@@ -976,25 +1241,23 @@ struct CalendarPage: View {
 
     // MARK: - Year overview (12-month mini grids)
 
-    private var yearOverview: some View {
+    private func yearOverview(_ context: CalendarDayContext) -> some View {
         LazyVStack(spacing: 12) {
             ForEach(1...12, id: \.self) { month in
-                monthRow(month: month)
+                monthRow(month: month, context: context)
             }
         }
     }
 
-    private func monthRow(month: Int) -> some View {
-        let date = calendar.date(from: DateComponents(year: currentYear, month: month, day: 1))!
-        let monthName: String = {
-            let f = DateFormatter()
-            f.dateFormat = "MMMM"
-            return f.string(from: date)
-        }()
-
-        let workoutDays = workoutDaysInMonth(month: month, year: currentYear)
-        let restDaysCount = restDaysInMonth(month: month, year: currentYear)
-        let missCount = missedDaysInMonth(month: month, year: currentYear)
+    private func monthRow(month: Int, context: CalendarDayContext) -> some View {
+        let first = calendar.date(from: DateComponents(year: currentYear, month: month, day: 1))
+        let date = first ?? currentMonth
+        let window = MonthWindow.window(first: first, calendar: calendar)
+        let monthName = Self.monthNameFormatter.string(from: date)
+        let summary = context.summary(of: window)
+        let workoutDays = summary.workoutDays
+        let restDaysCount = summary.restDays
+        let missCount = summary.missedDays
 
         return Button {
             withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) {
@@ -1029,7 +1292,7 @@ struct CalendarPage: View {
                     }
                 }
                 Spacer()
-                miniMonthGrid(month: month)
+                miniMonthGrid(window: window, context: context)
                 Image(systemName: "chevron.right")
                     .font(.caption2)
                     .foregroundColor(Theme.textSecondary.opacity(0.4))
@@ -1043,41 +1306,18 @@ struct CalendarPage: View {
         .accessibilityIdentifier("calendar.month.\(month)")
     }
 
-    private func miniMonthGrid(month: Int) -> some View {
-        guard let range = calendar.range(of: .day, in: .month, for: calendar.date(from: DateComponents(year: currentYear, month: month, day: 1))!),
-              let first = calendar.date(from: DateComponents(year: currentYear, month: month, day: 1))
-        else { return AnyView(Color.clear.frame(width: 70, height: 10)) }
-
-        let offset = (calendar.component(.weekday, from: first) + 5) % 7
-        let totalSlots = offset + range.count
-        let rows = (totalSlots + 6) / 7
-
-        return AnyView(
+    @ViewBuilder
+    private func miniMonthGrid(window: MonthWindow, context: CalendarDayContext) -> some View {
+        if window.days.isEmpty {
+            Color.clear.frame(width: 70, height: 10)
+        } else {
             VStack(spacing: 1) {
-                ForEach(0..<rows, id: \.self) { row in
+                ForEach(0..<window.rows, id: \.self) { row in
                     HStack(spacing: 1) {
                         ForEach(0..<7, id: \.self) { col in
-                            let idx = row * 7 + col - offset
-                            if idx >= 0, idx < range.count,
-                               let dayDate = calendar.date(byAdding: .day, value: idx, to: first) {
-                                let isFuture = dayDate > Date()
-                                let isRest = store.isRestDay(dayDate)
-                                let isScheduled = store.isScheduledDay(dayDate)
-                                let hasWorkout = workoutCount(on: dayDate) > 0
-                                let fill: Color = {
-                                    if isFuture { return Color.white.opacity(0.04) }
-                                    if isRest { return Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.6) }
-                                    if hasWorkout { return Color(red: 0.1, green: 0.6, blue: 0.25) }
-                                    if isScheduled { return Color.red.opacity(0.35) }
-                                    return Color.white.opacity(0.06)
-                                }()
-                                RoundedRectangle(cornerRadius: 1)
-                                    .fill(fill)
-                                    .frame(width: 7, height: 7)
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: 1)
-                                            .stroke(isHighlighted(dayDate) ? Theme.toolbarOrange : .clear, lineWidth: 1)
-                                    }
+                            let idx = row * 7 + col - window.leadingBlanks
+                            if idx >= 0, idx < window.days.count {
+                                miniCell(day: window.days[idx], context: context)
                             } else {
                                 Color.clear.frame(width: 7, height: 7)
                             }
@@ -1085,13 +1325,35 @@ struct CalendarPage: View {
                     }
                 }
             }
-        )
+        }
+    }
+
+    private func miniCell(day: Date, context: CalendarDayContext) -> some View {
+        let fill: Color = {
+            if day > context.now { return Color.white.opacity(0.04) }
+            if context.facts.isRest(on: day) { return Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.6) }
+            if context.facts.count(on: day) > 0 { return Color(red: 0.1, green: 0.6, blue: 0.25) }
+            if context.facts.isScheduled(on: day) { return Color.red.opacity(0.35) }
+            return Color.white.opacity(0.06)
+        }()
+        return RoundedRectangle(cornerRadius: 1)
+            .fill(fill)
+            .frame(width: 7, height: 7)
+            .overlay {
+                RoundedRectangle(cornerRadius: 1)
+                    .stroke(context.isHighlighted(day) ? Theme.toolbarOrange : .clear, lineWidth: 1)
+            }
     }
 
     // MARK: - Month detail view
 
-    private var monthDetail: some View {
-        VStack(spacing: 16) {
+    private func monthDetail(_ context: CalendarDayContext) -> some View {
+        let window = MonthWindow.window(
+            first: calendar.date(from: calendar.dateComponents([.year, .month], from: currentMonth)),
+            calendar: calendar
+        )
+        let workoutDays = context.workoutDays(in: window)
+        return VStack(spacing: 16) {
             VStack(spacing: 8) {
                 HStack(spacing: 4) {
                     ForEach(0..<7, id: \.self) { day in
@@ -1102,9 +1364,9 @@ struct CalendarPage: View {
                     }
                 }
                 LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(Array(monthDays.enumerated()), id: \.offset) { _, date in
-                        if let date {
-                            dayCell(date)
+                    ForEach(0..<(window.leadingBlanks + window.days.count), id: \.self) { slot in
+                        if slot >= window.leadingBlanks {
+                            dayCell(index: slot - window.leadingBlanks, window: window, context: context)
                         } else {
                             Color.clear.frame(minHeight: 52)
                         }
@@ -1115,7 +1377,6 @@ struct CalendarPage: View {
             .padding(12)
             .modifier(TimeMasterCardSurface())
 
-            let workoutDays = workoutDaysInMonth(month: calendar.component(.month, from: currentMonth), year: currentYear)
             if workoutDays > 0 {
                 Label("\(workoutDays) workout day\(workoutDays == 1 ? "" : "s")", systemImage: "figure.strengthtraining.traditional")
                     .font(TimeMasterFont.secondary())
@@ -1126,25 +1387,23 @@ struct CalendarPage: View {
         }
     }
 
-    private func dayCell(_ date: Date) -> some View {
-        let isFuture = date > Date()
-        let isToday = calendar.isDate(date, inSameDayAs: Date())
-        let isRest = store.isRestDay(date)
-        let hasWorkout = workoutCount(on: date) > 0
-        let count = workoutCount(on: date)
-
-        let isScheduled = store.isScheduledDay(date)
+    private func dayCell(index: Int, window: MonthWindow, context: CalendarDayContext) -> some View {
+        let date = window.days[index]
+        let isFuture = date > context.now
+        let isToday = date == context.today
+        let isRest = context.facts.isRest(on: date)
+        let count = context.facts.count(on: date)
+        let highlighted = context.isHighlighted(date)
         let bg: Color = {
             if isRest { return Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.5) }
-            if hasWorkout {
+            if count > 0 {
                 switch count {
                 case 1: return Color(red: 0.1, green: 0.7, blue: 0.35)
                 case 2: return Color(red: 0.1, green: 0.6, blue: 0.25)
                 default: return Color(red: 0.05, green: 0.45, blue: 0.15)
                 }
             }
-            if !isFuture && isScheduled { return Color.red.opacity(0.35) }
-            if !isFuture { return Color.clear }
+            if !isFuture && context.facts.isScheduled(on: date) { return Color.red.opacity(0.35) }
             return Color.clear
         }()
 
@@ -1157,7 +1416,7 @@ struct CalendarPage: View {
             }
         } label: {
             VStack(spacing: 3) {
-                Text("\(calendar.component(.day, from: date))")
+                Text("\(window.dayNumbers[index])")
                     .font(TimeMasterFont.black(16, relativeTo: .callout))
                     .monospacedDigit()
                     .foregroundStyle(isFuture && onSelectWeek == nil ? Theme.textSecondary : .white)
@@ -1168,26 +1427,21 @@ struct CalendarPage: View {
             }
             .frame(maxWidth: .infinity, minHeight: 52)
             .background(bg.opacity(0.65), in: RoundedRectangle(cornerRadius: 10))
-            .background(isHighlighted(date) ? Theme.toolbarOrange.opacity(0.12) : .clear,
+            .background(highlighted ? Theme.toolbarOrange.opacity(0.12) : .clear,
                         in: RoundedRectangle(cornerRadius: 10))
             .overlay {
                 RoundedRectangle(cornerRadius: 10)
-                    .strokeBorder(isHighlighted(date) ? Theme.toolbarOrange : isToday ? .white.opacity(0.8) : .clear,
-                                  lineWidth: isHighlighted(date) ? 1.5 : 1)
+                    .strokeBorder(highlighted ? Theme.toolbarOrange : isToday ? .white.opacity(0.8) : .clear,
+                                  lineWidth: highlighted ? 1.5 : 1)
             }
             .contentShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(TimeMasterCardButtonStyle())
         .keyNavShape(.roundedRectangle(cornerRadius: 10))
         .disabled(isFuture && onSelectWeek == nil)
-        .accessibilityLabel("\(date.formatted(date: .complete, time: .omitted)), \(count) workouts\(isHighlighted(date) ? ", selected week" : "")")
+        .accessibilityLabel("\(window.spokenDates[index]), \(count) workouts\(highlighted ? ", selected week" : "")")
         .accessibilityHint(onSelectWeek == nil ? "Open day details" : "Open this week in Schedule")
-        .accessibilityIdentifier("calendar.day.\(WeeklyWorkoutSchedule.dayKey(date))")
-    }
-
-    private func isHighlighted(_ date: Date) -> Bool {
-        guard let selectedWeek, let end = calendar.date(byAdding: .day, value: 7, to: selectedWeek) else { return false }
-        return date >= selectedWeek && date < end
+        .accessibilityIdentifier("calendar.day.\(window.dayKeys[index])")
     }
 
     // MARK: - Legend
@@ -1215,54 +1469,18 @@ struct CalendarPage: View {
 
     // MARK: - Stats helpers
 
-    private func workoutCount(on date: Date) -> Int {
-        store.scheduleActivityCount(on: date)
-            + outdoorActivities.filter { calendar.isDate($0.startedAt, inSameDayAs: date) }.count
-    }
-
-    private func workoutDaysInMonth(month: Int, year: Int) -> Int {
-        guard let range = calendar.range(of: .day, in: .month, for: calendar.date(from: DateComponents(year: year, month: month, day: 1))!),
-              let first = calendar.date(from: DateComponents(year: year, month: month, day: 1))
-        else { return 0 }
-        var count = 0
-        for d in 1...range.count {
-            if let date = calendar.date(byAdding: .day, value: d - 1, to: first),
-               workoutCount(on: date) > 0 {
-                count += 1
-            }
+    private func dayContext() -> CalendarDayContext {
+        let now = Date()
+        let outdoor = OutdoorDayCounts.counts(for: outdoorActivities, calendar: calendar)
+        let highlight = selectedWeek.flatMap { start in
+            calendar.date(byAdding: .day, value: 7, to: start).map { (start: start, end: $0) }
         }
-        return count
-    }
-
-    private func restDaysInMonth(month: Int, year: Int) -> Int {
-        guard let range = calendar.range(of: .day, in: .month, for: calendar.date(from: DateComponents(year: year, month: month, day: 1))!),
-              let first = calendar.date(from: DateComponents(year: year, month: month, day: 1))
-        else { return 0 }
-        var count = 0
-        for d in 1...range.count {
-            if let date = calendar.date(byAdding: .day, value: d - 1, to: first),
-               store.isRestDay(date) {
-                count += 1
-            }
-        }
-        return count
-    }
-
-    private func missedDaysInMonth(month: Int, year: Int) -> Int {
-        guard let range = calendar.range(of: .day, in: .month, for: calendar.date(from: DateComponents(year: year, month: month, day: 1))!),
-              let first = calendar.date(from: DateComponents(year: year, month: month, day: 1))
-        else { return 0 }
-        var count = 0
-        for d in 1...range.count {
-            if let date = calendar.date(byAdding: .day, value: d - 1, to: first),
-               date <= Date(),
-               !store.isRestDay(date),
-               workoutCount(on: date) == 0,
-               store.isScheduledDay(date) {
-                count += 1
-            }
-        }
-        return count
+        return CalendarDayContext(
+            now: now,
+            today: calendar.startOfDay(for: now),
+            facts: ActivityDayFacts(store: store, outdoor: outdoor),
+            highlight: highlight
+        )
     }
 }
 
@@ -1276,37 +1494,53 @@ private struct DayInfoSheet: View {
     let entries: [WorkoutHistoryEntry]
     let outdoorActivities: [OutdoorActivity]
 
-    private var dayOutdoorActivities: [OutdoorActivity] {
-        outdoorActivities.filter { Calendar.current.isDate($0.startedAt, inSameDayAs: date) }
+    private struct Detail {
+        let entries: [WorkoutHistoryEntry]
+        let manual: [WeeklyWorkoutSchedule.Occurrence]
+        let outdoor: [OutdoorActivity]
+        let totalMinutes: Int
+        let isRest: Bool
+        let isScheduled: Bool
+        let scheduledTypes: [WorkoutType]
+
+        var isEmpty: Bool { entries.isEmpty && manual.isEmpty && outdoor.isEmpty }
+        var workoutCount: Int { entries.count + manual.count + outdoor.count }
     }
 
-    private var dayEntries: [WorkoutHistoryEntry] {
+    private static let fullDateFormatter = CachedDateFormatter { $0.dateFormat = "EEEE, MMMM d" }
+
+    private func loadDetail() -> Detail {
         let cal = Calendar.current
         let start = cal.startOfDay(for: date)
-        guard let end = cal.date(byAdding: .day, value: 1, to: start) else { return [] }
-        return entries.filter { $0.completedAt >= start && $0.completedAt < end }
+        let end = cal.date(byAdding: .day, value: 1, to: start)
+        let dayEntries: [WorkoutHistoryEntry] = end.map { limit in
+            entries.filter { $0.completedAt >= start && $0.completedAt < limit }
+        } ?? []
+        let dayOutdoor: [OutdoorActivity] = end.map { limit in
+            outdoorActivities.filter { $0.startedAt >= start && $0.startedAt < limit }
+        } ?? []
+        let manual = store.scheduleOccurrences(on: date).filter { $0.isComplete && $0.matchedSessionID == nil }
+        let entrySeconds = dayEntries.reduce(0) { $0 + ($1.isPartial ? $1.elapsedSeconds : $1.durationCompleted) }
+        let manualSeconds = manual.reduce(0) { $0 + ($1.entry.durationSeconds ?? 0) }
+        let outdoorSeconds = dayOutdoor.reduce(0) { $0 + $1.elapsedSeconds }
+        return Detail(
+            entries: dayEntries,
+            manual: manual,
+            outdoor: dayOutdoor,
+            totalMinutes: (entrySeconds + manualSeconds + outdoorSeconds) / 60,
+            isRest: store.isRestDay(date),
+            isScheduled: store.isScheduledDay(date),
+            scheduledTypes: store.scheduledTypes(for: date)
+        )
     }
-
-    private var manualEntries: [WeeklyWorkoutSchedule.Occurrence] {
-        store.scheduleOccurrences(on: date).filter { $0.isComplete && $0.matchedSessionID == nil }
-    }
-
-    private var totalMinutes: Int {
-        (dayEntries.reduce(0) { $0 + ($1.isPartial ? $1.elapsedSeconds : $1.durationCompleted) }
-            + manualEntries.reduce(0) { $0 + ($1.entry.durationSeconds ?? 0) }
-            + dayOutdoorActivities.reduce(0) { $0 + $1.elapsedSeconds }) / 60
-    }
-
-    private var isRest: Bool { store.isRestDay(date) }
-    private var isScheduled: Bool { store.isScheduledDay(date) }
-    private var scheduledTypes: [WorkoutType] { store.scheduledTypes(for: date) }
 
     var body: some View {
+        let detail = loadDetail()
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
                     VStack(spacing: 16) {
-                        Text(formatFullDate(date))
+                        Text(Self.fullDateFormatter.string(from: date))
                             .font(TimeMasterFont.black(22, relativeTo: .title2))
                             .monospacedDigit()
                             .multilineTextAlignment(.center)
@@ -1314,18 +1548,18 @@ private struct DayInfoSheet: View {
                             ? AnyLayout(VStackLayout(spacing: 16))
                             : AnyLayout(HStackLayout(spacing: 24))
                         statsLayout {
-                            statChip(value: "\(dayEntries.count + manualEntries.count + dayOutdoorActivities.count)", label: "workouts")
-                            statChip(value: "\(totalMinutes)m", label: "total time")
+                            statChip(value: "\(detail.workoutCount)", label: "workouts")
+                            statChip(value: "\(detail.totalMinutes)m", label: "total time")
                         }
                         VStack(spacing: 8) {
-                            if isRest {
+                            if detail.isRest {
                                 Label("Rest day", systemImage: "moon.zzz.fill")
                                     .foregroundStyle(.blue)
                             }
-                            ForEach(scheduledTypes, id: \.self) { type in
+                            ForEach(detail.scheduledTypes, id: \.self) { type in
                                 Label(type.name, systemImage: type.icon)
                             }
-                            if !isRest && isScheduled && dayEntries.isEmpty && manualEntries.isEmpty && dayOutdoorActivities.isEmpty {
+                            if !detail.isRest && detail.isScheduled && detail.isEmpty {
                                 Label("Missed", systemImage: "xmark.circle")
                                     .foregroundStyle(.red)
                             }
@@ -1336,20 +1570,20 @@ private struct DayInfoSheet: View {
                     .padding(20)
                     .modifier(TimeMasterCardSurface())
 
-                    if dayEntries.isEmpty && manualEntries.isEmpty && dayOutdoorActivities.isEmpty {
-                        Label(isRest ? "Rest day" : "No workout logged",
-                              systemImage: isRest ? "moon.zzz" : "figure.walk")
+                    if detail.isEmpty {
+                        Label(detail.isRest ? "Rest day" : "No workout logged",
+                              systemImage: detail.isRest ? "moon.zzz" : "figure.walk")
                             .font(TimeMasterFont.secondary())
                             .foregroundStyle(.secondary)
                             .padding(.vertical, 24)
                     } else {
                         LazyVStack(spacing: 12) {
-                            ForEach(dayEntries) { entry in
+                            ForEach(detail.entries) { entry in
                                 HistoryRow(entry: entry)
                                     .padding(16)
                                     .modifier(TimeMasterCardSurface())
                             }
-                            ForEach(manualEntries) { item in
+                            ForEach(detail.manual) { item in
                                 VStack(alignment: .leading, spacing: 8) {
                                     Label(item.entry.title, systemImage: item.entry.icon)
                                         .font(TimeMasterFont.sectionTitle())
@@ -1366,7 +1600,7 @@ private struct DayInfoSheet: View {
                                 .padding(16)
                                 .modifier(TimeMasterCardSurface())
                             }
-                            ForEach(dayOutdoorActivities) { activity in
+                            ForEach(detail.outdoor) { activity in
                                 VStack(alignment: .leading, spacing: 8) {
                                     Label(activity.title, systemImage: activity.kind.iconName)
                                         .font(TimeMasterFont.sectionTitle())
@@ -1384,8 +1618,8 @@ private struct DayInfoSheet: View {
                         }
                     }
                     Button { store.toggleRestDay(for: date) } label: {
-                        Label(isRest ? "Remove rest day" : "Mark as rest day",
-                              systemImage: isRest ? "moon.zzz.fill" : "moon.zzz")
+                        Label(detail.isRest ? "Remove rest day" : "Mark as rest day",
+                              systemImage: detail.isRest ? "moon.zzz.fill" : "moon.zzz")
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 8)
                     }
@@ -1422,12 +1656,6 @@ private struct DayInfoSheet: View {
             Text(value).font(TimeMasterFont.heading()).monospacedDigit().foregroundColor(Theme.textPrimary)
             Text(label).font(TimeMasterFont.micro()).foregroundColor(Theme.textSecondary)
         }
-    }
-
-    private func formatFullDate(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "EEEE, MMMM d"
-        return f.string(from: date)
     }
 }
 
@@ -1556,13 +1784,13 @@ private struct VacationSheet: View {
 
 private struct HistoryListSection: View {
     let entries: [WorkoutHistoryEntry]
-    @ObservedObject var store: WorkoutStore
-
-    private var sorted: [WorkoutHistoryEntry] {
-        entries.sorted { $0.completedAt > $1.completedAt }
-    }
+    @StateObject private var sortedMemo = ValueMemo<[WorkoutHistoryEntry], [WorkoutHistoryEntry]>()
 
     var body: some View {
+        let sorted = sortedMemo.value(for: entries) {
+            entries.sorted { $0.completedAt > $1.completedAt }
+        }
+        let lastID = sorted.last?.id
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("History").font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
@@ -1580,9 +1808,9 @@ private struct HistoryListSection: View {
                     .padding(.vertical, 8)
             } else {
                 LazyVStack(spacing: 0) {
-                    ForEach(Array(sorted.enumerated()), id: \.element.id) { idx, entry in
+                    ForEach(sorted) { entry in
                         HistoryRow(entry: entry)
-                        if idx < sorted.count - 1 {
+                        if entry.id != lastID {
                             Divider()
                                 .background(Theme.separator)
                                 .padding(.leading, 52)
