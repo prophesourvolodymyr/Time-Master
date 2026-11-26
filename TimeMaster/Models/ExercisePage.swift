@@ -36,9 +36,8 @@ struct ExercisePage: Identifiable {
         }
     }
     var effectiveWorkoutType: TimeMasterCore.WorkoutType? { manifest.workoutType ?? inheritedWorkoutType }
-    var totalChildCount: Int {
-        children.isEmpty ? manifest.childIDs.count : children.count + children.reduce(0) { $0 + $1.totalChildCount }
-    }
+    let totalChildCount: Int
+    let descendantCoverURLs: [URL]
 
     init(
         manifest: ExercisePageManifest,
@@ -51,6 +50,8 @@ struct ExercisePage: Identifiable {
         self.manifest = manifest
         self.id = UUID(uuidString: manifest.id) ?? UUID()
         self.children = children
+        self.totalChildCount = children.isEmpty ? manifest.childIDs.count : children.count + children.reduce(0) { $0 + $1.totalChildCount }
+        self.descendantCoverURLs = Self.descendantCovers(of: children)
         self.coverImageURL = coverImageURL
         self.mediaURLs = mediaURLs
         self.path = path
@@ -61,6 +62,8 @@ struct ExercisePage: Identifiable {
         self.manifest = manifest
         self.id = UUID(uuidString: manifest.id) ?? UUID()
         self.children = []
+        self.totalChildCount = manifest.childIDs.count
+        self.descendantCoverURLs = []
         self.path = path
         self.inheritedWorkoutType = nil
 
@@ -102,6 +105,21 @@ struct ExercisePage: Identifiable {
             resolvedMediaURLs.first { $0.lastPathComponent == filename }
         }
         self.coverImageURL = chosenCover ?? resolvedMediaURLs.first
+    }
+
+    private static func descendantCovers(of children: [ExercisePage]) -> [URL] {
+        var urls: [URL] = []
+        for child in children {
+            if let url = child.coverImageURL, !urls.contains(url) {
+                urls.append(url)
+                if urls.count == 4 { return urls }
+            }
+            for url in child.descendantCoverURLs where !urls.contains(url) {
+                urls.append(url)
+                if urls.count == 4 { return urls }
+            }
+        }
+        return urls
     }
 
     /// The page's local file for one of its media file names (nil when the page does not hold it).

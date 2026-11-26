@@ -42,6 +42,7 @@ final class TmaxStartupModel: ObservableObject {
         completedSteps = 4
         status = "Finishing library preparation…"
         await Task.detached(priority: .userInitiated) { MigrationManager.cleanLegacyPageCacheIfNeeded() }.value
+        await Task.detached(priority: .userInitiated) { _ = try? DatabaseManager.shared.bootstrapIfNeeded() }.value
         completedSteps = 5
         status = "Loading workouts and history…"
         workoutStore = await Task.detached(priority: .userInitiated) { WorkoutStore() }.value

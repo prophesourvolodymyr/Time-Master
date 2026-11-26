@@ -68,26 +68,10 @@ struct DatabaseGroupCover: View {
     /// Up to four covers from the pages inside `page`, depth first in their stored order (`page.children` keep it);
     /// the page's own cover when nothing inside has one.
     static func descendantCoverURLs(in page: ExercisePage) -> [URL] {
-        var urls: [URL] = []
-        var seen = Set<URL>()
-        urls.reserveCapacity(4)
-
-        func collect(_ children: [ExercisePage]) {
-            for child in children {
-                if let url = child.coverImageURL, seen.insert(url).inserted {
-                    urls.append(url)
-                    if urls.count == 4 { return }
-                }
-                collect(child.children)
-                if urls.count == 4 { return }
-            }
+        if page.descendantCoverURLs.isEmpty, let coverURL = page.coverImageURL {
+            return [coverURL]
         }
-
-        collect(page.children)
-        if urls.isEmpty, let coverURL = page.coverImageURL {
-            urls.append(coverURL)
-        }
-        return urls
+        return page.descendantCoverURLs
     }
 }
 
@@ -96,11 +80,12 @@ private struct DatabaseCoverThumbnail: View {
     @State private var image: PhotoPlatformImage?
 
     var body: some View {
+        let shown = PhotoManager.shared.cachedImage(from: url, maxPixelSize: PhotoManager.thumbnailPixelSize) ?? image
         GeometryReader { geometry in
             ZStack {
                 Theme.surface2
-                if let image {
-                    Image(platform: image)
+                if let shown {
+                    Image(platform: shown)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: geometry.size.width, height: geometry.size.height)
@@ -109,7 +94,10 @@ private struct DatabaseCoverThumbnail: View {
             }
         }
         .task(id: url) {
-            image = nil
+            if let cached = PhotoManager.shared.cachedImage(from: url, maxPixelSize: PhotoManager.thumbnailPixelSize) {
+                if image !== cached { image = cached }
+                return
+            }
             let thumbnail = await PhotoManager.shared.asyncLoadImage(from: url, maxPixelSize: PhotoManager.thumbnailPixelSize)
             guard !Task.isCancelled else { return }
             image = thumbnail

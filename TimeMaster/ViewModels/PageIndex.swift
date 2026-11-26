@@ -57,6 +57,9 @@ final class LibraryDerivedCache {
     var prerequisiteCandidates: [String: [SkillMaterial]] = [:]
     var workoutTypeChips: [FilterTypeChip]?
     var trainersBySkill: [String: [SkillTrainer]]?
+    var pagesByTitle: [ExercisePage]?
+    var pagesByPath: [ExercisePage]?
+    var pageSearch: (query: String, pages: [ExercisePage])?
 
     func reset() {
         index = nil
@@ -66,5 +69,8 @@ final class LibraryDerivedCache {
         prerequisiteCandidates.removeAll(keepingCapacity: true)
         workoutTypeChips = nil
         trainersBySkill = nil
+        pagesByTitle = nil
+        pagesByPath = nil
+        pageSearch = nil
     }
 }

@@ -62,12 +62,8 @@ struct PageLinkTile: View {
             .frame(width: 48, height: 48)
             .overlay {
                 if let thumbnailURL {
-                    AsyncImage(url: thumbnailURL) { phase in
-                        if case .success(let image) = phase {
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        }
+                    RemoteImage(url: thumbnailURL, maxPixelSize: 160) {
+                        Color.clear
                     }
                     .frame(width: 48, height: 48)
                     .clipped()

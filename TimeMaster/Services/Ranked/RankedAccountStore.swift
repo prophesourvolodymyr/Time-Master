@@ -42,6 +42,10 @@ final class RankedAccountStore: ObservableObject {
     }
 
     func refresh() async {
+        guard await api.configured else {
+            configured = false
+            return
+        }
         guard !loading else { return }
         let version = generation
         loading = true
@@ -73,7 +77,7 @@ final class RankedAccountStore: ObservableObject {
                 recoveryMatch = nil
             }
             stale = identity != nil
-            self.error = error.localizedDescription
+            self.error = error.isOfflineFailure ? nil : error.localizedDescription
         }
     }
 

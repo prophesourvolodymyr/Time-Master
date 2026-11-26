@@ -53,7 +53,7 @@ struct SkillCardIcon: View {
 }
 
 /// A picture icon filling the tile the caller frames: a local one decoded off the main thread through the skill
-/// screens' image cache, a web one through `AsyncImage`; empty until it arrives.
+/// screens' image cache, a web one through `RemoteImage`, which keeps it on disk for offline use; empty until it arrives.
 private struct SkillCardPicture: View {
     let url: URL
     let maxPixel: Int
@@ -78,9 +78,7 @@ private struct SkillCardPicture: View {
                 image = loaded
             }
         } else {
-            AsyncImage(url: url) { picture in
-                picture.resizable().aspectRatio(contentMode: .fill)
-            } placeholder: {
+            RemoteImage(url: url, maxPixelSize: CGFloat(maxPixel)) {
                 Color.clear
             }
         }

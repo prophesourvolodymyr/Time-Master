@@ -107,7 +107,7 @@ struct SkillBoardScreen: View {
 
     var body: some View {
         let mode = self.mode
-        let snapshot = SkillBoardSnapshot(store: store, boardID: boardID, includesNested: mode != .list)
+        let snapshot = SkillBoardSnapshot.remembered(store: store, boardID: boardID, includesNested: mode != .list)
         let typeSnapshot = showsTypes(snapshot) ? PageTypeBoardSnapshot(skills: snapshot, store: store) : nil
         let shownIDs = siblingIDs(snapshot, types: typeSnapshot)
         VStack(alignment: .leading, spacing: SkillMetrics.s2) {

@@ -95,7 +95,7 @@ private struct TmaxRootView: View {
             Color.black.ignoresSafeArea()
             if startup.isReady, !databaseSync.changingAccount,
                let store = startup.workoutStore, let database = startup.databaseStore {
-                MainTabView()
+                MainTabView(workoutStore: store)
                     .environmentObject(store)
                     .environmentObject(database)
                     .id(databaseSync.libraryGeneration)

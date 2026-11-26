@@ -51,13 +51,18 @@ struct TimeMasterGlassSurface: ViewModifier {
                 ? Glass.regular.tint(tint).interactive()
                 : Glass.regular.tint(tint)
             content.glassEffect(glass, in: shape)
-        } else {
+        } else if #available(iOS 17.0, *) {
             content.background {
                 #if os(iOS)
                 TimeMasterFrostedGlassBackground()
                 #else
                 shape.fill(.regularMaterial)
                 #endif
+                shape.fill(tint.opacity(0.24))
+            }
+        } else {
+            content.background {
+                shape.fill(Theme.surface)
                 shape.fill(tint.opacity(0.24))
             }
         }

@@ -197,7 +197,7 @@ struct ScheduleView: View {
     }
 
     private var weekHeader: some View {
-        let progress = store.weeklySchedule.progress(through: week, now: now, activity: store.scheduleActivity)
+        let progress = store.scheduleProgress(through: week, now: now)
         return VStack(spacing: 12) {
             if pullArmed {
                 Image(systemName: "arrow.up")

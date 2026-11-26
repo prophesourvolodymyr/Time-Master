@@ -21,9 +21,7 @@ struct ChecklistCoverView: View {
                 if url.isFileURL {
                     SkillLocalImage(url: url, maxPixel: 1400)
                 } else {
-                    AsyncImage(url: url) { image in
-                        image.resizable().aspectRatio(contentMode: .fill)
-                    } placeholder: {
+                    RemoteImage(url: url, maxPixelSize: 1400) {
                         Color.clear
                     }
                 }

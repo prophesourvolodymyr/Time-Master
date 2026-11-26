@@ -164,7 +164,6 @@ class DatabaseStore: ObservableObject {
         appliedSignature = snapshot.signature
         allPagesFlat = snapshot.flat
         rootPages = snapshot.roots
-        derived.reset()
         derived.index = snapshot.index
         derived.skillLibrary = snapshot.library
         return true
@@ -253,6 +252,20 @@ class DatabaseStore: ObservableObject {
         return built
     }
 
+    var pagesByTitle: [ExercisePage] {
+        if let known = derived.pagesByTitle { return known }
+        let sorted = allPagesFlat.sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
+        derived.pagesByTitle = sorted
+        return sorted
+    }
+
+    var pagesByPath: [ExercisePage] {
+        if let known = derived.pagesByPath { return known }
+        let sorted = allPagesFlat.sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
+        derived.pagesByPath = sorted
+        return sorted
+    }
+
     func page(id: UUID) -> ExercisePage? {
         index.byID[id]
     }
@@ -289,7 +302,8 @@ class DatabaseStore: ObservableObject {
         try ExerciseLibraryAccess.shared.perform(token: libraryToken) {
             try DatabaseManager.shared.updateMediaComment(pageID: pageID, filename: filename, comment: comment)
         }
-        reloadImmediately()
+        publishSavedPage(SkillGroupID.split(pageID)?.containerID ?? pageID)
+        reload()
     }
 
     func deletePage(id: String) throws {
@@ -364,8 +378,10 @@ class DatabaseStore: ObservableObject {
             }
 
             let currentPage = self.allPagesFlat[index]
-            let pageURL = self.resolvePageFolderURL(id: pageID)
-                ?? DatabaseManager.shared.exercisesDatabaseURL.appendingPathComponent(currentPage.path, isDirectory: true)
+            let uploaded = coverFilename ?? mediaFilenames.first
+            let pageURL = uploaded.flatMap { try? DatabaseManager.shared.pageMediaURL(pageID: pageID, filename: $0) }
+                .map { $0.deletingLastPathComponent().deletingLastPathComponent() }
+                ?? self.folderURL(for: currentPage)
             let refreshed = ExercisePage(from: manifest, baseURL: pageURL, legacyMediaDirectory: DatabaseManager.shared.dataRoot.appendingPathComponent("Media", isDirectory: true), path: currentPage.path)
             self.allPagesFlat[index] = ExercisePage(
                 manifest: refreshed.manifest,
@@ -448,22 +464,6 @@ class DatabaseStore: ObservableObject {
         reload()
     }
 
-    private func resolvePageFolderURL(id: String) -> URL? {
-        let base = DatabaseManager.shared.exercisesDatabaseURL
-        func find(in dir: URL) -> URL? {
-            guard let entries = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.isDirectoryKey]) else { return nil }
-            for entry in entries {
-                var isDir: ObjCBool = false
-                FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir)
-                guard isDir.boolValue else { continue }
-                if entry.lastPathComponent == id { return entry }
-                if let found = find(in: entry) { return found }
-            }
-            return nil
-        }
-        return find(in: base)
-    }
-    
     private func publishCreatedPage(_ manifest: ExercisePageManifest) {
         let publish = { [weak self] in
             guard let self else { return }
@@ -505,6 +505,29 @@ class DatabaseStore: ObservableObject {
         } else {
             DispatchQueue.main.async(execute: publish)
         }
+    }
+
+    /// Puts the saved manifest of `pageID` in place right away, with its media addresses.
+    func publishSavedPage(_ pageID: String) {
+        guard let manifest = try? DatabaseManager.shared.getPage(id: pageID),
+              let index = allPagesFlat.firstIndex(where: { $0.manifest.id == pageID }) else { return }
+        let current = allPagesFlat[index]
+        var merged = manifest
+        merged.childIDs = current.manifest.childIDs
+        let refreshed = ExercisePage(
+            from: merged,
+            baseURL: folderURL(for: current),
+            legacyMediaDirectory: DatabaseManager.shared.dataRoot.appendingPathComponent("Media", isDirectory: true),
+            path: current.path
+        )
+        allPagesFlat[index] = ExercisePage(
+            manifest: refreshed.manifest,
+            coverImageURL: refreshed.coverImageURL,
+            mediaURLs: refreshed.mediaURLs,
+            path: current.path,
+            inheritedWorkoutType: current.inheritedWorkoutType
+        )
+        rootPages = PageTreeBuilder.build(from: allPagesFlat)
     }
 
     // MARK: - V1 Legacy (backward compatible)

@@ -79,7 +79,7 @@ extension DatabaseStore {
         let result = try ExerciseLibraryAccess.shared.perform(token: token) {
             try body(DatabaseManager.shared)
         }
-        publishChecklistPage(pageID)
+        publishSavedPage(pageID)
         reload()
         return result
     }
@@ -157,30 +157,5 @@ extension DatabaseStore {
     @discardableResult
     func uploadChecklistPicture(_ sourceURL: URL, to pageID: String) throws -> String {
         try checklistWrite(pageID) { try $0.uploadMediaToPage(pageID: pageID, sourceURL: sourceURL) }
-    }
-
-    // MARK: - Publishing
-
-    /// Puts the saved manifest of `pageID` in place right away, with its media addresses.
-    private func publishChecklistPage(_ pageID: String) {
-        guard let manifest = try? DatabaseManager.shared.getPage(id: pageID),
-              let index = allPagesFlat.firstIndex(where: { $0.manifest.id == pageID }) else { return }
-        let current = allPagesFlat[index]
-        var merged = manifest
-        merged.childIDs = current.manifest.childIDs
-        let refreshed = ExercisePage(
-            from: merged,
-            baseURL: folderURL(for: current),
-            legacyMediaDirectory: DatabaseManager.shared.dataRoot.appendingPathComponent("Media", isDirectory: true),
-            path: current.path
-        )
-        allPagesFlat[index] = ExercisePage(
-            manifest: refreshed.manifest,
-            coverImageURL: refreshed.coverImageURL,
-            mediaURLs: refreshed.mediaURLs,
-            path: current.path,
-            inheritedWorkoutType: current.inheritedWorkoutType
-        )
-        rootPages = PageTreeBuilder.build(from: allPagesFlat)
     }
 }

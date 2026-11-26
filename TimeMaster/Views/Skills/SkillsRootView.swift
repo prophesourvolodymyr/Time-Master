@@ -252,14 +252,14 @@ struct SkillsRootView: View {
     private func content(metrics: ScrollingChromeMetrics) -> some View {
         let library = store.skillLibrary
         let index = store.index
-        let entries = sortOption.ordered(SkillShelf.listed(library.topLevelEntries()))
+        let entries = library.listedEntries(by: sortOption)
         return VStack(alignment: .leading, spacing: 16) {
             if !trimmedQuery.isEmpty {
                 SkillsSearchResults(
                     query: trimmedQuery,
                     sections: SkillShelf.sections(of: entries, index: index),
                     library: library,
-                    anchors: SkillCategory.anchorPages(in: index)
+                    anchors: library.categoryAnchors()
                 ) { page in
                     open(page.manifest.id)
                 }
@@ -291,7 +291,7 @@ struct SkillsRootView: View {
 
     /// Each section under its header, like the Workouts page's sections; a folded one keeps only its header.
     private func sectionList(_ sections: [SkillCategorySection]) -> some View {
-        let anchors = SkillCategory.anchorPages(in: store.index)
+        let anchors = store.skillLibrary.categoryAnchors()
         return LazyVStack(alignment: .leading, spacing: 12) {
             ForEach(Array(sections.enumerated()), id: \.element.id) { order, section in
                 let folded = isFolded(section.category)

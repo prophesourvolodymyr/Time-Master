@@ -1,22 +1,82 @@
 import SwiftUI
+import CryptoKit
 
-final class MarkdownRemoteImageLoader {
-    static let shared = MarkdownRemoteImageLoader()
-    private let cache = NSCache<NSURL, PhotoPlatformImage>()
+final class RemoteImageLoader: @unchecked Sendable {
+    static let shared = RemoteImageLoader()
+    private let memory = NSCache<NSString, PhotoPlatformImage>()
+    private let directory: URL
+    private let session: URLSession
 
     private init() {
-        cache.totalCostLimit = 48 * 1024 * 1024
+        memory.totalCostLimit = 48 * 1024 * 1024
+        directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("TimeMasterWebImages", isDirectory: true)
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 12
+        configuration.timeoutIntervalForResource = 30
+        configuration.urlCache = nil
+        session = URLSession(configuration: configuration)
+    }
+
+    func cachedImage(for url: URL, maxPixelSize: CGFloat) -> PhotoPlatformImage? {
+        memory.object(forKey: Self.memoryKey(url, maxPixelSize))
     }
 
     func image(from url: URL, maxPixelSize: CGFloat) async -> PhotoPlatformImage? {
-        if let cached = cache.object(forKey: url as NSURL) { return cached }
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 12
-        guard let (data, response) = try? await URLSession.shared.data(for: request),
-              (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) ?? true,
-              let image = PhotoManager.downsampledImage(data: data, maxPixelSize: maxPixelSize) else { return nil }
-        cache.setObject(image, forKey: url as NSURL, cost: Int(image.size.width * image.size.height * 4))
+        let key = Self.memoryKey(url, maxPixelSize)
+        if let cached = memory.object(forKey: key) { return cached }
+        let file = directory.appendingPathComponent(Self.fileName(for: url))
+        var image = (try? Data(contentsOf: file)).flatMap { PhotoManager.downsampledImage(data: $0, maxPixelSize: maxPixelSize) }
+        if image == nil, let data = await download(url) {
+            image = PhotoManager.downsampledImage(data: data, maxPixelSize: maxPixelSize)
+            if image != nil {
+                try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                try? data.write(to: file, options: .atomic)
+            }
+        }
+        guard let image else { return nil }
+        memory.setObject(image, forKey: key, cost: Int(image.size.width * image.size.height * 4))
         return image
+    }
+
+    private func download(_ url: URL) async -> Data? {
+        guard let (data, response) = try? await session.data(from: url),
+              (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) ?? true else { return nil }
+        return data
+    }
+
+    private static func memoryKey(_ url: URL, _ maxPixelSize: CGFloat) -> NSString {
+        "\(url.absoluteString)#\(PhotoManager.pixelBucket(for: maxPixelSize))" as NSString
+    }
+
+    private static func fileName(for url: URL) -> String {
+        SHA256.hash(data: Data(url.absoluteString.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+struct RemoteImage<Placeholder: View>: View {
+    let url: URL
+    var maxPixelSize: CGFloat = 640
+    @ViewBuilder var placeholder: () -> Placeholder
+    @State private var image: PhotoPlatformImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                platformImage(image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                placeholder()
+            }
+        }
+        .task(id: url) {
+            image = RemoteImageLoader.shared.cachedImage(for: url, maxPixelSize: maxPixelSize)
+            guard image == nil else { return }
+            let loaded = await RemoteImageLoader.shared.image(from: url, maxPixelSize: maxPixelSize)
+            guard !Task.isCancelled else { return }
+            image = loaded
+        }
     }
 }
 
@@ -32,7 +92,7 @@ enum MarkdownImageSource {
         if url.isFileURL {
             return await PhotoManager.shared.asyncLoadImage(from: url, maxPixelSize: maxPixelSize)
         }
-        return await MarkdownRemoteImageLoader.shared.image(from: url, maxPixelSize: maxPixelSize)
+        return await RemoteImageLoader.shared.image(from: url, maxPixelSize: maxPixelSize)
     }
 }
 

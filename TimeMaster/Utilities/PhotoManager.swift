@@ -18,12 +18,15 @@ class PhotoManager {
     private let fileManager = FileManager.default
     private let documentsDirectory: URL
     private let cache = NSCache<NSString, PhotoPlatformImage>()
+    private let fileCache = NSCache<NSString, PhotoPlatformImage>()
 
     private init() {
         documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         createPhotosDirectoryIfNeeded()
         cache.countLimit = 120
         cache.totalCostLimit = 64 * 1024 * 1024
+        fileCache.countLimit = 40
+        fileCache.totalCostLimit = 48 * 1024 * 1024
     }
 
     private var photosDirectory: URL {
@@ -69,11 +72,15 @@ class PhotoManager {
 
     #if os(iOS)
     func loadPhoto(filename: String) -> UIImage? {
-        Self.downsampledImage(at: photosDirectory.appendingPathComponent(filename), maxPixelSize: Self.fullPhotoPixelSize)
+        rememberedImage(at: photosDirectory.appendingPathComponent(filename), kind: "photo") {
+            Self.downsampledImage(at: $0, maxPixelSize: Self.fullPhotoPixelSize)
+        }
     }
     #elseif os(macOS)
     func loadPhoto(filename: String) -> NSImage? {
-        Self.downsampledImage(at: photosDirectory.appendingPathComponent(filename), maxPixelSize: Self.fullPhotoPixelSize)
+        rememberedImage(at: photosDirectory.appendingPathComponent(filename), kind: "photo") {
+            Self.downsampledImage(at: $0, maxPixelSize: Self.fullPhotoPixelSize)
+        }
     }
     #endif
 
@@ -110,27 +117,29 @@ class PhotoManager {
 
     #if os(iOS)
     func thumbnailForVideo(filename: String) -> UIImage? {
-        let url = videoURL(for: filename)
-        guard fileManager.fileExists(atPath: url.path) else { return nil }
-        let asset = AVURLAsset(url: url)
-        let gen = AVAssetImageGenerator(asset: asset)
-        gen.appliesPreferredTrackTransform = true
-        gen.maximumSize = CGSize(width: 400, height: 400)
-        let time = CMTimeMake(value: 0, timescale: 1)
-        guard let cgImage = try? gen.copyCGImage(at: time, actualTime: nil) else { return nil }
-        return UIImage(cgImage: cgImage)
+        rememberedImage(at: videoURL(for: filename), kind: "poster") { url in
+            guard fileManager.fileExists(atPath: url.path) else { return nil }
+            let asset = AVURLAsset(url: url)
+            let gen = AVAssetImageGenerator(asset: asset)
+            gen.appliesPreferredTrackTransform = true
+            gen.maximumSize = CGSize(width: 400, height: 400)
+            let time = CMTimeMake(value: 0, timescale: 1)
+            guard let cgImage = try? gen.copyCGImage(at: time, actualTime: nil) else { return nil }
+            return UIImage(cgImage: cgImage)
+        }
     }
     #elseif os(macOS)
     func thumbnailForVideo(filename: String) -> NSImage? {
-        let url = videoURL(for: filename)
-        guard fileManager.fileExists(atPath: url.path) else { return nil }
-        let asset = AVURLAsset(url: url)
-        let gen = AVAssetImageGenerator(asset: asset)
-        gen.appliesPreferredTrackTransform = true
-        gen.maximumSize = CGSize(width: 400, height: 400)
-        let time = CMTimeMake(value: 0, timescale: 1)
-        guard let cgImage = try? gen.copyCGImage(at: time, actualTime: nil) else { return nil }
-        return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+        rememberedImage(at: videoURL(for: filename), kind: "poster") { url in
+            guard fileManager.fileExists(atPath: url.path) else { return nil }
+            let asset = AVURLAsset(url: url)
+            let gen = AVAssetImageGenerator(asset: asset)
+            gen.appliesPreferredTrackTransform = true
+            gen.maximumSize = CGSize(width: 400, height: 400)
+            let time = CMTimeMake(value: 0, timescale: 1)
+            guard let cgImage = try? gen.copyCGImage(at: time, actualTime: nil) else { return nil }
+            return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+        }
     }
     #endif
 
@@ -144,18 +153,34 @@ class PhotoManager {
     #if os(iOS)
     func thumbnail(for item: MediaItem) -> UIImage? {
         switch item.type {
-        case .photo: return Self.downsampledImage(at: photoURL(for: item.filename), maxPixelSize: Self.thumbnailPixelSize)
+        case .photo:
+            return rememberedImage(at: photoURL(for: item.filename), kind: "thumb") {
+                Self.downsampledImage(at: $0, maxPixelSize: Self.thumbnailPixelSize)
+            }
         case .video: return thumbnailForVideo(filename: item.filename)
         }
     }
     #elseif os(macOS)
     func thumbnail(for item: MediaItem) -> NSImage? {
         switch item.type {
-        case .photo: return Self.downsampledImage(at: photoURL(for: item.filename), maxPixelSize: Self.thumbnailPixelSize)
+        case .photo:
+            return rememberedImage(at: photoURL(for: item.filename), kind: "thumb") {
+                Self.downsampledImage(at: $0, maxPixelSize: Self.thumbnailPixelSize)
+            }
         case .video: return thumbnailForVideo(filename: item.filename)
         }
     }
     #endif
+
+    private func rememberedImage(at url: URL, kind: String, load: (URL) -> PhotoPlatformImage?) -> PhotoPlatformImage? {
+        guard let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey]),
+              let modified = values.contentModificationDate else { return load(url) }
+        let key = "\(url.absoluteString)#\(kind)#\(modified.timeIntervalSinceReferenceDate)#\(values.fileSize ?? 0)" as NSString
+        if let cached = fileCache.object(forKey: key) { return cached }
+        guard let image = load(url) else { return nil }
+        fileCache.setObject(image, forKey: key, cost: Int(image.size.width * image.size.height * 4))
+        return image
+    }
 }
 
 extension PhotoManager {
@@ -273,6 +298,7 @@ extension PhotoManager {
 
     func clearCache() {
         cache.removeAllObjects()
+        fileCache.removeAllObjects()
     }
 }
 

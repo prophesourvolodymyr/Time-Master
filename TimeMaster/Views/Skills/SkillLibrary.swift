@@ -63,6 +63,8 @@ struct SkillLibrary {
         var subSkills: [String: [ExercisePage]] = [:]
         var below: [String: [ExercisePage]] = [:]
         var progress: [String: SkillProgress] = [:]
+        var listed: [SkillSortOption: [SkillLibraryEntry]] = [:]
+        var anchors: [SkillCategory: ExercisePage]?
     }
 
     private let pages: [ExercisePage]
@@ -103,6 +105,20 @@ struct SkillLibrary {
             return SkillLibraryEntry(page: page, progress: SkillProgress(counting: below), lastChange: lastChange)
         }
         memo.topLevel = result
+        return result
+    }
+
+    func listedEntries(by option: SkillSortOption) -> [SkillLibraryEntry] {
+        if let known = memo.listed[option] { return known }
+        let result = option.ordered(SkillShelf.listed(topLevelEntries()))
+        memo.listed[option] = result
+        return result
+    }
+
+    func categoryAnchors() -> [SkillCategory: ExercisePage] {
+        if let known = memo.anchors { return known }
+        let result = SkillCategory.anchorPages(among: pages)
+        memo.anchors = result
         return result
     }
 

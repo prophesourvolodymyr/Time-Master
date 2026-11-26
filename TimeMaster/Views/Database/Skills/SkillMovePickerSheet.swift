@@ -24,8 +24,7 @@ struct SkillMovePickerSheet: View {
 
     private var candidates: [Candidate] {
         let pages = store.allPagesFlat
-        var byID: [String: ExercisePage] = [:]
-        for page in pages where byID[page.manifest.id] == nil { byID[page.manifest.id] = page }
+        let byID = store.index.byManifestID
         var excluded: Set<String> = [pageID]
         var pending = byID[pageID]?.manifest.childIDs ?? []
         while let next = pending.popLast() {

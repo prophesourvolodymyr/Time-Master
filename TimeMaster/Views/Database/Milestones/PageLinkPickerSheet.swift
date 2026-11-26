@@ -14,14 +14,13 @@ struct PageLinkPickerSheet: View {
 
     private var shown: [ExercisePage] {
         let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        let pages = store.allPagesFlat
-            .filter { !excludedIDs.contains($0.manifest.id) }
-            .sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
+        let pages = store.pagesByPath.filter { !excludedIDs.contains($0.manifest.id) }
         guard !text.isEmpty else { return pages }
         return pages.filter { $0.title.localizedCaseInsensitiveContains(text) || trail(of: $0).localizedCaseInsensitiveContains(text) }
     }
 
     var body: some View {
+        let shown = self.shown
         NavigationStack {
             ScrollView {
                 if shown.isEmpty {

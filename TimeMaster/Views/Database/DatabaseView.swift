@@ -996,13 +996,14 @@ struct DatabaseView: View {
     // MARK: - V2 Page Tree
 
     private var pageTreeView: some View {
-        VStack(spacing: 0) {
-            if filteredRootPages.isEmpty {
+        let entries = visiblePageEntries
+        return VStack(spacing: 0) {
+            if entries.isEmpty {
                 noResultsView
             } else if isGridMode {
-                gridContentView
+                gridContentView(entries)
             } else {
-                listContentView
+                listContentView(entries)
             }
         }
     }
@@ -1100,8 +1101,7 @@ struct DatabaseView: View {
         .padding(.vertical, 60)
     }
 
-    private var listContentView: some View {
-        let entries = visiblePageEntries
+    private func listContentView(_ entries: [DatabasePageEntry]) -> some View {
         var nextDepths: [String: Int] = [:]
         for (offset, entry) in entries.enumerated() {
             nextDepths[entry.id] = entries.indices.contains(offset + 1) ? entries[offset + 1].depth : 0
@@ -1122,10 +1122,10 @@ struct DatabaseView: View {
 
     private let gridColumns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
 
-    private var gridContentView: some View {
-        let ids = visiblePageEntries.map(\.id)
+    private func gridContentView(_ entries: [DatabasePageEntry]) -> some View {
+        let ids = entries.map(\.id)
         return LazyVGrid(columns: gridColumns, spacing: 10) {
-            ForEach(visiblePageEntries) { entry in
+            ForEach(entries) { entry in
                 let page = entry.page
                 ZStack(alignment: .topTrailing) {
                     pageBase(page, isGridMode: true)
@@ -1476,15 +1476,19 @@ private struct DatabaseSearchSheet: View {
     private var results: [ExercisePage] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return [] }
-        return store.allPagesFlat
+        if let known = store.derived.pageSearch, known.query == query { return known.pages }
+        let found = store.allPagesFlat
             .filter { page in
                 page.title.localizedCaseInsensitiveContains(query) ||
                 page.manifest.markdownBody.localizedCaseInsensitiveContains(query)
             }
             .sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
+        store.derived.pageSearch = (query, found)
+        return found
     }
 
     var body: some View {
+        let found = results
         NavigationStack(path: $navigationState.path) {
             ZStack {
                 Theme.background.ignoresSafeArea()
@@ -1530,7 +1534,7 @@ private struct DatabaseSearchSheet: View {
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .padding(28)
-                    } else if results.isEmpty {
+                    } else if found.isEmpty {
                         VStack(spacing: 10) {
                             Image(systemName: "doc.text.magnifyingglass")
                                 .font(.system(size: 34))
@@ -1542,7 +1546,7 @@ private struct DatabaseSearchSheet: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
                         List {
-                            ForEach(results) { page in
+                            ForEach(found) { page in
                                 NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
                                     HStack(spacing: 12) {
                                         Image(systemName: page.isNote ? "note.text" : (page.isContainer ? "rectangle.stack" : "doc.text"))

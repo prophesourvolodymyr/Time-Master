@@ -261,6 +261,11 @@ final class DatabaseSyncStore: ObservableObject {
             } catch is CancellationError {
             } catch {
                 guard self.generation == version, self.activeAccountID == accountID else { return }
+                if error.isOfflineFailure {
+                    self.error = nil
+                    self.status = self.lastSuccessfulSync == nil ? .waiting : .upToDate
+                    return
+                }
                 self.error = "\(error.localizedDescription) Changes remain on this device and will be retried while sync is enabled."
                 self.status = .failed
             }

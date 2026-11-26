@@ -39,55 +39,59 @@ struct TmaxGlowBackground: View {
     var intensity: Intensity = .ambient
     var rises = false
 
+    var body: some View {
+        glow
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+
+    /// One Metal pass fed with the animated values where the system has shaders; elsewhere the layered gradients at rest.
+    @ViewBuilder
+    private var glow: some View {
+        if #available(iOS 17.0, macOS 14.0, *) {
+            TmaxGlowAnimatedField(intensity: intensity, rises: rises)
+        } else {
+            GeometryReader { proxy in
+                TmaxGlowField(intensity: intensity, size: proxy.size, time: 0, rise: 1)
+                    .drawingGroup()
+            }
+        }
+    }
+}
+
+@available(iOS 17.0, macOS 14.0, *)
+private struct TmaxGlowAnimatedField: View {
+    let intensity: TmaxGlowBackground.Intensity
+    let rises: Bool
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @State private var appearedAt: Date?
     @State private var settled = true
 
     var body: some View {
-        glow
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-            .onAppear {
-                appearedAt = .now
-                settled = !rises || reduceMotion
-            }
-            .onDisappear { appearedAt = nil }
-            .task(id: appearedAt) {
-                guard !settled, appearedAt != nil else { return }
-                try? await Task.sleep(nanoseconds: 1_900_000_000)
-                if !Task.isCancelled { settled = true }
-            }
+        TimelineView(.animation(minimumInterval: settled ? 1.0 / 20 : 1.0 / 30, paused: isPaused)) { timeline in
+            TmaxGlowShaderField(
+                intensity: intensity,
+                time: reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate,
+                rise: rise(at: timeline.date)
+            )
+        }
+        .onAppear {
+            appearedAt = .now
+            settled = !rises || reduceMotion
+        }
+        .onDisappear { appearedAt = nil }
+        .task(id: appearedAt) {
+            guard !settled, appearedAt != nil else { return }
+            try? await Task.sleep(nanoseconds: 1_900_000_000)
+            if !Task.isCancelled { settled = true }
+        }
     }
 
     private var isPaused: Bool {
         reduceMotion || appearedAt == nil || scenePhase != .active
-    }
-
-    /// One Metal pass fed with the animated values where the system has shaders; the layered gradients elsewhere.
-    @ViewBuilder
-    private var glow: some View {
-        if #available(iOS 17.0, macOS 14.0, *) {
-            TimelineView(.animation(minimumInterval: settled ? 1.0 / 20 : 1.0 / 30, paused: isPaused)) { timeline in
-                TmaxGlowShaderField(
-                    intensity: intensity,
-                    time: reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate,
-                    rise: rise(at: timeline.date)
-                )
-            }
-        } else {
-            GeometryReader { proxy in
-                TimelineView(.animation(minimumInterval: settled ? 1.0 / 20 : 1.0 / 60, paused: isPaused)) { timeline in
-                    TmaxGlowField(
-                        intensity: intensity,
-                        size: proxy.size,
-                        time: reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate,
-                        rise: rise(at: timeline.date)
-                    )
-                }
-            }
-        }
     }
 
     private func rise(at date: Date) -> Double {

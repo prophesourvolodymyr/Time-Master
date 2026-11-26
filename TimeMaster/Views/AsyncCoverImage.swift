@@ -47,6 +47,10 @@ struct AsyncCoverImage: View {
                 loadedImage = nil
                 return
             }
+            if let cached = PhotoManager.shared.cachedImage(from: url, maxPixelSize: pixelBudget) {
+                if loadedImage !== cached { loadedImage = cached }
+                return
+            }
             let image = await PhotoManager.shared.asyncLoadImage(from: url, maxPixelSize: pixelBudget)
             if !Task.isCancelled { loadedImage = image }
         }

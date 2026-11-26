@@ -107,9 +107,7 @@ struct SkillPageIconTile: View {
                 if url.isFileURL {
                     SkillLocalImage(url: url, maxPixel: Int(size * 3))
                 } else {
-                    AsyncImage(url: url) { image in
-                        image.resizable().aspectRatio(contentMode: .fill)
-                    } placeholder: {
+                    RemoteImage(url: url, maxPixelSize: size * 3) {
                         Color.clear
                     }
                 }

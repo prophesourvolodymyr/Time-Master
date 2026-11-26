@@ -32,3 +32,16 @@ enum CloudServices {
         return nil
     }
 }
+
+extension Error {
+    var isOfflineFailure: Bool {
+        guard let error = self as? URLError else { return false }
+        switch error.code {
+        case .notConnectedToInternet, .networkConnectionLost, .timedOut, .cannotFindHost, .cannotConnectToHost,
+             .dnsLookupFailed, .dataNotAllowed, .internationalRoamingOff, .callIsActive:
+            return true
+        default:
+            return false
+        }
+    }
+}

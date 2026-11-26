@@ -251,6 +251,13 @@ struct ContainerBrowseModel {
     /// Whether an exercise sits anywhere below the container: its Exercises tab then offers the Board.
     let holdsExercises: Bool
 
+    private final class Memo {
+        var all: [ContainerChildTab: [ContainerBrowseEntry]]?
+        var search: (needle: String, lists: [ContainerChildTab: [ContainerBrowseEntry]])?
+    }
+
+    private let memo = Memo()
+
     init(container: ExercisePage, roots: [ExercisePage], pages: [ExercisePage]) {
         let tree = Self.node(id: container.manifest.id, in: roots) ?? Self.tree(of: container, in: pages)
         var stats: [String: ContainerPageStats] = [:]
@@ -276,14 +283,24 @@ struct ContainerBrowseModel {
     func lists(query: String) -> [ContainerChildTab: [ContainerBrowseEntry]] {
         let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !needle.isEmpty else {
-            return [.exercises: ownPages(), .skills: showsSkills ? skills() : []]
+            if let known = memo.all { return known }
+            let lists: [ContainerChildTab: [ContainerBrowseEntry]] = [.exercises: ownPages(), .skills: showsSkills ? skills() : []]
+            memo.all = lists
+            return lists
         }
+        if let known = memo.search, known.needle == needle { return known.lists }
         let hits = search(needle)
-        guard showsSkills else { return [.exercises: hits, .skills: []] }
-        return [
-            .exercises: hits.filter { !SkillLibrary.isSkill($0.page) },
-            .skills: hits.filter { SkillLibrary.isSkill($0.page) },
-        ]
+        let lists: [ContainerChildTab: [ContainerBrowseEntry]]
+        if showsSkills {
+            lists = [
+                .exercises: hits.filter { !SkillLibrary.isSkill($0.page) },
+                .skills: hits.filter { SkillLibrary.isSkill($0.page) },
+            ]
+        } else {
+            lists = [.exercises: hits, .skills: []]
+        }
+        memo.search = (needle, lists)
+        return lists
     }
 
     /// A page's clips, stills, size and latest change (empty for a page outside the container).

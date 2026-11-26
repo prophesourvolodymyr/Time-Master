@@ -927,9 +927,7 @@ private struct LinkedPagePickerSheet: View {
     }
 
     private var candidates: [ExercisePage] {
-        store.allPagesFlat
-            .filter { $0.manifest.id != page.manifest.id }
-            .sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
+        store.pagesByTitle.filter { $0.manifest.id != page.manifest.id }
     }
 
     var body: some View {

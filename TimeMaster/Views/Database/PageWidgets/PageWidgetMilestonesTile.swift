@@ -64,9 +64,7 @@ struct PageWidgetMilestonesTile: View {
                     if url.isFileURL {
                         SkillLocalImage(url: url, maxPixel: 640)
                     } else {
-                        AsyncImage(url: url) { image in
-                            image.resizable().aspectRatio(contentMode: .fill)
-                        } placeholder: {
+                        RemoteImage(url: url, maxPixelSize: 640) {
                             Theme.surface2
                         }
                     }

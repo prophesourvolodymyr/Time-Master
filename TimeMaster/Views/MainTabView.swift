@@ -9,12 +9,12 @@ import AppKit
 #endif
 
 struct MainTabView: View {
-    @EnvironmentObject var workoutStore: WorkoutStore
-    @StateObject private var databaseStore = DatabaseStore.shared
+    let workoutStore: WorkoutStore
+    private let databaseStore = DatabaseStore.shared
     @StateObject private var databaseNavigationState = DatabaseNavigationState(pageTravel: true)
-    @StateObject private var aiStore = AIStore.shared
+    private let aiStore = AIStore.shared
     @StateObject private var outdoorStore = OutdoorActivityStore()
-    @StateObject private var musicLibraryStore = MusicLibraryStore.shared
+    private let musicLibraryStore = MusicLibraryStore.shared
     @StateObject private var outdoorPreferencesStore = OutdoorRecordingPreferencesStore()
     @StateObject private var navigationLayout = SlotNavigationLayoutStore()
     @StateObject private var profileStore = LocalProfileStore()
@@ -36,21 +36,16 @@ struct MainTabView: View {
     @FocusState private var keyboardFocused: Bool
     @Environment(\.macWindowToken) private var windowToken
 #endif
+
+    init(workoutStore: WorkoutStore) {
+        self.workoutStore = workoutStore
 #if os(iOS)
-    init() {
-        let outdoorStore = OutdoorActivityStore()
-        let outdoorPreferences = OutdoorRecordingPreferencesStore()
-        _outdoorStore = StateObject(wrappedValue: outdoorStore)
-        _outdoorPreferencesStore = StateObject(wrappedValue: outdoorPreferences)
-        _outdoorRecorder = StateObject(
-            wrappedValue: OutdoorLocationRecorder(
-                kind: .run,
-                store: outdoorStore,
-                preferences: outdoorPreferences
-            )
-        )
-    }
+        let outdoor = MainTabOutdoorObjects()
+        _outdoorStore = StateObject(wrappedValue: outdoor.store)
+        _outdoorPreferencesStore = StateObject(wrappedValue: outdoor.preferences)
+        _outdoorRecorder = StateObject(wrappedValue: outdoor.recorder)
 #endif
+    }
 
     /// The bar is taller on macOS, where the arc has always carried more of the surface.
     private static var barHeight: CGFloat {
@@ -370,8 +365,18 @@ struct MainTabView: View {
 #endif
 }
 
+#if os(iOS)
+@MainActor
+private final class MainTabOutdoorObjects {
+    lazy var store = OutdoorActivityStore()
+    lazy var preferences = OutdoorRecordingPreferencesStore()
+    lazy var recorder = OutdoorLocationRecorder(kind: .run, store: store, preferences: preferences)
+}
+#endif
+
 #Preview {
-    MainTabView()
-        .environmentObject(WorkoutStore())
+    let workoutStore = WorkoutStore()
+    return MainTabView(workoutStore: workoutStore)
+        .environmentObject(workoutStore)
         .preferredColorScheme(.dark)
 }

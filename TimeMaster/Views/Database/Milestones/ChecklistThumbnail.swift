@@ -18,9 +18,7 @@ struct ChecklistThumbnail: View {
                     if url.isFileURL {
                         SkillLocalImage(url: url, maxPixel: Int(side * 3))
                     } else {
-                        AsyncImage(url: url) { image in
-                            image.resizable().aspectRatio(contentMode: .fill)
-                        } placeholder: {
+                        RemoteImage(url: url, maxPixelSize: side * 3) {
                             Theme.surface2
                         }
                     }

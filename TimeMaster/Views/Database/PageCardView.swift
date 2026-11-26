@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct PageCardView: View {
-    @EnvironmentObject private var navigationState: DatabaseNavigationState
     let page: ExercisePage
     var isGridMode: Bool = false
     var onAddToWorkout: (() -> Void)? = nil
@@ -257,11 +256,12 @@ struct PageCardView: View {
     }
 
     private var infoArea: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        let metadata = listMetadata
+        return VStack(alignment: .leading, spacing: 4) {
             titleLabel(font: TimeMasterFont.black(17))
 
-            if !listMetadata.isEmpty {
-                Text(listMetadata)
+            if !metadata.isEmpty {
+                Text(metadata)
                     .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                     .foregroundStyle(Theme.textSecondary)
                     .lineLimit(2)
@@ -279,9 +279,7 @@ struct PageCardView: View {
     @ViewBuilder
     private func titleLabel(font: Font) -> some View {
         if page.isSkillLike {
-            SkillEditableTitle(pageID: page.manifest.id, title: page.title, font: font, lineLimit: 2) {
-                navigationState.path.append(DatabasePageRoute(pageID: page.manifest.id))
-            }
+            PageCardSkillTitle(pageID: page.manifest.id, title: page.title, font: font)
         } else {
             Text(page.title)
                 .font(font)
@@ -330,4 +328,17 @@ struct PageCardView: View {
     }
 
 
+}
+
+private struct PageCardSkillTitle: View {
+    @EnvironmentObject private var navigationState: DatabaseNavigationState
+    let pageID: String
+    let title: String
+    let font: Font
+
+    var body: some View {
+        SkillEditableTitle(pageID: pageID, title: title, font: font, lineLimit: 2) {
+            navigationState.path.append(DatabasePageRoute(pageID: pageID))
+        }
+    }
 }

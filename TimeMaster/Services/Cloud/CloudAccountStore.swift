@@ -18,6 +18,7 @@ final class CloudAccountStore: ObservableObject {
 
     private let oauth = CloudOAuthPresenter()
     private var started = false
+    private var providerSettingsRequested = false
     private var deferredCallback: URL?
     private var processingCallback: URL?
     private var completedCallback: URL?
@@ -31,12 +32,14 @@ final class CloudAccountStore: ObservableObject {
         guard !started else { return }
         started = true
         await DatabaseSyncStore.shared.start()
-        do {
-            let current = try await CloudServices.auth.get().restore()
-            try await applyIdentity(current)
-        } catch { self.error = error.localizedDescription }
+        if case .success(let client) = CloudServices.auth {
+            do {
+                let current = try await client.restore()
+                try await applyIdentity(current)
+            } catch { self.error = error.localizedDescription }
+        }
         restored = true
-        Task { await self.loadProviderSettings() }
+        if providerSettingsRequested { Task { await self.loadProviderSettings() } }
         if let deferredCallback {
             self.deferredCallback = nil
             await handleCallback(deferredCallback)
@@ -44,13 +47,20 @@ final class CloudAccountStore: ObservableObject {
     }
 
     func loadProviderSettings() async {
-        guard started, restored else { return }
+        guard started, restored else {
+            providerSettingsRequested = true
+            return
+        }
+        providerSettingsRequested = false
+        guard configured else { return }
         do {
             providerSettings = try await CloudServices.auth.get().settings()
             providerError = nil
         } catch {
             providerSettings = nil
-            providerError = "Provider availability could not be checked: \(error.localizedDescription)"
+            providerError = error.isOfflineFailure
+                ? "Sign-in options need an internet connection. Your library stays available on this device."
+                : "Provider availability could not be checked: \(error.localizedDescription)"
         }
     }
 

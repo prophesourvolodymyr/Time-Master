@@ -38,6 +38,16 @@ enum PageWidgetItem: Identifiable {
         }
     }
 
+    private final class Cache {
+        var library: ObjectIdentifier?
+        var store: ObjectIdentifier?
+        var workoutsRevision = -1
+        var historyRevision = -1
+        var items: [String: [PageWidgetItem]] = [:]
+    }
+
+    private static let cache = Cache()
+
     /// The tiles of `page`, in strip order, as its `widgets` setting asks. Left to itself a page shows the tiles that
     /// have something to say: an exercise its clips and the workouts that train it; a skill or a tutorial its clips, its
     /// progress, open to-dos and milestones, what to learn first and the workouts that train it; a folder its clips,
@@ -46,7 +56,21 @@ enum PageWidgetItem: Identifiable {
     /// shows the tiles about sub-skills.
     @MainActor
     static func items(for page: ExercisePage, store: DatabaseStore, workoutStore: WorkoutStore) -> [PageWidgetItem] {
-        items(for: page, selection: page.manifest.widgetSelection, noSkills: page.manifest.hidesSkills, store: store, workoutStore: workoutStore)
+        let token = store.skillLibrary.snapshotToken
+        let storeToken = ObjectIdentifier(workoutStore)
+        if cache.library != token || cache.store != storeToken
+            || cache.workoutsRevision != workoutStore.workoutsRevision
+            || cache.historyRevision != workoutStore.historyRevision {
+            cache.items.removeAll(keepingCapacity: true)
+            cache.library = token
+            cache.store = storeToken
+            cache.workoutsRevision = workoutStore.workoutsRevision
+            cache.historyRevision = workoutStore.historyRevision
+        }
+        if let known = cache.items[page.manifest.id] { return known }
+        let built = items(for: page, selection: page.manifest.widgetSelection, noSkills: page.manifest.hidesSkills, store: store, workoutStore: workoutStore)
+        cache.items[page.manifest.id] = built
+        return built
     }
 
     /// The tiles `page` shows with `selection` and `noSkills` in place of its own settings (the edit form asks what

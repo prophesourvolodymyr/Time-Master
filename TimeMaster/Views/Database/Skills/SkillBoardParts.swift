@@ -314,6 +314,32 @@ struct SkillBoardSnapshot {
     }
 }
 
+extension SkillBoardSnapshot {
+    private final class Memo {
+        var library: ObjectIdentifier?
+        var store: ObjectIdentifier?
+        var snapshots: [String: SkillBoardSnapshot] = [:]
+    }
+
+    private static let memo = Memo()
+
+    @MainActor
+    static func remembered(store: DatabaseStore, boardID: String, includesNested: Bool) -> SkillBoardSnapshot {
+        let token = store.skillLibrary.snapshotToken
+        let storeToken = ObjectIdentifier(store)
+        if memo.library != token || memo.store != storeToken {
+            memo.snapshots.removeAll(keepingCapacity: true)
+            memo.library = token
+            memo.store = storeToken
+        }
+        let key = "\(includesNested ? 1 : 0)\u{1F}\(boardID)"
+        if let known = memo.snapshots[key] { return known }
+        let built = SkillBoardSnapshot(store: store, boardID: boardID, includesNested: includesNested)
+        memo.snapshots[key] = built
+        return built
+    }
+}
+
 // MARK: - Actions
 
 /// What rows, cards and table rows ask the board screen to do; the screen owns the store calls, sheets and dialogs.

@@ -228,8 +228,8 @@ final class QuickPreviewController: ObservableObject {
 
     func close() {
         crossingTask?.cancel()
-        crossing = nil
-        isPresented = false
+        if crossing != nil { crossing = nil }
+        if isPresented { isPresented = false }
     }
 
     #if os(macOS)

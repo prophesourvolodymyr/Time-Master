@@ -12,7 +12,30 @@ struct MediaCommentMarkdown: View {
 enum MediaCommentInlineMarkdown {
     private static let linkDetector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
 
+    private final class Rendered {
+        let text: AttributedString
+
+        init(_ text: AttributedString) {
+            self.text = text
+        }
+    }
+
+    private static let cache: NSCache<NSString, Rendered> = {
+        let cache = NSCache<NSString, Rendered>()
+        cache.countLimit = 600
+        return cache
+    }()
+
     static func render(_ text: String, headingLevel: Int? = nil) -> AttributedString {
+        let level = headingLevel.map { "\($0)" } ?? "-"
+        let key = "\(level)\u{1F}\(text)" as NSString
+        if let hit = cache.object(forKey: key) { return hit.text }
+        let result = make(text, headingLevel: headingLevel)
+        cache.setObject(Rendered(result), forKey: key)
+        return result
+    }
+
+    private static func make(_ text: String, headingLevel: Int?) -> AttributedString {
         var rendered = (try? AttributedString(
             markdown: text,
             options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
