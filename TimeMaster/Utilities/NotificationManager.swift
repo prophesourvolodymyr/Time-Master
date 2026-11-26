@@ -150,16 +150,19 @@ final class NotificationManager {
 
     func refreshMissedDayNudges(schedules: [TypeSchedule], history: [WorkoutHistoryEntry]) {
         let preferences = preferences
-        let nudges = preferences.isEnabled && preferences.missedDayNudgesEnabled
-            ? NotificationPlanner.missedNudges(
+        let enabled = preferences.isEnabled && preferences.missedDayNudgesEnabled
+        let now = Date()
+        let messages = missedDayMessages
+        replace(prefixes: [Prefix.missed], building: {
+            guard enabled else { return [] }
+            return NotificationPlanner.missedNudges(
                 schedules: schedules,
                 history: history,
                 hour: preferences.reminderHour,
                 minute: preferences.reminderMinute,
-                now: Date()
-            )
-            : []
-        replace(prefixes: [Prefix.missed], with: nudges.map(missedNudgeRequest))
+                now: now
+            ).map { NotificationManager.missedNudgeRequest($0, messages: messages) }
+        })
     }
 
     func sendPostWorkoutCelebration() {
@@ -196,12 +199,17 @@ final class NotificationManager {
     }
 
     private func replace(prefixes: [String], with requests: [UNNotificationRequest]) {
+        replace(prefixes: prefixes, building: { requests })
+    }
+
+    private func replace(prefixes: [String], building makeRequests: @escaping @Sendable () -> [UNNotificationRequest]) {
         enqueue {
             let center = UNUserNotificationCenter.current()
             let stale = await center.pendingNotificationRequests().map(\.identifier).filter { identifier in
                 prefixes.contains { identifier.hasPrefix($0) }
             }
             center.removePendingNotificationRequests(withIdentifiers: stale)
+            let requests = makeRequests()
             guard !requests.isEmpty else { return }
             let status = await center.notificationSettings().authorizationStatus
             guard status == .authorized || status == .provisional else { return }
@@ -236,7 +244,7 @@ final class NotificationManager {
                 content.body = reminderMessages.randomElement() ?? "A little \(schedule.type.name.lowercased()) time is waiting for you."
                 content.sound = .default
                 requests.append(UNNotificationRequest(
-                    identifier: "\(Prefix.reminder)\(identifierComponent(schedule.type.id))_\(weekday)",
+                    identifier: "\(Prefix.reminder)\(Self.identifierComponent(schedule.type.id))_\(weekday)",
                     content: content,
                     trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
                 ))
@@ -245,10 +253,10 @@ final class NotificationManager {
         return requests
     }
 
-    private func missedNudgeRequest(_ nudge: NotificationPlanner.MissedNudge) -> UNNotificationRequest {
+    private static func missedNudgeRequest(_ nudge: NotificationPlanner.MissedNudge, messages: [String]) -> UNNotificationRequest {
         let content = UNMutableNotificationContent()
         content.title = nudge.type.name
-        content.body = missedDayMessages.randomElement() ?? "No sweat. Tomorrow is a fresh start."
+        content.body = messages.randomElement() ?? "No sweat. Tomorrow is a fresh start."
         content.sound = .default
         let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: nudge.fireDate)
         return UNNotificationRequest(
@@ -282,7 +290,7 @@ final class NotificationManager {
         return requests
     }
 
-    private func identifierComponent(_ value: String) -> String {
+    private static func identifierComponent(_ value: String) -> String {
         value.unicodeScalars.map { CharacterSet.alphanumerics.contains($0) ? String($0) : "_" }.joined()
     }
 

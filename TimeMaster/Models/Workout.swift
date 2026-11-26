@@ -728,4 +728,12 @@ extension Workout {
 extension Workout: Hashable {
     static func == (lhs: Workout, rhs: Workout) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
+
+    func hasSameContent(as other: Workout) -> Bool {
+        guard id == other.id, name == other.name, type == other.type, createdAt == other.createdAt,
+              prepareTime == other.prepareTime, restBetweenSections == other.restBetweenSections,
+              colorHex == other.colorHex, imageFilename == other.imageFilename, coverStyle == other.coverStyle,
+              musicTrackFilenames == other.musicTrackFilenames, musicTimeline == other.musicTimeline else { return false }
+        return sections == other.sections
+    }
 }

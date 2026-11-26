@@ -18,7 +18,9 @@ class WorkoutStore: ObservableObject {
             })
         }
     }
-    @Published var weeklySchedule = WeeklyWorkoutSchedule()
+    @Published var weeklySchedule: WeeklyWorkoutSchedule = WeeklyWorkoutSchedule() {
+        didSet { derived.scheduleDidChange() }
+    }
     @Published var scheduleActivity = WeeklyWorkoutSchedule.Activity()
     @Published var scheduleError: String?
     @Published var scheduleIsLoaded = false
@@ -31,16 +33,26 @@ class WorkoutStore: ObservableObject {
     private let userDefaults = UserDefaults.standard
 
     @AppStorage("workout_weekly_goal") var weeklyGoal: Int = 4
-    @Published var restDays: Set<String> = []
-    @Published var typeSchedules: [TypeSchedule] = []
+    @Published var restDays: Set<String> = [] {
+        didSet { derived.scheduleDidChange() }
+    }
+    @Published var typeSchedules: [TypeSchedule] = [] {
+        didSet { derived.scheduleDidChange() }
+    }
     @Published var customWorkoutTypes: [WorkoutType] = []
     /// The titled sections on the Workouts page, in the user's order.
     @Published var workoutGroups: [WorkoutGroup] = []
 
     // MARK: - Training Schedule (global)
-    @Published var trainingDays: Set<Int> = []
-    @Published var trainingStartDate: Date = Date()
-    @Published var trainingDurationMonths: Int = 3
+    @Published var trainingDays: Set<Int> = [] {
+        didSet { derived.scheduleDidChange() }
+    }
+    @Published var trainingStartDate: Date = Date() {
+        didSet { derived.scheduleDidChange() }
+    }
+    @Published var trainingDurationMonths: Int = 3 {
+        didSet { derived.scheduleDidChange() }
+    }
 
     private var isMigrated: Bool { MigrationManager.isMigrationComplete }
 
@@ -71,11 +83,16 @@ class WorkoutStore: ObservableObject {
         let db = DatabaseManager.shared
 
         let manifests = (try? db.listWorkouts()) ?? []
-        workouts = manifests.map { $0.toAppWorkout() }
-        persistedWorkouts = Dictionary(workouts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let loadedWorkouts = manifests.map { $0.toAppWorkout() }
+        if workouts.count != loadedWorkouts.count
+            || zip(workouts, loadedWorkouts).contains(where: { !$0.hasSameContent(as: $1) }) {
+            workouts = loadedWorkouts
+        }
+        persistedWorkouts = Dictionary(loadedWorkouts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
         let history = (try? db.readHistory()) ?? []
-        historyEntries = history.map { $0.toAppHistoryEntry() }
+        let loadedHistory = history.map { $0.toAppHistoryEntry() }
+        if historyEntries != loadedHistory { historyEntries = loadedHistory }
 
         let config: ConfigManifest
         do {
@@ -83,14 +100,18 @@ class WorkoutStore: ObservableObject {
         } catch {
             config = ConfigManifest()
         }
-        customWorkoutTypes = config.customWorkoutTypes.map { WorkoutType(core: $0) }
-        workoutGroups = config.workoutGroups.map(WorkoutGroup.init(core:))
-        restDays = Set(config.restDays)
+        let loadedTypes = config.customWorkoutTypes.map { WorkoutType(core: $0) }
+        if customWorkoutTypes != loadedTypes { customWorkoutTypes = loadedTypes }
+        let loadedGroups = config.workoutGroups.map(WorkoutGroup.init(core:))
+        if workoutGroups != loadedGroups { workoutGroups = loadedGroups }
+        let loadedRestDays = Set(config.restDays)
+        if restDays != loadedRestDays { restDays = loadedRestDays }
         let goalVal = config.weeklyGoal
         if goalVal >= 1, goalVal <= 7 { weeklyGoal = goalVal }
-        trainingDays = Set(config.trainingDays)
-        trainingStartDate = config.trainingStartDate
-        trainingDurationMonths = config.trainingDurationMonths
+        let loadedTrainingDays = Set(config.trainingDays)
+        if trainingDays != loadedTrainingDays { trainingDays = loadedTrainingDays }
+        if trainingStartDate != config.trainingStartDate { trainingStartDate = config.trainingStartDate }
+        if trainingDurationMonths != config.trainingDurationMonths { trainingDurationMonths = config.trainingDurationMonths }
         typeSchedules = config.typeSchedules.map { ts in
             TypeSchedule(
                 id: UUID(uuidString: ts.id) ?? UUID(),
@@ -161,7 +182,7 @@ class WorkoutStore: ObservableObject {
 
     func updateWorkout(_ workout: Workout) {
         if let index = workouts.firstIndex(where: { $0.id == workout.id }) {
-            guard workouts[index] != workout else { return }
+            guard !workouts[index].hasSameContent(as: workout) else { return }
             workouts[index] = workout
             saveWorkouts()
         }
@@ -404,7 +425,7 @@ class WorkoutStore: ObservableObject {
             var live = Set<UUID>()
             for workout in workouts {
                 live.insert(workout.id)
-                if persistedWorkouts[workout.id] == workout { continue }
+                if persistedWorkouts[workout.id]?.hasSameContent(as: workout) == true { continue }
                 let manifest = workout.coreManifest
                 do {
                     if db.workoutExists(id: manifest.id) {
@@ -590,10 +611,16 @@ class WorkoutStore: ObservableObject {
     }
 
     func isRestDay(_ date: Date) -> Bool {
-        weeklySchedule.selection(for: date)?.isVacation == true || restDays.contains(dateKey(from: date))
+        derived.restDay(derived.dayStart(date)) {
+            weeklySchedule.selection(for: date)?.isVacation == true || restDays.contains(dateKey(from: date))
+        }
     }
 
     func isScheduledDay(_ date: Date) -> Bool {
+        derived.scheduledDay(derived.dayStart(date)) { computeIsScheduledDay(date) }
+    }
+
+    private func computeIsScheduledDay(_ date: Date) -> Bool {
         if weeklySchedule.selection(for: date) != nil {
             return !weeklySchedule.entries(on: date).isEmpty
         }
@@ -644,7 +671,8 @@ class WorkoutStore: ObservableObject {
             }
         }
         let calendar = Calendar.current
-        let dayStart = calendar.startOfDay(for: date)
+        let dayStart = derived.dayStart(date)
+        let dayHistory = derived.entries(onDay: dayStart, in: historyEntries)
         let weekday = calendar.component(.weekday, from: date)
         let mondayBasedWeekday = (weekday + 5) % 7 + 1
 
@@ -652,22 +680,15 @@ class WorkoutStore: ObservableObject {
             guard schedule.isActive(on: date),
                   schedule.daysOfWeek.contains(mondayBasedWeekday),
                   dayStart >= calendar.startOfDay(for: schedule.startDate),
-                  let workout = workouts.first(where: {
-                      $0.type.id == schedule.type.id && !$0.sections.isEmpty
-                  }) else {
+                  let workout = derived.readyWorkout(ofType: schedule.type.id, in: workouts) else {
                 return nil
             }
 
             let scheduledStart = schedule.startTime?.date(on: dayStart) ?? dayStart
-            let fallbackDuration = max(1, Int(ceil(Double(workout.totalDuration) / 60.0)))
-            let durationMinutes = max(1, schedule.durationMinutes ?? fallbackDuration)
+            let durationMinutes = max(1, schedule.durationMinutes ?? max(1, Int(ceil(Double(workout.totalDuration) / 60.0))))
             let scheduledFinish = scheduledStart.addingTimeInterval(TimeInterval(durationMinutes * 60))
-            let completed = historyEntries.contains {
-                guard $0.workoutId == workout.id,
-                      calendar.isDate($0.completedAt, inSameDayAs: dayStart) else {
-                    return false
-                }
-                return schedule.startTime == nil || $0.completedAt <= scheduledFinish
+            let completed = dayHistory.contains {
+                $0.workoutId == workout.id && (schedule.startTime == nil || $0.completedAt <= scheduledFinish)
             }
             let status: ScheduledWorkoutStatus
             if completed {
@@ -712,9 +733,7 @@ class WorkoutStore: ObservableObject {
     }
 
     func dateKey(from date: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        return f.string(from: date)
+        derived.dayKey(date)
     }
 
     // MARK: - Schedule CRUD
@@ -856,6 +875,10 @@ class WorkoutStore: ObservableObject {
     }
 
     func streakInfo() -> (current: Int, best: Int) {
+        derived.streak(on: derived.dayStart(Date())) { computeStreakInfo() }
+    }
+
+    private func computeStreakInfo() -> (current: Int, best: Int) {
         let cal = Calendar.current
         let daySet = Set(historyEntries.map { cal.startOfDay(for: $0.completedAt) })
 
@@ -894,6 +917,10 @@ class WorkoutStore: ObservableObject {
     }
 
     func typeStats(for type: WorkoutType, asOf date: Date = Date()) -> (sessionsThisWeek: Int, totalSeconds: Int, streak: Int, adherence: Double?) {
+        derived.typeStats(type.id, on: derived.dayStart(date)) { computeTypeStats(for: type, asOf: date) }
+    }
+
+    private func computeTypeStats(for type: WorkoutType, asOf date: Date) -> (sessionsThisWeek: Int, totalSeconds: Int, streak: Int, adherence: Double?) {
         let calendar = Calendar.current
         let weekStart = calendar.dateInterval(of: .weekOfYear, for: date)?.start ?? date
         let entries = historyEntries.filter { $0.workoutType.id == type.id }

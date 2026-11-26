@@ -42,8 +42,17 @@ extension WorkoutStore {
     }
 
     func scheduleActivityCount(on date: Date) -> Int {
-        weeklySchedule.activityCount(on: date, activity: scheduleActivity)
-            + historyEntries.filter { $0.isPartial && Calendar.current.isDate($0.completedAt, inSameDayAs: date) }.count
+        let day = derived.dayStart(date)
+        return derived.activityCount(day) {
+            weeklySchedule.activityCount(on: date, activity: scheduleActivity)
+                + derived.entries(onDay: day, in: historyEntries).filter(\.isPartial).count
+        }
+    }
+
+    func scheduleProgress(through week: Date, now: Date) -> WeeklyWorkoutSchedule.Progress {
+        derived.scheduleProgress(through: week, on: derived.dayStart(now)) {
+            weeklySchedule.progress(through: week, now: now, activity: scheduleActivity)
+        }
     }
 
     @discardableResult
