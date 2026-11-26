@@ -444,7 +444,7 @@ public enum AgentToolRegistry {
 
     private static var undo: AgentTool {
         AgentTool(
-            name: "undo", summary: "Reverse the last agent batch of creations, attachments, notes and workout edits. Created pages go to the trash; an edited workout goes back to how it was.",
+            name: "undo", summary: "Reverse the last agent change. Created pages, workouts and history entries are taken out again (pages and workouts go to the trash); edited pages, workouts, the schedule and the history go back to how they were; added media is removed; a deleted history entry is put back. Files already moved to the trash and deleted outdoor activities are not brought back by undo.",
             risk: .write, executor: .app, coach: false,
             schema: AgentSchema.object(["batch": AgentSchema.string("Batch id from an earlier result. Defaults to the most recent.")])
         )
