@@ -227,6 +227,28 @@ final class AgentScheduleToolsTests: XCTestCase {
         XCTAssertEqual(try titles(20), [])
     }
 
+    func testClearingARangeOfDaysTouchesOnlyThoseDaysAndCanBeNarrowedToOneWorkout() throws {
+        try makePlan()
+        try call("add_schedule_entry", ["title": "Stretch", "date": key(2)])
+        let output = try toolbox.call("remove_schedule_days", arguments: ["from": key(0), "to": key(8)], dryRun: false)
+        XCTAssertEqual(output.value["removed"] as? Int, 4)
+        XCTAssertEqual(try titles(0), [])
+        XCTAssertEqual(try titles(2), [])
+        XCTAssertEqual(try titles(7), [])
+        XCTAssertEqual(try titles(9), ["Boxing B"])
+        XCTAssertEqual(try titles(14), ["Boxing A"])
+
+        let narrowed = try call("remove_schedule_days", ["from": key(9), "to": key(16), "workout": "Boxing B"])
+        XCTAssertEqual(narrowed["removed"] as? Int, 2)
+        XCTAssertEqual(try titles(9), [])
+        XCTAssertEqual(try titles(14), ["Boxing A"])
+
+        toolbox.revert(output.effects)
+        XCTAssertEqual(try titles(0), ["Boxing A"])
+        XCTAssertEqual(try titles(2).sorted(), ["Boxing B", "Stretch"])
+        expectError("invalid_argument", "remove_schedule_days", ["from": key(5), "to": key(1)])
+    }
+
     func testBadInputIsRefusedWithAHintAndAnotherSettingSurvivesScheduleChanges() throws {
         var config = try database.loadConfig()
         config.weeklyGoal = 6

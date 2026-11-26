@@ -170,6 +170,9 @@ public enum AgentApproval {
             let item = text("entry").map { "“\($0)”" } ?? "an entry"
             let day = text("date").map { " on \($0)" } ?? ""
             return (text("scope") == "plan" ? "Remove \(item) from the plan in use, from that week on" : "Take \(item) off the schedule\(day)")
+        case "remove_schedule_days":
+            let range = text("to").map { "\(text("from") ?? "") to \($0)" } ?? (text("from") ?? "a day")
+            return "Take every schedule entry off \(range)" + (text("workout").map { " (only “\($0)”)" } ?? "")
         case "undo": return "Undo the last agent changes"
         default: return "\(tool): \(arguments.keys.sorted().joined(separator: ", "))"
         }

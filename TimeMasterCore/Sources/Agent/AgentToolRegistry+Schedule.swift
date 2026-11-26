@@ -4,7 +4,7 @@ extension AgentToolRegistry {
     static var scheduleTools: [AgentTool] {
         [
             getSchedule, listSchedulePlans, createSchedulePlan, updateSchedulePlan, deleteSchedulePlan, selectSchedulePlan,
-            addScheduleEntry, addScheduleEntries, updateScheduleEntry, removeScheduleEntry, completeScheduleEntry, setTrainingDays,
+            addScheduleEntry, addScheduleEntries, updateScheduleEntry, removeScheduleEntry, clearScheduleDays, completeScheduleEntry, setTrainingDays,
         ]
     }
 
@@ -165,6 +165,19 @@ extension AgentToolRegistry {
                 "date": AgentSchema.string(dayText + " The day the entry is on; not needed with an occurrence id."),
                 "scope": AgentSchema.string(scopeText, values: ["day", "plan"]),
             ], required: ["entry"])
+        )
+    }
+
+    static var clearScheduleDays: AgentTool {
+        AgentTool(
+            name: "remove_schedule_days",
+            summary: "Take every entry off the schedule on a range of days (optionally only one workout's entries), in one go. Plans are not changed, only those days.",
+            risk: .delete, executor: .core, coach: true,
+            schema: AgentSchema.object([
+                "from": AgentSchema.string(dayText + " The first day to clear."),
+                "to": AgentSchema.string(dayText + " The last day to clear (inclusive); default the same day as from. At most 366 days."),
+                "workout": AgentSchema.string("Only clear entries of this workout (id or exact name)."),
+            ], required: ["from"])
         )
     }
 

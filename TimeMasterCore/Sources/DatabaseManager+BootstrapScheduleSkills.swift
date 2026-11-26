@@ -32,6 +32,7 @@ Plan the training week, see what is due, move things around and mark them done. 
 
 ## Changing single days
 - `tmax add_schedule_entry --workout "W1 Mon AM" --date 2026-12-03 --start 18:30` puts a workout on one date; add `--repeat` to repeat it every week from then (it joins the plan in use). `--title "Mobility" ` adds a custom activity without a workout. `--done` marks it finished right away.
+- `tmax add_schedule_entries --json '{"entries":[{"date":"2026-12-01","workout":"W1 Mon AM","start":"07:30"},{"date":"2026-12-01","workout":"W1 Mon PM","start":"18:00"}]}'` puts a whole program on dates in one call (up to 200, each one-off; all are added or none).
 - `tmax update_schedule_entry --entry "W1 Mon AM" --date 2026-12-01 --start 09:00` changes that day only. `--scope plan` changes the plan's entry from that week on (it also takes `--weekday`). `--move-to 2026-12-02` moves a day's entry to another date.
 - `tmax remove_schedule_entry --entry "W1 Mon AM" --date 2026-12-01` takes it off that day (asks the user first); `--scope plan` removes it from the plan from that week on.
 - `tmax complete_schedule_entry --entry "W1 Mon AM" --date 2026-12-01` marks it done; `--done false` marks it not done; `--clear` goes back to following the history.

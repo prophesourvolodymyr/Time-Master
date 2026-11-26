@@ -18,6 +18,7 @@ extension AgentToolbox {
         case "add_schedule_entries": return try addScheduleEntries(args, dryRun: dryRun)
         case "update_schedule_entry": return try updateScheduleEntry(args, dryRun: dryRun)
         case "remove_schedule_entry": return try removeScheduleEntry(args, dryRun: dryRun)
+        case "remove_schedule_days": return try clearScheduleDays(args, dryRun: dryRun)
         case "complete_schedule_entry": return try completeScheduleEntry(args, dryRun: dryRun)
         case "set_training_days": return try setTrainingDays(args, dryRun: dryRun)
         default: return nil
@@ -548,6 +549,28 @@ extension AgentToolbox {
         } else {
             updated.removeEntry(target.entry, on: target.date)
         }
+        return try commitSchedule(config, previous: schedule, updated: updated, dryRun: dryRun, value: value)
+    }
+
+    private func clearScheduleDays(_ args: AgentArguments, dryRun: Bool) throws -> AgentToolOutput {
+        let calendar = Calendar.current
+        let from = try scheduleDay(try args.requiredString("from"))
+        let to = try args.string("to").map { try scheduleDay($0) } ?? from
+        guard to >= from else { throw AgentToolError("invalid_argument", "'to' must not be before 'from'.") }
+        let span = (calendar.dateComponents([.day], from: from, to: to).day ?? 0) + 1
+        guard span <= 366 else { throw AgentToolError("invalid_argument", "Clear at most 366 days at a time.") }
+        let workout = try args.string("workout").map { try findWorkout($0).id.lowercased() }
+        let (config, schedule) = try loadSchedule()
+        var updated = schedule
+        var removed = 0
+        for offset in 0..<span {
+            guard let day = calendar.date(byAdding: .day, value: offset, to: from) else { continue }
+            for entry in schedule.entries(on: day) where workout == nil || entry.workoutID?.uuidString.lowercased() == workout {
+                updated.removeEntry(entry, on: day)
+                removed += 1
+            }
+        }
+        let value: [String: Any] = ["removed": removed, "from": WeeklyWorkoutSchedule.dayKey(from), "to": WeeklyWorkoutSchedule.dayKey(to)]
         return try commitSchedule(config, previous: schedule, updated: updated, dryRun: dryRun, value: value)
     }
 
