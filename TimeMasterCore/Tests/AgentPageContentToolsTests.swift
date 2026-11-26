@@ -457,6 +457,19 @@ final class AgentPageContentToolsTests: XCTestCase {
         XCTAssertTrue(try stored("Boxing/Footwork").dependencyPageIDs.isEmpty)
     }
 
+    func testALoopThroughASkillGroupIsRefusedToo() throws {
+        let boardID = try stored("Boxing").id
+        let group = try XCTUnwrap(try call("create_skill_group", ["parent": "Boxing", "title": "Defence"])["id"] as? String)
+        let sectionID = try XCTUnwrap(SkillGroupID.split(group)?.sectionID)
+        try database.updateSkillGroup(containerID: boardID, sectionID: sectionID) { $0.dependencyPageIDs = [self.footworkID] }
+        let loop = failure { try self.call("update_learn_first", ["page": "Boxing/Footwork", "add": [group]]) }
+        XCTAssertEqual(loop?.code, "invalid_argument")
+        XCTAssertTrue(loop?.message.contains("Boxing/Defence") == true)
+        XCTAssertTrue(try stored("Boxing/Footwork").dependencyPageIDs.isEmpty)
+        try call("update_learn_first", ["page": "Boxing/Guard", "add": [group]])
+        XCTAssertEqual(try stored("Boxing/Guard").dependencyPageIDs, [group])
+    }
+
     func testAnEntryWhoseCompanionPageWasDeletedShowsAsMissingAndCanStillBeRemoved() throws {
         try call("update_learn_first", ["page": "Boxing/Footwork", "add": ["Boxing/Guard", "Boxing/Combos"]])
         try call("delete_page", ["page": "Boxing/Guard"])

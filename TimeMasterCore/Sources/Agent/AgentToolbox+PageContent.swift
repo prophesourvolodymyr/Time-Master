@@ -120,7 +120,7 @@ extension AgentToolbox {
         var icon: [String: Any] = [:]
         if let name = page.iconName, !name.isEmpty {
             icon["name"] = name
-            icon["type"] = (page.iconType ?? SkillBoardIconType.inferred(from: name)).rawValue
+            icon["type"] = (page.iconType ?? .emoji).rawValue
         }
         if let image = page.iconImage, DatabaseManager.isWebImageReference(image) { icon["image"] = image }
         return icon.isEmpty ? nil : icon
@@ -557,9 +557,10 @@ extension AgentToolbox {
             noun: "learn-first list", allowsGroups: true, warnings: hiddenLearnFirstWarning(owner)
         ) { id in
             guard !waitsFor(id, on: owner.id, index: index) else {
+                let label = referenceLabel(id, index: index)
                 throw AgentToolError(
-                    "invalid_argument", "'\(referenceLabel(id, index: index))' already waits for '\(owner.title)', so it cannot also be learned first.",
-                    hint: "Learn-first lists cannot loop. Take '\(owner.title)' off that page's list first, or pick another page."
+                    "invalid_argument", "'\(label)' already waits for '\(owner.title)', so adding it would make a loop.",
+                    hint: "Learn-first lists cannot loop. Take '\(owner.title)' off what '\(label)' learns first, or pick another page."
                 )
             }
         }

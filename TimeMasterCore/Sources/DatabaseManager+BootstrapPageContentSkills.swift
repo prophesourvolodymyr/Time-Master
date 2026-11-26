@@ -13,7 +13,7 @@ Read everything inside a page and edit its attachments, captions, link comments,
 ## Read a page fully
 - `tmax get_page --page "Wrestling/Arm Drag"` shows, only when the page has them: `media` (every attachment with its number `index`, its `kind` and `comment`), `links` (each link with its comment and learn-first flag; `linkURLs` stays the plain list), `learnFirst` (the pages to learn first, in order, each with `id` and `path`), `linkedPages` (the pages attached to it), `icon` (`name` and `type`), `dropSets`, and the `created` and `updated` dates.
 - A skill board lists its groups with their ids; a group in someone's learn-first list shows `group: true`.
-- On a media item, `cover: true` is the file the app shows as the page's cover: the banner the page chose, or the first file when none was chosen. `icon: true` is the picture used as the small icon tile, `learnFirst: true` a file to have first (skills and tutorials), `missing: true` an attachment whose file is gone from disk.
+- On a media item, `cover: true` is the file the app shows as the page's cover: the banner the page chose, or the first file when none was chosen. `icon: true` is the picture used as the small icon tile (it wins over the symbol or emoji in `icon`), `learnFirst: true` a file to have first (skills and tutorials), `missing: true` an attachment whose file is gone from disk.
 - The number `index` is the address every media tool takes. It counts from 1 in the order get_page lists the files and changes when a file is moved or removed, so read the page again before the next edit.
 
 ## Captions, order, banner and icon
