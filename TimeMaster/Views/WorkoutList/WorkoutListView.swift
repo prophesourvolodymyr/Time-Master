@@ -11,8 +11,8 @@ struct WorkoutListView: View {
     @EnvironmentObject private var musicLibraryStore: MusicLibraryStore
     @EnvironmentObject private var outdoorPreferencesStore: OutdoorRecordingPreferencesStore
     @ObservedObject private var resumeManager = WorkoutResumeManager.shared
+    @State private var summaryChrome = WorkoutsSummaryChrome()
     @ScaledMetric(relativeTo: .subheadline) private var selectorRowHeight: CGFloat = 56
-    @ScaledMetric(relativeTo: .caption) private var statsTileHeight: CGFloat = 72
     @Binding var requestedWorkoutID: UUID?
     @Binding var navigationPath: [Workout] { willSet { if newValue != navigationPath { EverPageTravel.willNavigate(from: navigationPath.count, to: newValue.count) } } }
     let onOpenAnalytics: (AnalyticsTracker) -> Void
@@ -188,33 +188,52 @@ struct WorkoutListView: View {
         }
     }
 
-    /// Widest the tracking tiles and chrome controls grow before they stop filling their row.
+    /// Widest the chrome controls grow before they stop filling their row.
     private static let trackingControlMaxHeight: CGFloat = 148
     /// Widest the page content and chrome grow on large screens.
     private static let contentMaxWidth: CGFloat = 980
 
     private var workoutsChrome: some View {
-        let week = WorkoutWeekSummary(entries: store.historyEntries)
-        return ScrollingChrome(metrics: { width in
-            ScrollingChromeMetrics(
-                width: min(width, Self.contentMaxWidth),
-                collapsedRowHeight: 48,
-                expandedControlWidthCap: .infinity,
-                expandedControlHeightCap: Self.trackingControlMaxHeight
-            )
-        }) { metrics in
-            workoutsScrollContent(metrics: metrics)
-        } header: { progress, metrics in
-            workoutsHeader(progress: progress, metrics: metrics, week: week)
+        let summary = WorkoutsPageSummary.current(for: store)
+        let summaryChrome = self.summaryChrome
+        return ScrollViewReader { scroll in
+            ScrollingChrome(onScrollOffset: { offset in
+                summaryChrome.update(offset: offset)
+            }, metrics: { width in
+                ScrollingChromeMetrics(
+                    width: min(width, Self.contentMaxWidth),
+                    collapsedRowHeight: 48,
+                    expandedControlWidthCap: .infinity,
+                    expandedControlHeightCap: Self.trackingControlMaxHeight
+                )
+            }) { _ in
+                workoutsScrollContent(summary: summary)
+            } header: { progress, metrics in
+                workoutsHeader(progress: progress, metrics: metrics)
+            } pinned: { metrics in
+                WorkoutsSummaryStripHost(
+                    chrome: summaryChrome,
+                    summary: summary,
+                    isEnabled: !showingSearch,
+                    maxWidth: Self.contentMaxWidth,
+                    horizontalPadding: metrics.horizontalPadding
+                ) {
+                    withAnimation(reduceMotion ? nil : EverMotion.state) {
+                        scroll.scrollTo(WorkoutsSummaryCard.scrollID, anchor: .top)
+                    }
+                }
+            }
         }
     }
 
-    private func workoutsScrollContent(metrics: ScrollingChromeMetrics) -> some View {
+    private func workoutsScrollContent(summary: WorkoutsPageSummary) -> some View {
         let schedules = scheduleByWorkoutID()
         let visible = visibleWorkouts(schedules: schedules)
         return VStack(alignment: .leading, spacing: 18) {
             if showingSearch {
                 searchField
+            } else {
+                summaryCard(summary)
             }
 
             resumeBanner
@@ -229,6 +248,22 @@ struct WorkoutListView: View {
         .padding(.horizontal, 20)
         .padding(.top, 4)
         .padding(.bottom, 18)
+        .coordinateSpace(name: workoutsContentSpace)
+    }
+
+    private func summaryCard(_ summary: WorkoutsPageSummary) -> some View {
+        let summaryChrome = self.summaryChrome
+        return WorkoutsSummaryCardHost(
+            chrome: summaryChrome,
+            card: WorkoutsSummaryCard(summary: summary, onOpenTracker: onOpenAnalytics)
+        )
+        .id(WorkoutsSummaryCard.scrollID)
+        .onGeometryChange(for: CGRect.self) { proxy in
+            proxy.frame(in: .named(workoutsContentSpace))
+        } action: { frame in
+            summaryChrome.update(cardFrame: frame)
+        }
+        .onDisappear { summaryChrome.update(cardFrame: .zero) }
     }
 
     // MARK: - Sections
@@ -539,7 +574,7 @@ struct WorkoutListView: View {
         ]
     }
 
-    private func workoutsHeader(progress: CGFloat, metrics: ScrollingChromeMetrics, week: WorkoutWeekSummary) -> some View {
+    private func workoutsHeader(progress: CGFloat, metrics: ScrollingChromeMetrics) -> some View {
         let morph = metrics.morph(progress)
         let controlWidth = metrics.controlWidth(morph)
         let controlHeight = metrics.controlHeight(morph)
@@ -578,14 +613,6 @@ struct WorkoutListView: View {
                     }
                 }
             }
-
-            trackingTiles(metrics: metrics, week: week)
-
-            if store.hasWeeklyGoal {
-                weeklyGoalRow(metrics: metrics, sessions: week.sessions)
-            }
-
-
             filterBar
         }
         .background(Theme.background.ignoresSafeArea(edges: .top))
@@ -611,81 +638,6 @@ struct WorkoutListView: View {
         .buttonStyle(ScrollingChromeButtonStyle(progress: progress, width: width, height: height))
         .accessibilityLabel(title)
         .help(title)
-    }
-
-    private func trackingTiles(metrics: ScrollingChromeMetrics, week: WorkoutWeekSummary) -> some View {
-        HStack(spacing: metrics.controlSpacing) {
-            trackingTile(
-                tracker: .sessions,
-                value: "\(week.sessions)",
-                metrics: metrics
-            )
-            trackingTile(
-                tracker: .trainingTime,
-                value: durationText(week.seconds),
-                metrics: metrics
-            )
-            trackingTile(
-                tracker: .streak,
-                value: "\(store.streakInfo().current)",
-                metrics: metrics
-            )
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
-    }
-
-    private func trackingTile(
-        tracker: AnalyticsTracker,
-        value: String,
-        metrics: ScrollingChromeMetrics
-    ) -> some View {
-        Button {
-            onOpenAnalytics(tracker)
-        } label: {
-            HStack(spacing: 7) {
-                Image(systemName: tracker.systemImage)
-                    .font(.title.weight(.semibold))
-                Text(value)
-                    .font(TimeMasterFont.heading().monospacedDigit())
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-            }
-            .foregroundStyle(Theme.textPrimary)
-            .padding(.horizontal, 6)
-            .frame(width: metrics.expandedControlWidth, height: statsTileHeight)
-            .modifier(TimeMasterCardSurface(cornerRadius: 16, flat: true))
-        }
-        .buttonStyle(TimeMasterCardButtonStyle())
-        .keyNavShape(.roundedRectangle(cornerRadius: 16))
-        .accessibilityLabel(tracker.title)
-        .accessibilityValue(value)
-        .accessibilityHint("Opens this tracker in Analytics")
-        .accessibilityIdentifier("workouts.metric.\(tracker.rawValue)")
-    }
-
-    private func weeklyGoalRow(metrics: ScrollingChromeMetrics, sessions: Int) -> some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 8) {
-                Text("Weekly goal")
-                Spacer(minLength: 8)
-                Text("\(sessions) of \(store.weeklyGoal)")
-                    .monospacedDigit()
-            }
-            .font(TimeMasterFont.body(13, relativeTo: .footnote))
-            .foregroundStyle(Theme.textSecondary)
-
-            ProgressView(value: min(1, Double(sessions) / Double(max(1, store.weeklyGoal))))
-                .tint(Theme.toolbarOrange)
-        }
-        .padding(12)
-        .modifier(TimeMasterCardSurface(cornerRadius: 16, flat: true))
-        .padding(.horizontal, metrics.horizontalPadding)
-        .padding(.vertical, 6)
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Weekly goal")
-        .accessibilityValue("\(sessions) of \(store.weeklyGoal)")
     }
 
     private var searchField: some View {
@@ -1097,6 +1049,402 @@ struct WorkoutListView: View {
         defaults?.set(workout.id.uuidString,  forKey: "pinned_workout_id")
         defaults?.set(workout.colorHex,       forKey: "pinned_workout_color")
         WidgetCenter.shared.reloadAllTimelines()
+    }
+}
+
+private let workoutsContentSpace = "workouts-content"
+
+private struct WorkoutsPageSummary: Equatable {
+    struct Day: Equatable, Identifiable {
+        let date: Date
+        let sessions: Int
+        let seconds: Int
+        let isToday: Bool
+        let isFuture: Bool
+
+        var id: Date { date }
+    }
+
+    let days: [Day]
+    let sessions: Int
+    let seconds: Int
+    let streak: Int
+    let weeklyGoal: Int
+    let workoutCount: Int
+    let loggedSessions: Int
+
+    var goalFraction: Double {
+        weeklyGoal > 0 ? min(1, Double(sessions) / Double(weeklyGoal)) : 0
+    }
+
+    var weekRange: String {
+        guard let first = days.first?.date, let last = days.last?.date, first < last else { return "" }
+        return (first..<last).formatted(.interval.month(.abbreviated).day())
+    }
+
+    var trainingText: String { Self.durationText(seconds) }
+
+    var spokenSessions: String {
+        "\(sessions) \(sessions == 1 ? "session" : "sessions")"
+    }
+
+    var spokenSummary: String {
+        let sessionsPart = weeklyGoal > 0 ? "\(spokenSessions) of \(weeklyGoal)" : spokenSessions
+        return "This week: \(sessionsPart), \(Self.spokenDuration(seconds)) of training, \(streak) day streak"
+    }
+
+    static func durationText(_ seconds: Int) -> String {
+        let minutes = max(0, seconds) / 60
+        if minutes >= 60 {
+            return minutes % 60 == 0 ? "\(minutes / 60)h" : "\(minutes / 60)h \(minutes % 60)m"
+        }
+        if minutes == 0, seconds > 0 { return "\(seconds)s" }
+        return "\(minutes)m"
+    }
+
+    static func spokenDuration(_ seconds: Int) -> String {
+        Duration.seconds(max(0, seconds)).formatted(.units(allowed: [.hours, .minutes], width: .wide))
+    }
+
+    private struct Key: Equatable {
+        let store: ObjectIdentifier
+        let historyRevision: Int
+        let today: Date
+        let weeklyGoal: Int
+        let workoutCount: Int
+        let restDays: Set<String>
+        let schedule: WeeklyWorkoutSchedule
+    }
+
+    private final class Cache {
+        var key: Key?
+        var summary: WorkoutsPageSummary?
+    }
+
+    private static let cache = Cache()
+
+    static func current(for store: WorkoutStore, now: Date = Date(), calendar: Calendar = .current) -> WorkoutsPageSummary {
+        let today = calendar.startOfDay(for: now)
+        let key = Key(
+            store: ObjectIdentifier(store),
+            historyRevision: store.historyRevision,
+            today: today,
+            weeklyGoal: store.hasWeeklyGoal ? store.weeklyGoal : 0,
+            workoutCount: store.workouts.count,
+            restDays: store.restDays,
+            schedule: store.weeklySchedule
+        )
+        if let summary = cache.summary, cache.key == key { return summary }
+        let week = WorkoutWeekSummary(entries: store.historyEntries, asOf: now, calendar: calendar)
+        let summary = WorkoutsPageSummary(
+            days: week.days.map { day in
+                Day(
+                    date: day.date,
+                    sessions: day.sessions,
+                    seconds: day.seconds,
+                    isToday: calendar.isDate(day.date, inSameDayAs: today),
+                    isFuture: day.date > today
+                )
+            },
+            sessions: week.sessions,
+            seconds: week.seconds,
+            streak: store.streakInfo().current,
+            weeklyGoal: key.weeklyGoal,
+            workoutCount: key.workoutCount,
+            loggedSessions: store.historyEntries.count
+        )
+        cache.key = key
+        cache.summary = summary
+        return summary
+    }
+}
+
+private final class WorkoutsSummaryChrome: ObservableObject {
+    @Published private(set) var progress: CGFloat = 0
+    private var offset: CGFloat = 0
+    private var cardFrame: CGRect = .zero
+
+    var stripReveal: CGFloat {
+        let t = min(1, max(0, (progress - 0.55) / 0.45))
+        return t * t * (3 - 2 * t)
+    }
+
+    func update(offset: CGFloat) {
+        self.offset = offset
+        refresh()
+    }
+
+    func update(cardFrame: CGRect) {
+        guard cardFrame != self.cardFrame else { return }
+        self.cardFrame = cardFrame
+        refresh()
+    }
+
+    private func refresh() {
+        var next: CGFloat = 0
+        if cardFrame.height > 0 {
+            let start = cardFrame.minY + cardFrame.height * 0.3
+            let end = max(start + 1, cardFrame.maxY - 8)
+            next = min(1, max(0, (offset - start) / (end - start)))
+        }
+        next = (next * 100).rounded() / 100
+        guard next != progress else { return }
+        progress = next
+    }
+}
+
+private struct WorkoutsSummaryCardHost: View {
+    @ObservedObject var chrome: WorkoutsSummaryChrome
+    let card: WorkoutsSummaryCard
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        card
+            .scaleEffect(reduceMotion ? 1 : 1 - 0.04 * chrome.progress, anchor: .bottom)
+            .opacity(Double(1 - 0.7 * chrome.progress))
+    }
+}
+
+private struct WorkoutsSummaryCard: View {
+    static let scrollID = "workouts-summary"
+
+    let summary: WorkoutsPageSummary
+    let onOpenTracker: (AnalyticsTracker) -> Void
+    @ScaledMetric(relativeTo: .caption) private var barsHeight: CGFloat = 44
+    @ScaledMetric(relativeTo: .headline) private var dividerHeight: CGFloat = 30
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("This week")
+                    .font(TimeMasterFont.black(17, relativeTo: .headline))
+                    .foregroundStyle(Theme.textPrimary)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer(minLength: 8)
+                Text(summary.weekRange)
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(Theme.textSecondary)
+                    .lineLimit(1)
+            }
+            HStack(spacing: 0) {
+                metric(.sessions, value: "\(summary.sessions)", label: summary.sessions == 1 ? "session" : "sessions", spoken: summary.spokenSessions)
+                divider
+                metric(.trainingTime, value: summary.trainingText, label: "training", spoken: WorkoutsPageSummary.spokenDuration(summary.seconds))
+                divider
+                metric(.streak, value: "\(summary.streak)", label: "day streak", spoken: "\(summary.streak) \(summary.streak == 1 ? "day" : "days")")
+            }
+            WorkoutsWeekBars(days: summary.days, height: barsHeight, showsWeekdays: true)
+            if summary.weeklyGoal > 0 {
+                goal
+            }
+            Text(footer)
+                .font(TimeMasterFont.caption())
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .modifier(TimeMasterCardSurface(cornerRadius: 20, flat: true))
+        .accessibilityElement(children: .contain)
+    }
+
+    private var footer: String {
+        guard summary.loggedSessions > 0 else { return "Finish a workout and this week fills in here." }
+        let workouts = "\(summary.workoutCount) \(summary.workoutCount == 1 ? "workout" : "workouts")"
+        let sessions = "\(summary.loggedSessions) \(summary.loggedSessions == 1 ? "session" : "sessions") logged"
+        return "\(workouts) · \(sessions)"
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(Theme.separator)
+            .frame(width: 1, height: dividerHeight)
+            .padding(.horizontal, 10)
+            .accessibilityHidden(true)
+    }
+
+    private var goal: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 8) {
+                Text("Weekly goal")
+                Spacer(minLength: 8)
+                Text("\(summary.sessions) of \(summary.weeklyGoal)")
+                    .monospacedDigit()
+            }
+            .font(TimeMasterFont.body(13, relativeTo: .footnote))
+            .foregroundStyle(Theme.textSecondary)
+            ProgressView(value: summary.goalFraction)
+                .tint(Theme.toolbarOrange)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Weekly goal")
+        .accessibilityValue("\(summary.sessions) of \(summary.weeklyGoal) sessions")
+    }
+
+    private func metric(_ tracker: AnalyticsTracker, value: String, label: String, spoken: String) -> some View {
+        Button {
+            onOpenTracker(tracker)
+        } label: {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Image(systemName: tracker.systemImage)
+                        .symbolVariant(.fill)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Theme.toolbarOrange)
+                    Text(value)
+                        .font(TimeMasterFont.black(20, relativeTo: .title3).monospacedDigit())
+                        .foregroundStyle(Theme.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+                Text(label)
+                    .font(TimeMasterFont.micro())
+                    .foregroundStyle(Theme.textSecondary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 12))
+        .accessibilityLabel(tracker.title)
+        .accessibilityValue(spoken)
+        .accessibilityHint("Opens this tracker in Analytics")
+        .accessibilityIdentifier("workouts.metric.\(tracker.rawValue)")
+    }
+}
+
+private struct WorkoutsWeekBars: View {
+    let days: [WorkoutsPageSummary.Day]
+    let height: CGFloat
+    var showsWeekdays = false
+
+    var body: some View {
+        let peak = max(1, days.map(\.seconds).max() ?? 0)
+        HStack(alignment: .bottom, spacing: height * 0.18) {
+            ForEach(days) { day in
+                VStack(spacing: height * 0.1) {
+                    Capsule(style: .continuous)
+                        .fill(color(for: day))
+                        .frame(height: barHeight(for: day, peak: peak))
+                        .frame(maxWidth: .infinity, minHeight: height, maxHeight: height, alignment: .bottom)
+                    if showsWeekdays {
+                        Text(day.date.formatted(.dateTime.weekday(.narrow)))
+                            .font(TimeMasterFont.micro())
+                            .foregroundStyle(day.isToday ? Theme.textPrimary : Theme.textSecondary)
+                    }
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Training by day")
+        .accessibilityValue(spokenDays)
+    }
+
+    private func barHeight(for day: WorkoutsPageSummary.Day, peak: Int) -> CGFloat {
+        guard day.sessions > 0 else { return height * 0.12 }
+        return height * max(0.25, CGFloat(day.seconds) / CGFloat(peak))
+    }
+
+    private func color(for day: WorkoutsPageSummary.Day) -> Color {
+        if day.sessions > 0 { return Theme.toolbarOrange }
+        if day.isToday { return Theme.textSecondary.opacity(0.5) }
+        return day.isFuture ? Theme.separator.opacity(0.5) : Theme.separator
+    }
+
+    private var spokenDays: String {
+        days.filter { !$0.isFuture }.map { day in
+            let name = day.date.formatted(.dateTime.weekday(.wide))
+            guard day.sessions > 0 else { return "\(name): no sessions" }
+            let count = "\(day.sessions) \(day.sessions == 1 ? "session" : "sessions")"
+            return "\(name): \(count), \(WorkoutsPageSummary.spokenDuration(day.seconds))"
+        }
+        .joined(separator: "; ")
+    }
+}
+
+private struct WorkoutsSummaryStrip: View {
+    let summary: WorkoutsPageSummary
+    let onTap: () -> Void
+    @ScaledMetric(relativeTo: .caption) private var barsHeight: CGFloat = 16
+    @ScaledMetric(relativeTo: .caption) private var barsWidth: CGFloat = 64
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 14) {
+                stat(.sessions, value: summary.weeklyGoal > 0 ? "\(summary.sessions)/\(summary.weeklyGoal)" : "\(summary.sessions)")
+                stat(.trainingTime, value: summary.trainingText)
+                stat(.streak, value: "\(summary.streak)")
+                Spacer(minLength: 8)
+                WorkoutsWeekBars(days: summary.days, height: barsHeight)
+                    .frame(width: barsWidth)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .modifier(TimeMasterCardSurface(cornerRadius: 16, flat: true))
+            .contentShape(Rectangle())
+        }
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 16))
+        .accessibilityLabel(summary.spokenSummary)
+        .accessibilityHint("Scrolls back to this week's summary")
+    }
+
+    private func stat(_ tracker: AnalyticsTracker, value: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: tracker.systemImage)
+                .symbolVariant(.fill)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(Theme.toolbarOrange)
+            Text(value)
+                .font(TimeMasterFont.black(15, relativeTo: .subheadline).monospacedDigit())
+                .foregroundStyle(Theme.textPrimary)
+                .lineLimit(1)
+        }
+    }
+}
+
+private struct WorkoutsSummaryStripHost: View {
+    @ObservedObject var chrome: WorkoutsSummaryChrome
+    let summary: WorkoutsPageSummary
+    let isEnabled: Bool
+    let maxWidth: CGFloat
+    let horizontalPadding: CGFloat
+    let onTap: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var bandHeight: CGFloat = 0
+
+    var body: some View {
+        let reveal = isEnabled ? chrome.stripReveal : 0
+        if reduceMotion {
+            ZStack {
+                if reveal > 0.5 {
+                    band.transition(.opacity)
+                }
+            }
+            .animation(EverMotion.opacityOnly, value: reveal > 0.5)
+        } else {
+            band
+                .fixedSize(horizontal: false, vertical: true)
+                .onGeometryChange(for: CGFloat.self) { proxy in
+                    proxy.size.height
+                } action: { height in
+                    bandHeight = height
+                }
+                .frame(height: bandHeight * reveal, alignment: .bottom)
+                .clipped()
+                .opacity(Double(reveal))
+                .allowsHitTesting(reveal > 0.9)
+                .accessibilityHidden(reveal < 0.5)
+        }
+    }
+
+    private var band: some View {
+        WorkoutsSummaryStrip(summary: summary, onTap: onTap)
+            .frame(maxWidth: maxWidth)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity)
+            .background(Theme.background)
     }
 }
 

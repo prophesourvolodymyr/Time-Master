@@ -130,7 +130,8 @@ struct ScrollingChromeHeader<Controls: View>: View {
 }
 
 /// The page title on one line. When it is wider than the room the controls leave it, its end fades out and it slowly
-/// scrolls to the end and back so all of it can be read; with Reduce Motion it stays still with the fade.
+/// scrolls to the end and back once each time it appears or changes, so all of it can be read and an idle page then
+/// draws nothing; with Reduce Motion it stays still with the fade.
 private struct ScrollingChromeTitle: View {
     let text: String
     let limit: CGFloat
@@ -173,15 +174,12 @@ private struct ScrollingChromeTitle: View {
         offset = 0
         guard overflow > 1, !reduceMotion else { return }
         let travel = Double(overflow) / 28
-        while !Task.isCancelled {
-            try? await Task.sleep(nanoseconds: 1_600_000_000)
-            guard !Task.isCancelled else { return }
-            withAnimation(.linear(duration: travel)) { offset = -overflow }
-            try? await Task.sleep(nanoseconds: UInt64((travel + 1.4) * 1_000_000_000))
-            guard !Task.isCancelled else { return }
-            withAnimation(.linear(duration: travel)) { offset = 0 }
-            try? await Task.sleep(nanoseconds: UInt64(travel * 1_000_000_000))
-        }
+        try? await Task.sleep(nanoseconds: 1_600_000_000)
+        guard !Task.isCancelled else { return }
+        withAnimation(.linear(duration: travel)) { offset = -overflow }
+        try? await Task.sleep(nanoseconds: UInt64((travel + 1.4) * 1_000_000_000))
+        guard !Task.isCancelled else { return }
+        withAnimation(.linear(duration: travel)) { offset = 0 }
     }
 }
 
@@ -387,7 +385,7 @@ extension View {
 /// the content below it.
 final class ScrollingChromeState: ObservableObject {
     @Published private(set) var expanded = false
-    @Published private(set) var scrolled = false
+    private var reveal = ScrollingChromeReveal()
 
     func setExpanded(_ expanded: Bool, reduceMotion: Bool) {
         guard expanded != self.expanded else { return }
@@ -396,9 +394,18 @@ final class ScrollingChromeState: ObservableObject {
         }
     }
 
-    func setScrolled(_ scrolled: Bool) {
-        guard scrolled != self.scrolled else { return }
-        self.scrolled = scrolled
+    func update(_ scroll: ScrollingChromeScroll, reduceMotion: Bool) {
+        setExpanded(reveal.expanded(expanded, after: scroll), reduceMotion: reduceMotion)
+    }
+}
+
+final class ScrollingChromeEdge: ObservableObject {
+    @Published private(set) var isScrolled = false
+
+    func update(offset: CGFloat) {
+        let scrolled = isScrolled ? offset > 1 : offset > 4
+        guard scrolled != isScrolled else { return }
+        isScrolled = scrolled
     }
 }
 
@@ -413,20 +420,35 @@ private struct ScrollingChromeHeaderHost<Header: View>: View {
             .environment(\.scrollingChromeSetExpanded, { expanded in
                 state.setExpanded(expanded, reduceMotion: reduceMotion)
             })
-            .scrollingChromeFadeBelow(isVisible: state.scrolled)
+    }
+}
+
+private struct ScrollingChromeEdgeHost<Pinned: View>: View {
+    @ObservedObject var edge: ScrollingChromeEdge
+    let pinned: Pinned
+
+    var body: some View {
+        VStack(spacing: 0) {
+            pinned
+            ScrollingChromeFade()
+                .opacity(edge.isScrolled ? 1 : 0)
+                .animation(.easeOut(duration: 0.18), value: edge.isScrolled)
+        }
     }
 }
 
 /// Scroll-driven chrome: the header collapses as the content scrolls, then stays pinned above it.
-struct ScrollingChrome<Content: View, Header: View>: View {
+struct ScrollingChrome<Content: View, Header: View, Pinned: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var state = ScrollingChromeState()
+    @State private var edge = ScrollingChromeEdge()
     @Namespace private var viewport
 
     var onScrollOffset: ((CGFloat) -> Void)? = nil
     let metrics: (CGFloat) -> ScrollingChromeMetrics
     @ViewBuilder let content: (ScrollingChromeMetrics) -> Content
     @ViewBuilder let header: (CGFloat, ScrollingChromeMetrics) -> Header
+    @ViewBuilder let pinned: (ScrollingChromeMetrics) -> Pinned
 
     var body: some View {
         GeometryReader { proxy in
@@ -436,59 +458,30 @@ struct ScrollingChrome<Content: View, Header: View>: View {
                 ScrollingChromeHeaderHost(state: state, metrics: resolved, header: header)
                     .fixedSize(horizontal: false, vertical: true)
                     .zIndex(1)
-                if #available(iOS 17.0, macOS 14.0, *) {
-                    scrollSurface(metrics: resolved, viewportHeight: nil)
-                        .modifier(ScrollingChromeOverflow())
-                        .coordinateSpace(name: viewport)
-                } else {
-                    GeometryReader { scrollProxy in
-                        scrollSurface(metrics: resolved, viewportHeight: scrollProxy.size.height)
-                            .modifier(ScrollingChromeOverflow())
-                            .coordinateSpace(name: viewport)
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func scrollSurface(metrics: ScrollingChromeMetrics, viewportHeight: CGFloat?) -> some View {
-        if #available(iOS 18.0, macOS 15.0, *) {
-            ScrollView {
-                scrollContent(metrics: metrics, viewportHeight: viewportHeight)
-            }
-            .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                geometry.contentOffset.y + geometry.contentInsets.top
-            } action: { _, offset in
-                updateControls(offset: offset)
-            }
-        } else {
-            ScrollView {
-                scrollContent(metrics: metrics, viewportHeight: viewportHeight)
-                    .background(alignment: .top) {
-                        GeometryReader { proxy in
-                            Color.clear.preference(
-                                key: ScrollingChromeOffsetKey.self,
-                                value: proxy.frame(in: .named(viewport)).minY
-                            )
+                Group {
+                    if #available(iOS 17.0, macOS 14.0, *) {
+                        scrollSurface(metrics: resolved, viewportHeight: nil)
+                    } else {
+                        GeometryReader { scrollProxy in
+                            scrollSurface(metrics: resolved, viewportHeight: scrollProxy.size.height)
                         }
                     }
-            }
-            .onPreferenceChange(ScrollingChromeOffsetKey.self) { offset in
-                updateControls(offset: -offset)
+                }
+                .overlay(alignment: .top) {
+                    ScrollingChromeEdgeHost(edge: edge, pinned: pinned(resolved))
+                }
             }
         }
     }
 
-    private func scrollContent(metrics: ScrollingChromeMetrics, viewportHeight: CGFloat?) -> some View {
-        pageContent(metrics: metrics, viewportHeight: viewportHeight)
-            .background {
-                #if os(iOS)
-                if #unavailable(iOS 17.0) {
-                    ScrollingChromeLegacyOverflow()
-                }
-                #endif
-            }
+    private func scrollSurface(metrics: ScrollingChromeMetrics, viewportHeight: CGFloat?) -> some View {
+        ScrollView {
+            pageContent(metrics: metrics, viewportHeight: viewportHeight)
+                .scrollingChromeScrollProbe(in: viewport, unclipsScrollView: true, update)
+        }
+        .scrollingChromeScrollReader(update)
+        .modifier(ScrollingChromeOverflow())
+        .coordinateSpace(name: viewport)
     }
 
     /// The content, at least one point taller than the scroll view so the header can always be pulled. Where the
@@ -510,29 +503,123 @@ struct ScrollingChrome<Content: View, Header: View>: View {
         }
     }
 
-    private func updateControls(offset: CGFloat) {
-        onScrollOffset?(offset)
-        state.setScrolled(offset > 2)
-        state.setExpanded(
-            ScrollingChromeReveal.expanded(current: state.expanded, offset: offset),
-            reduceMotion: reduceMotion
-        )
+    private func update(_ scroll: ScrollingChromeScroll) {
+        onScrollOffset?(scroll.offset)
+        edge.update(offset: scroll.offset)
+        state.update(scroll, reduceMotion: reduceMotion)
     }
 }
 
-enum ScrollingChromeReveal {
-    static func expanded(current: Bool, offset: CGFloat) -> Bool {
-        if offset < -24 { return true }
-        if offset > 24 { return false }
-        return current
+extension ScrollingChrome where Pinned == EmptyView {
+    init(
+        onScrollOffset: ((CGFloat) -> Void)? = nil,
+        metrics: @escaping (CGFloat) -> ScrollingChromeMetrics,
+        @ViewBuilder content: @escaping (ScrollingChromeMetrics) -> Content,
+        @ViewBuilder header: @escaping (CGFloat, ScrollingChromeMetrics) -> Header
+    ) {
+        self.init(onScrollOffset: onScrollOffset, metrics: metrics, content: content, header: header, pinned: { _ in EmptyView() })
     }
 }
 
-private struct ScrollingChromeOffsetKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
+struct ScrollingChromeScroll: Equatable {
+    var offset: CGFloat
+    var isInteracting: Bool
+}
 
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
+struct ScrollingChromeReveal {
+    static let pullDistance: CGFloat = 32
+    static let collapseDistance: CGFloat = 24
+    private static let restingBand: CGFloat = 4
+    private static let continuousStep: CGFloat = 64
+
+    private var previousOffset: CGFloat?
+    private var pullArmed = false
+
+    mutating func expanded(_ expanded: Bool, after scroll: ScrollingChromeScroll) -> Bool {
+        let previous = previousOffset
+        previousOffset = scroll.offset
+        if !scroll.isInteracting || scroll.offset > Self.restingBand {
+            pullArmed = false
+        } else if let previous, previous >= -Self.restingBand, previous - scroll.offset <= Self.continuousStep {
+            pullArmed = true
+        }
+        if scroll.offset > Self.collapseDistance { return false }
+        if pullArmed, scroll.offset < -Self.pullDistance { return true }
+        return expanded
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func scrollingChromeScrollReader(_ report: @escaping (ScrollingChromeScroll) -> Void) -> some View {
+        if #available(iOS 18.0, macOS 15.0, *) {
+            modifier(ScrollingChromeScrollReader(report: report))
+        } else {
+            self
+        }
+    }
+
+    func scrollingChromeScrollProbe<Space: Hashable>(
+        in space: Space,
+        unclipsScrollView: Bool = false,
+        _ report: @escaping (ScrollingChromeScroll) -> Void
+    ) -> some View {
+        modifier(ScrollingChromeScrollProbe(space: AnyHashable(space), unclipsScrollView: unclipsScrollView, report: report))
+    }
+}
+
+@available(iOS 18.0, macOS 15.0, *)
+private struct ScrollingChromeScrollReader: ViewModifier {
+    let report: (ScrollingChromeScroll) -> Void
+    @State private var interaction = ScrollingChromeInteraction()
+
+    func body(content: Content) -> some View {
+        content
+            .onScrollPhaseChange { _, phase in
+                interaction.isInteracting = phase == .tracking || phase == .interacting
+            }
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                geometry.contentOffset.y + geometry.contentInsets.top
+            } action: { _, offset in
+                report(ScrollingChromeScroll(offset: offset, isInteracting: interaction.isInteracting))
+            }
+    }
+}
+
+private final class ScrollingChromeInteraction {
+    var isInteracting = false
+}
+
+private struct ScrollingChromeScrollProbe: ViewModifier {
+    let space: AnyHashable
+    let unclipsScrollView: Bool
+    let report: (ScrollingChromeScroll) -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        #if os(iOS)
+        if #available(iOS 18.0, *) {
+            content
+        } else if #available(iOS 17.0, *) {
+            content.background {
+                ScrollingChromeScrollObserver(unclipsScrollView: false, report: report)
+            }
+        } else {
+            content.background {
+                ScrollingChromeScrollObserver(unclipsScrollView: unclipsScrollView, report: report)
+            }
+        }
+        #else
+        if #available(macOS 15.0, *) {
+            content
+        } else {
+            content.onGeometryChange(for: CGFloat.self) { [space] proxy in
+                -proxy.frame(in: .named(space)).minY
+            } action: { offset in
+                report(ScrollingChromeScroll(offset: offset, isInteracting: true))
+            }
+        }
+        #endif
     }
 }
 
@@ -548,54 +635,85 @@ private struct ScrollingChromeOverflow: ViewModifier {
 }
 
 #if os(iOS)
-private struct ScrollingChromeLegacyOverflow: UIViewRepresentable {
-    func makeUIView(context: Context) -> ScrollOverflowProbe {
-        let view = ScrollOverflowProbe()
+private struct ScrollingChromeScrollObserver: UIViewRepresentable {
+    let unclipsScrollView: Bool
+    let report: (ScrollingChromeScroll) -> Void
+
+    func makeUIView(context: Context) -> ObserverView {
+        let view = ObserverView()
         view.isUserInteractionEnabled = false
         return view
     }
 
-    func updateUIView(_ uiView: ScrollOverflowProbe, context: Context) {
-        uiView.connect()
+    func updateUIView(_ view: ObserverView, context: Context) {
+        view.report = report
+        view.unclipsScrollView = unclipsScrollView
+        view.connect()
     }
 
-    static func dismantleUIView(_ uiView: ScrollOverflowProbe, coordinator: ()) {
-        uiView.restore()
+    static func dismantleUIView(_ view: ObserverView, coordinator: ()) {
+        view.disconnect()
+        view.report = nil
     }
 
-    final class ScrollOverflowProbe: UIView {
+    final class ObserverView: UIView {
+        var report: ((ScrollingChromeScroll) -> Void)?
+        var unclipsScrollView = false
         private weak var scrollView: UIScrollView?
-        private var originalClipping = true
+        private var observation: NSKeyValueObservation?
+        private var originalClipping: Bool?
+        private var delivered: ScrollingChromeScroll?
 
         override func didMoveToWindow() {
             super.didMoveToWindow()
-            connect()
-        }
-
-        override func didMoveToSuperview() {
-            super.didMoveToSuperview()
-            connect()
-        }
-
-        func connect() {
-            var ancestor = superview
-            while let view = ancestor {
-                if let scroll = view as? UIScrollView {
-                    if scrollView !== scroll {
-                        restore()
-                        scrollView = scroll
-                        originalClipping = scroll.clipsToBounds
-                    }
-                    scroll.clipsToBounds = false
-                    return
-                }
-                ancestor = view.superview
+            if window == nil {
+                disconnect()
+            } else {
+                connect()
             }
         }
 
-        func restore() {
-            scrollView?.clipsToBounds = originalClipping
+        func connect() {
+            guard window != nil else { return }
+            var ancestor = superview
+            while let view = ancestor, !(view is UIScrollView) {
+                ancestor = view.superview
+            }
+            guard let scroll = ancestor as? UIScrollView else { return }
+            if scroll !== scrollView {
+                disconnect()
+                scrollView = scroll
+                observation = scroll.observe(\.contentOffset, options: [.initial, .new]) { [weak self] scroll, _ in
+                    let sample = ScrollingChromeScroll(
+                        offset: scroll.contentOffset.y + scroll.adjustedContentInset.top,
+                        isInteracting: scroll.isTracking
+                    )
+                    DispatchQueue.main.async {
+                        self?.deliver(sample)
+                    }
+                }
+            }
+            if unclipsScrollView {
+                if originalClipping == nil { originalClipping = scroll.clipsToBounds }
+                scroll.clipsToBounds = false
+            }
+        }
+
+        func disconnect() {
+            observation?.invalidate()
+            observation = nil
+            if let scrollView, let originalClipping {
+                scrollView.clipsToBounds = originalClipping
+            }
+            originalClipping = nil
             scrollView = nil
+            delivered = nil
+        }
+
+        private func deliver(_ sample: ScrollingChromeScroll) {
+            guard scrollView != nil, sample != delivered else { return }
+            delivered = sample
+            report?(sample)
         }
     }
 }

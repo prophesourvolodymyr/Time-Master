@@ -802,8 +802,9 @@ struct WorkoutDetailView: View {
             LazyVStack(spacing: 0) {
                 editorRows(column: column)
             }
+            .scrollingChromeScrollProbe(in: workoutDetailScrollSpace, editorDidScroll)
         }
-        .modifier(WorkoutEditorPullDetector(onPull: { setControlsExpanded(true) }, onScrolled: { setControlsExpanded(false) }))
+        .scrollingChromeScrollReader(editorDidScroll)
         #else
         List {
             editorRows(column: column)
@@ -811,7 +812,8 @@ struct WorkoutDetailView: View {
         .listStyle(.plain)
         .environment(\.defaultMinListRowHeight, 0)
         .scrollContentBackground(.hidden)
-        .modifier(WorkoutEditorPullDetector(onPull: { setControlsExpanded(true) }, onScrolled: { setControlsExpanded(false) }))
+        .background(Theme.background)
+        .scrollingChromeScrollReader(editorDidScroll)
         #endif
     }
 
@@ -819,19 +821,31 @@ struct WorkoutDetailView: View {
     private func editorRows(column: CGFloat) -> some View {
         editorHeader(width: column)
             .padding(.top, 8)
+            .onGeometryChange(for: CGFloat.self) { proxy in
+                proxy.size.height
+            } action: { height in
+                chrome.headerHeight = height
+            }
+            #if os(iOS)
+            .scrollingChromeScrollProbe(in: workoutDetailScrollSpace, editorDidScroll)
+            #endif
             .builderPageRow()
             .id(RowID.header)
-            .modifier(WorkoutEditorHeaderPullFallback(onPull: { setControlsExpanded(true) }, onScrolled: { setControlsExpanded(false) }))
+            .listRowBackground(Theme.background)
 
         if !workout.sections.isEmpty {
             workoutSummary
+                .onGeometryChange(for: CGFloat.self) { proxy in
+                    proxy.size.height
+                } action: { height in
+                    chrome.summaryHeight = height
+                }
+                #if os(iOS)
+                .scrollingChromeScrollProbe(in: workoutDetailScrollSpace, editorDidScroll)
+                #endif
                 .builderPageRow()
                 .id(RowID.summary)
-                .onGeometryChange(for: Bool.self) { proxy in
-                    proxy.frame(in: .named(workoutDetailScrollSpace)).maxY < 8
-                } action: { pinned in
-                    setSummaryPinned(pinned)
-                }
+                .listRowBackground(Theme.background)
         }
 
         if workout.sections.isEmpty && pendingSection == nil {
@@ -2456,6 +2470,11 @@ struct WorkoutDetailView: View {
         chrome.summaryPinned = pinned
     }
 
+    private func editorDidScroll(_ scroll: ScrollingChromeScroll) {
+        setControlsExpanded(chrome.reveal.expanded(editorControlsExpanded, after: scroll))
+        setSummaryPinned(chrome.pinsSummary(at: scroll.offset))
+    }
+
     private func formatCompactDuration(_ seconds: Int) -> String {
         let minutes = max(0, seconds) / 60
         let remainder = max(0, seconds) % 60
@@ -2771,52 +2790,19 @@ struct WorkoutDetailView: View {
 
 private let workoutDetailScrollSpace = "workout-detail-scroll"
 
-/// A pull past the top of the builder opens the header's labelled controls and scrolling down closes them again. It
-/// reads the scroll geometry where the system reports it, and only reports the crossings, so scrolling itself never
-/// changes the layout.
-private struct WorkoutEditorPullDetector: ViewModifier {
-    let onPull: () -> Void
-    let onScrolled: () -> Void
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if #available(iOS 18.0, macOS 15.0, *) {
-            content.onScrollGeometryChange(for: Int.self) { geometry in
-                let offset = geometry.contentOffset.y + geometry.contentInsets.top
-                return offset < -24 ? 1 : (offset > 24 ? -1 : 0)
-            } action: { _, state in
-                if state == 1 { onPull() } else if state == -1 { onScrolled() }
-            }
-        } else {
-            content
-        }
-    }
-}
-
-/// The same on systems without scroll geometry, read from where the header row sits.
-private struct WorkoutEditorHeaderPullFallback: ViewModifier {
-    let onPull: () -> Void
-    let onScrolled: () -> Void
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if #available(iOS 18.0, macOS 15.0, *) {
-            content
-        } else {
-            content.onGeometryChange(for: Int.self) { proxy in
-                let top = proxy.frame(in: .named(workoutDetailScrollSpace)).minY
-                return top > 24 ? 1 : (top < -24 ? -1 : 0)
-            } action: { state in
-                if state == 1 { onPull() } else if state == -1 { onScrolled() }
-            }
-        }
-    }
-}
-
 /// Whether the full summary has scrolled away. Only the compact bar observes it, so crossing the threshold while
 /// scrolling never re-renders the rows.
 final class WorkoutEditorChromeState: ObservableObject {
     @Published var summaryPinned = false
+    var reveal = ScrollingChromeReveal()
+    var headerHeight: CGFloat = 0
+    var summaryHeight: CGFloat = 0
+
+    func pinsSummary(at offset: CGFloat) -> Bool {
+        guard headerHeight > 0, summaryHeight > 0 else { return false }
+        let line = headerHeight + summaryHeight - 8
+        return summaryPinned ? offset > line - 12 : offset > line
+    }
 }
 
 private struct WorkoutCompactSummaryOverlay<Bar: View>: View {
