@@ -220,7 +220,7 @@ public enum AgentToolRegistry {
 
     private static var getPage: AgentTool {
         AgentTool(
-            name: "get_page", summary: "Read one page: notes, timing, links, media attachments, its tag, child pages, and its noSkills and widgets settings when set. Long notes come back in pieces; pass bodyOffset to read on.",
+            name: "get_page", summary: "Read one page: notes, timing, links (with their comments and learn-first flags), media attachments (numbered, with caption, cover, icon picture and learn-first flags), its tag and icon, drop sets, the pages to learn first and the pages attached to it, child pages, dates, and its noSkills and widgets settings when set. Long notes come back in pieces; pass bodyOffset to read on.",
             risk: .read, executor: .core, coach: true,
             schema: AgentSchema.object([
                 "page": AgentSchema.string(pageRef),
@@ -310,13 +310,14 @@ public enum AgentToolRegistry {
                 "page": AgentSchema.string(pageRef),
                 "title": AgentSchema.string("New title."),
                 "markdownBody": AgentSchema.string("Replacement Markdown notes."),
-                "icon": AgentSchema.string("Note pages only: an SF Symbol name or an emoji shown on the note's row. Empty text clears it."),
+                "icon": AgentSchema.string("An SF Symbol name or an emoji shown as the page's icon tile (on a note, on its row). Empty text clears it."),
                 "iconImage": AgentSchema.external(AgentSchema.path("Absolute path to a local image (jpg, png, heic, gif, webp) the app copies into the page and uses as its icon picture (the small tile). Empty text clears the picture.")),
                 "duration": AgentSchema.integer("Seconds per set (exercise pages).", minimum: 5),
                 "restAfter": AgentSchema.integer("Rest after the exercise in seconds.", minimum: 0),
                 "sets": AgentSchema.integer("Default number of sets.", minimum: 1),
                 "restBetweenSets": AgentSchema.integer("Rest between sets in seconds.", minimum: 0),
                 "prepareTime": AgentSchema.integer("Preparation seconds (0-30).", minimum: 0, maximum: 30),
+                "dropSets": AgentSchema.array(of: dropSetItem, dropSetsText),
                 "linkURLs": AgentSchema.strings("Replacement reference links."),
                 "workoutType": AgentSchema.string(typeText),
                 "tag": AgentSchema.string(tagText),

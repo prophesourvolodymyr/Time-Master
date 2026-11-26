@@ -289,7 +289,7 @@ extension AgentToolbox {
         if !page.skillBoardSections.isEmpty {
             let inside = index.children(of: page.id)
             value["groups"] = page.orderedSkillBoardSections.map { section -> [String: Any] in
-                var item: [String: Any] = ["title": section.title]
+                var item: [String: Any] = ["title": section.title, "id": SkillGroupID.make(containerID: page.id, sectionID: section.id)]
                 let count = inside.filter { $0.skillBoardSectionID == section.id }.count
                 if count > 0 { item["skills"] = count }
                 if !section.markdownBody.isEmpty { item["notes"] = String(section.markdownBody.prefix(1500)) }
@@ -301,12 +301,7 @@ extension AgentToolbox {
         if let rest = page.restAfter { value["restAfter"] = rest }
         if let rest = page.restBetweenSets { value["restBetweenSets"] = rest }
         if let prepare = page.prepareTime { value["prepareTime"] = prepare }
-        let attachments = page.mediaFilenames.map { filename -> [String: Any] in
-            var item: [String: Any] = ["kind": AgentMedia.kind(ofFilename: filename)]
-            if let comment = page.mediaComments[filename] { item["comment"] = comment }
-            return item
-        }
-        if !attachments.isEmpty { value["media"] = attachments }
+        addPageContent(of: page, index: index, to: &value)
         addChecklistCounts(of: page, to: &value)
         if page.hidesSkills { value["noSkills"] = true }
         if let widgets = page.widgets { value["widgets"] = widgets }
@@ -438,6 +433,10 @@ extension AgentToolbox {
         if let value = args.int("sets") { updated.sets = value; changed.append("sets") }
         if let value = args.int("restBetweenSets") { updated.restBetweenSets = value; changed.append("restBetweenSets") }
         if let value = args.int("prepareTime") { updated.prepareTime = value; changed.append("prepareTime") }
+        if args.has("dropSets") {
+            updated.dropSetTemplates = try dropSetTemplates(from: args.objects("dropSets"), for: updated, index: index)
+            changed.append("dropSets")
+        }
         if let value = args.strings("linkURLs") { updated.linkURLs = value; changed.append("linkURLs") }
         if let type = try resolveType(args.string("workoutType")) {
             guard page.parentID == nil else {
@@ -491,6 +490,7 @@ extension AgentToolbox {
             return AgentToolOutput(value: preview)
         }
         var effects: [AgentEffect] = []
+        if let snapshot = pageSnapshot(try database.getPage(id: page.id)) { effects.append(snapshot) }
         var uploadedIcon: String?
         if let iconPicture {
             if let url = iconPicture.url {
