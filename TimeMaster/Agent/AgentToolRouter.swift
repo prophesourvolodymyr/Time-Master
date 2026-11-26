@@ -6,6 +6,10 @@ enum AgentOrigin: String {
     case external
 }
 
+extension Notification.Name {
+    static let agentLibraryDidChange = Notification.Name("tm.agent.libraryDidChange")
+}
+
 struct AgentRouterResult {
     var value: [String: Any]
     var effects: [AgentEffect]
@@ -111,5 +115,6 @@ final class AgentToolRouter: @unchecked Sendable {
     private func refreshStores() {
         DatabaseStore.shared.reload()
         AgentRuntime.shared.workoutStore?.reload()
+        NotificationCenter.default.post(name: .agentLibraryDidChange, object: nil)
     }
 }

@@ -46,9 +46,17 @@ final class OutdoorActivityStore: ObservableObject {
     private var activeActivity: OutdoorActivity?
     private var activePoints: [OutdoorTrackPoint] = []
     private var lastPersistedAt = Date.distantPast
+    private var libraryChanges: AnyCancellable?
+
     init(database: DatabaseManager = .shared) {
         self.database = database
         reload()
+        libraryChanges = NotificationCenter.default.publisher(for: .agentLibraryDidChange)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self, self.activeActivity == nil else { return }
+                self.reload()
+            }
     }
 
     func reload() {
