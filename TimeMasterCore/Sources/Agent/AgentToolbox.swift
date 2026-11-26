@@ -523,22 +523,7 @@ extension AgentToolbox {
     }
 
     private func movePage(_ args: AgentArguments, dryRun: Bool) throws -> AgentToolOutput {
-        let index = try AgentPageIndex(database: database)
-        let page = try index.resolve(try args.requiredString("page"))
-        let destination = try args.string("newParent").map { try index.resolve($0) }
-        if let destination {
-            guard destination.pageKind == .container else {
-                throw AgentToolError("invalid_parent", "'\(destination.title)' cannot contain other pages.")
-            }
-            guard destination.id != page.id, !index.descendants(of: page.id).contains(where: { $0.id == destination.id }) else {
-                throw AgentToolError("invalid_parent", "A page cannot be moved inside itself.")
-            }
-        }
-        let from = index.titlePath(page.id)
-        let newPath = (destination.map { index.titlePath($0.id) + "/" } ?? "") + page.title
-        if dryRun { return AgentToolOutput(value: ["dryRun": true, "wouldMove": from, "to": newPath]) }
-        try database.movePageToEnd(id: page.id, parentID: destination?.id)
-        return AgentToolOutput(value: ["id": page.id, "path": newPath, "from": from])
+        try organizeMovePage(args, dryRun: dryRun)
     }
 
     private func deletePage(_ args: AgentArguments, dryRun: Bool) throws -> AgentToolOutput {

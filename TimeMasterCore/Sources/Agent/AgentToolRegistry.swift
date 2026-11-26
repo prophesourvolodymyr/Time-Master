@@ -329,11 +329,14 @@ public enum AgentToolRegistry {
 
     private static var movePage: AgentTool {
         AgentTool(
-            name: "move_page", summary: "Move a page into another container, or to the root when newParent is omitted.",
+            name: "move_page", summary: "Move a page into another container, or to the root when newParent is omitted. It goes to the end there unless before, after or position says where; moving inside the same container just reorders. Pass at most one of before, after and position.",
             risk: .write, executor: .core, coach: true,
             schema: AgentSchema.object([
                 "page": AgentSchema.string(pageRef),
-                "newParent": AgentSchema.string("Destination container. \(pageRef) Omit for the root."),
+                "newParent": AgentSchema.string("Destination container. \(pageRef) Omit for the root. With before or after you can omit it: the page then goes next to that page, in its container."),
+                "before": AgentSchema.string("Put the page right before this page, which must be inside the destination container. \(pageRef)"),
+                "after": AgentSchema.string("Put the page right after this page, which must be inside the destination container. \(pageRef)"),
+                "position": AgentSchema.integer("Place among the destination's pages, 1 is the first (past the end means last). Without newParent the destination is the top level of the library, so pass newParent to place a page inside its folder.", minimum: 1),
             ], required: ["page"])
         )
     }
