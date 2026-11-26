@@ -41,7 +41,7 @@ Read everything inside a page and edit its attachments, captions, link comments,
 ## Drop sets and icons
 - An exercise page can hold drop sets: extra exercises played after a set when the page goes into a workout. Pass them as JSON: `tmax update_page --json '{"page":"Boxing/Jab","sets":3,"dropSets":[{"set":3,"exercise":"Boxing/Cross"},{"set":1,"name":"Slow jab","duration":45,"restAfter":10}]}'` replaces the whole list, and `"dropSets":[]` clears it.
 - `set` counts from 1 and defaults to the last set, and the page needs that many sets. With `exercise` the name, duration and rest default from that exercise page; without it `name` is required.
-- `tmax update_page --page "Boxing/Jab" --icon figure.boxing` gives any page an SF Symbol or an emoji as its icon tile; `--icon ""` clears it. `--icon-image /abs/photo.jpg` copies a picture in and uses it, and `update_media --icon` uses a picture the page already holds.
+- Symbol and emoji icons are for notes, skills and tutorials: `tmax update_page --page "Boxing/Combos" --icon figure.boxing` sets an SF Symbol name or an emoji as the icon, and `--icon ""` clears it. Exercise pages and folders refuse them. Any page can take a picture icon: `--icon-image /abs/photo.jpg` copies a picture in and uses it, and `tmax update_media --page "Boxing/Jab" --index 1 --icon true` uses a picture the page already holds.
 
 Add `--dry-run` to see what a call would change. These edits can be undone with `tmax undo`, except the trashed file of remove_media.
 """

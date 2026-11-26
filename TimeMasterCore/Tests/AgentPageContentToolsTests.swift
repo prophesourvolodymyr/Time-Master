@@ -595,18 +595,45 @@ final class AgentPageContentToolsTests: XCTestCase {
         XCTAssertEqual(try stored("Boxing/Jab").dropSetTemplates.first?.name, "Temporary")
     }
 
-    func testEveryKindOfPageTakesASymbolOrAnEmojiIcon() throws {
-        try call("update_page", ["page": "Boxing/Jab", "icon": "figure.boxing"])
-        try call("update_page", ["page": "Boxing", "icon": "🥊"])
+    func testSymbolAndEmojiIconsAreForNotesSkillsAndTutorialsAndAnyPageTakesAPicture() throws {
         try call("update_page", ["page": "Boxing/Plan", "icon": "note.text"])
-        XCTAssertEqual(try stored("Boxing/Jab").iconType, .system)
-        XCTAssertEqual(try stored("Boxing").iconType, .emoji)
-        XCTAssertEqual(try call("get_page", ["page": "Boxing"])["icon"] as? [String: String], ["name": "🥊", "type": "emoji"])
+        try call("update_page", ["page": "Boxing/Footwork", "icon": "figure.boxing"])
+        try call("update_page", ["page": "Boxing/Combos", "icon": "🥊"])
         XCTAssertEqual(try call("get_page", ["page": "Boxing/Plan"])["icon"] as? [String: String], ["name": "note.text", "type": "system"])
+        XCTAssertEqual(try call("get_page", ["page": "Boxing/Footwork"])["icon"] as? [String: String], ["name": "figure.boxing", "type": "system"])
+        XCTAssertEqual(try call("get_page", ["page": "Boxing/Combos"])["icon"] as? [String: String], ["name": "🥊", "type": "emoji"])
 
-        try call("update_page", ["page": "Boxing/Jab", "icon": " "])
-        XCTAssertNil(try stored("Boxing/Jab").iconName)
-        XCTAssertNil(try call("get_page", ["page": "Boxing/Jab"])["icon"])
+        for page in ["Boxing/Jab", "Boxing"] {
+            let refused = failure { try self.call("update_page", ["page": page, "icon": "bolt"]) }
+            XCTAssertEqual(refused?.code, "invalid_page", page)
+            XCTAssertEqual(refused?.message, "Only note, skill and tutorial pages take an icon here.", page)
+            XCTAssertNil(try stored(page).iconName, page)
+        }
+
+        try call("update_page", ["page": "Boxing/Footwork", "icon": " "])
+        XCTAssertNil(try stored("Boxing/Footwork").iconName)
+        XCTAssertNil(try call("get_page", ["page": "Boxing/Footwork"])["icon"])
+
+        try attach("Boxing/Jab", "a.jpg")
+        try attach("Boxing", "b.png")
+        for page in ["Boxing/Jab", "Boxing"] {
+            try call("update_media", ["page": page, "index": 1, "icon": true])
+            XCTAssertNotNil(try stored(page).iconImage, page)
+        }
+    }
+
+    func testGetPageShowsTheIconOfAnyPageThatHasOne() throws {
+        var jab = try stored("Boxing/Jab")
+        jab.iconName = "figure.boxing"
+        jab.iconType = .system
+        try database.updatePage(id: jab.id, manifest: jab, newParentID: jab.parentID)
+        XCTAssertEqual(try call("get_page", ["page": "Boxing/Jab"])["icon"] as? [String: String], ["name": "figure.boxing", "type": "system"])
+
+        var folder = try stored("Boxing")
+        folder.iconName = "🥊"
+        folder.iconType = .emoji
+        try database.updatePage(id: folder.id, manifest: folder, newParentID: folder.parentID)
+        XCTAssertEqual(try call("get_page", ["page": "Boxing"])["icon"] as? [String: String], ["name": "🥊", "type": "emoji"])
 
         var web = try stored("Boxing/Cross")
         web.iconImage = "https://example.com/cross.png"
@@ -617,13 +644,19 @@ final class AgentPageContentToolsTests: XCTestCase {
     func testUpdatePageEditsCanNowBeUndone() throws {
         let before = try fingerprint("Boxing/Jab")
         let output = try toolbox.call("update_page", arguments: [
-            "page": "Boxing/Jab", "title": "Straight", "markdownBody": "Snap it", "duration": 45, "icon": "bolt",
+            "page": "Boxing/Jab", "title": "Straight", "markdownBody": "Snap it", "duration": 45,
             "dropSets": [["name": "Slow", "set": 1]],
         ])
         XCTAssertEqual(try stored("Boxing/Straight").dropSetTemplates.count, 1)
         toolbox.revert(output.effects)
         XCTAssertEqual(try fingerprint("Boxing/Jab"), before)
         XCTAssertEqual(try stored("Boxing/Jab").title, "Jab")
+
+        let skillBefore = try fingerprint("Boxing/Footwork")
+        let skill = try toolbox.call("update_page", arguments: ["page": "Boxing/Footwork", "icon": "bolt", "markdownBody": "Quick feet"])
+        XCTAssertEqual(try stored("Boxing/Footwork").iconName, "bolt")
+        toolbox.revert(skill.effects)
+        XCTAssertEqual(try fingerprint("Boxing/Footwork"), skillBefore)
     }
 
     func testABatchRollsBackPageContentEditsWhenALaterStepFails() throws {
@@ -653,7 +686,8 @@ final class AgentPageContentToolsTests: XCTestCase {
             try call("update_link", ["page": "Boxing/Footwork", "url": "https://a.example/1", "comment": "x", "newURL": "https://a.example/2"], dryRun: true),
             try call("update_learn_first", ["page": "Boxing/Footwork", "add": ["Boxing/Guard"]], dryRun: true),
             try call("update_linked_pages", ["page": "Boxing/Footwork", "add": ["Boxing/Jab"]], dryRun: true),
-            try call("update_page", ["page": "Boxing/Jab", "dropSets": [["name": "x"]], "icon": "bolt"], dryRun: true),
+            try call("update_page", ["page": "Boxing/Jab", "dropSets": [["name": "x"]]], dryRun: true),
+            try call("update_page", ["page": "Boxing/Footwork", "icon": "bolt", "markdownBody": "x"], dryRun: true),
         ]
         for preview in previews { XCTAssertEqual(preview["dryRun"] as? Bool, true) }
         XCTAssertEqual(try fingerprint("Boxing/Footwork"), before)

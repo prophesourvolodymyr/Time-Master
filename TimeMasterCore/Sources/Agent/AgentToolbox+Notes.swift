@@ -42,6 +42,9 @@ extension AgentToolbox {
     }
 
     func applyIcon(_ icon: String, to page: inout ExercisePageManifest) throws {
+        guard page.pageType == .note || page.pageType == .skill || page.pageType == .tutorial else {
+            throw AgentToolError("invalid_page", "Only note, skill and tutorial pages take an icon here.")
+        }
         let clean = icon.trimmingCharacters(in: .whitespacesAndNewlines)
         page.iconName = clean.isEmpty ? nil : clean
         page.iconType = clean.isEmpty ? nil : (clean.unicodeScalars.allSatisfy { $0.isASCII } ? .system : .emoji)
