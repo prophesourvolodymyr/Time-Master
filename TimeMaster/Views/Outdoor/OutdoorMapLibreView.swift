@@ -556,7 +556,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
 
         func mapView(_ mapView: MLNMapView, didFinishLoading style: MLNStyle) {
             loadedStyleURL = mapView.styleURL
-            if !usesOfflineFallback { baseStyleFailed = false }
+            if !usesOfflineFallback, mapView.styleURL != OfflineTripResources.emptyStyle { baseStyleFailed = false }
             hideNativeOrnaments(on: mapView)
             isApplyingCamera = true
             session.restoreCamera(on: mapView)
@@ -592,7 +592,13 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             guard failedMode != lastUsableMode,
                   let fallbackMode = fallbackModeForPendingStyle,
                   let fallbackStyle = session.configuration.style(for: fallbackMode)?.styleURL
-            else { return }
+            else {
+                if mapView.styleURL != OfflineTripResources.emptyStyle {
+                    loadedStyleURL = OfflineTripResources.emptyStyle
+                    mapView.styleURL = OfflineTripResources.emptyStyle
+                }
+                return
+            }
             _ = session.requestMode(fallbackMode)
             lastUsableMode = fallbackMode
             fallbackModeForPendingStyle = nil

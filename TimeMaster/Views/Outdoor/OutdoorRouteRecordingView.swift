@@ -1,5 +1,6 @@
 #if os(iOS)
 import SwiftUI
+import Combine
 import UIKit
 import CoreLocation
 import UniformTypeIdentifiers
@@ -18,7 +19,8 @@ struct OutdoorRouteRecordingView: View {
     @StateObject private var tripAreas = OutdoorOfflineAreas()
     @StateObject private var nearbyRoutes = OutdoorNearbyRoutes()
     @StateObject private var musicSession: OutdoorMusicSession
-    @ObservedObject private var musicManager: MusicManager
+    private let musicManager: MusicManager
+    @State private var hasMusicTrack: Bool
     private let musicLibrary: MusicLibraryStore
     @Binding private var exposedFinishedActivity: OutdoorActivity?
     private let initialActivityID: UUID?
@@ -117,14 +119,15 @@ struct OutdoorRouteRecordingView: View {
         self._tripEditor = StateObject(wrappedValue: OutdoorTripEditor(route: nil, kind: kind, store: store))
         self._musicSession = StateObject(wrappedValue: OutdoorMusicSession())
         self._exposedFinishedActivity = finishedActivity
-        self._musicManager = ObservedObject(wrappedValue: MusicManager.shared)
+        self.musicManager = MusicManager.shared
+        self._hasMusicTrack = State(initialValue: MusicManager.shared.currentTrack != nil)
         self._committedKind = State(initialValue: normalizedKind)
         self._previewKind = State(initialValue: normalizedKind)
     }
 
     var body: some View {
         GeometryReader { proxy in
-            let showsCompactPlayer = musicManager.currentTrack != nil && mainContent != .finish && tripEntry == nil
+            let showsCompactPlayer = hasMusicTrack && mainContent != .finish && tripEntry == nil
             let layout = OutdoorPineGeometry(
                 size: proxy.size,
                 safeAreaTop: proxy.safeAreaInsets.top,
@@ -420,6 +423,7 @@ struct OutdoorRouteRecordingView: View {
         .font(TimeMasterFont.body())
         .ignoresSafeArea(.container, edges: .bottom)
         .task { await tripAreas.reload() }
+        .onReceive(musicManager.$currentTrack.map { $0 != nil }.removeDuplicates()) { hasMusicTrack = $0 }
         .sheet(isPresented: $offlineAreasPresented, onDismiss: {
             nearbyRoutes.refresh(kind: committedKind)
             tripMenuRevision += 1

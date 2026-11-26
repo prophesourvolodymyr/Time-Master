@@ -447,7 +447,7 @@ struct OutdoorTripPlannerView: View {
 
     private var bottomBar: some View {
         VStack(spacing: 8) {
-            if let message = suggestionError ?? editor.errorMessage {
+            if let message = suggestionError ?? editor.errorMessage ?? (OfflineRoutingSupport.isAvailable ? nil : OfflineRoutingSupport.unavailableMessage) {
                 OutdoorPineGlassSurface(identity: "trip-error", namespace: namespace, cornerRadius: 20) {
                     HStack(spacing: 10) {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -457,10 +457,12 @@ struct OutdoorTripPlannerView: View {
                             .font(TimeMasterFont.caption())
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 4)
-                        OutdoorPineIconAction(symbol: "arrow.clockwise", label: "Retry route", size: 38) {
-                            if showsConfiguration { generate() } else { editor.recalculate() }
+                        if OfflineRoutingSupport.isAvailable {
+                            OutdoorPineIconAction(symbol: "arrow.clockwise", label: "Retry route", size: 38) {
+                                if showsConfiguration { generate() } else { editor.recalculate() }
+                            }
+                            OutdoorPineIconAction(symbol: "arrow.down.circle", label: "Manage offline areas", size: 38, action: onManageAreas)
                         }
-                        OutdoorPineIconAction(symbol: "arrow.down.circle", label: "Manage offline areas", size: 38, action: onManageAreas)
                     }
                     .padding(.leading, 14)
                     .padding(.trailing, 8)
@@ -522,7 +524,7 @@ struct OutdoorTripPlannerView: View {
                     OutdoorPinePrimaryAction(
                         title: busy ? "Cancel" : "Find routes",
                         symbol: busy ? "xmark" : "arrow.triangle.branch",
-                        disabled: !busy && (searching || editor.picking || editor.trip.stops.isEmpty || !distance.isFinite || distance <= 0 || (stopCount > 0 && categories.isEmpty)),
+                        disabled: !busy && (!OfflineRoutingSupport.isAvailable || searching || editor.picking || editor.trip.stops.isEmpty || !distance.isFinite || distance <= 0 || (stopCount > 0 && categories.isEmpty)),
                         identifier: "trip.suggest"
                     ) {
                         if busy { cancelSuggestions() } else { generate() }

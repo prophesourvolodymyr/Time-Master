@@ -127,7 +127,11 @@ struct OutdoorTripsMenu: View {
         return VStack(spacing: 10) {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                 OutdoorPineTileAction(symbol: "point.topleft.down.curvedto.point.bottomright.up", title: "Make trip") { onOpen(.build, nil) }
+                    .disabled(!OfflineRoutingSupport.isAvailable)
+                    .opacity(OfflineRoutingSupport.isAvailable ? 1 : 0.45)
                 OutdoorPineTileAction(symbol: "location.magnifyingglass", title: "Nearby", badge: nearby.routes.isEmpty ? nil : nearby.routes.count.formatted()) { show(.nearby) }
+                    .disabled(!OfflineRoutingSupport.isAvailable)
+                    .opacity(OfflineRoutingSupport.isAvailable ? 1 : 0.45)
                 OutdoorPineTileAction(symbol: "slider.horizontal.3", title: "Custom") { show(.yours) }
                 OutdoorPineTileAction(symbol: "map.fill", title: "Saved", badge: saved > 0 ? saved.formatted() : nil) { show(.saved) }
             }
@@ -159,6 +163,8 @@ struct OutdoorTripsMenu: View {
                         .frame(maxWidth: .infinity, minHeight: 44)
                 }
                 .buttonStyle(TimeMasterActionButtonStyle())
+                .disabled(!OfflineRoutingSupport.isAvailable)
+                .opacity(OfflineRoutingSupport.isAvailable ? 1 : 0.45)
             }
         }
     }
@@ -219,11 +225,15 @@ struct OutdoorTripsMenu: View {
 
     private var makeTripAction: some View {
         OutdoorPaneLabeledAction(symbol: "point.topleft.down.curvedto.point.bottomright.up", title: "Make trip") { onOpen(.build, nil) }
+            .disabled(!OfflineRoutingSupport.isAvailable)
+            .opacity(OfflineRoutingSupport.isAvailable ? 1 : 0.45)
     }
 
     @ViewBuilder
     private var nearbyStatus: some View {
-        if nearby.isLoading {
+        if !OfflineRoutingSupport.isAvailable {
+            OutdoorPaneStatusTile(symbol: "point.topleft.down.to.point.bottomright.curvepath", title: OfflineRoutingSupport.unavailableMessage) { EmptyView() }
+        } else if nearby.isLoading {
             OutdoorPaneStatusTile(symbol: "location.magnifyingglass", title: "Finding roads near you…", loading: true) { EmptyView() }
         } else if nearby.location == nil {
             OutdoorPaneStatusTile(

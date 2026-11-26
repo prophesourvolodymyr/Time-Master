@@ -80,6 +80,7 @@ final class OutdoorNearbyRoutes: NSObject, ObservableObject, CLLocationManagerDe
 
     func activate(kind: OutdoorActivityKind) {
         self.kind = kind
+        guard OfflineRoutingSupport.isAvailable else { return }
         if location == nil { requestAuthorizedLocation(permissionManager) }
         let moved = location.flatMap { location in generatedOrigin.map { $0.distance(to: location) >= 500 } } ?? false
         guard generatedKind != kind || generatedOrigin == nil || moved else { return }
@@ -105,6 +106,10 @@ final class OutdoorNearbyRoutes: NSObject, ObservableObject, CLLocationManagerDe
         routes = []
         errorMessage = nil
         isLoading = false
+        guard OfflineRoutingSupport.isAvailable else {
+            errorMessage = OfflineRoutingSupport.unavailableMessage
+            return
+        }
         guard let location else { return }
         generatedOrigin = location
         generatedKind = kind

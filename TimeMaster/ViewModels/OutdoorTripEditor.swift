@@ -158,7 +158,7 @@ final class OutdoorTripEditor: ObservableObject {
     }
 
     func beginDrag(legID: UUID, coordinateIndex: Int) {
-        guard !isRouting, !isGenerating, !isDragging, trip.isRouted,
+        guard OfflineRoutingSupport.isAvailable, !isRouting, !isGenerating, !isDragging, trip.isRouted,
               let leg = trip.legs.first(where: { $0.id == legID && $0.mode == .active }),
               let stopIndex = trip.stops.firstIndex(where: { $0.id == legID }),
               coordinateIndex >= 0, coordinateIndex < leg.coordinates.count else { return }
@@ -220,6 +220,11 @@ final class OutdoorTripEditor: ObservableObject {
             route.points = []
             mapPoints = []
             isRouting = false
+            return
+        }
+        guard OfflineRoutingSupport.isAvailable else {
+            isRouting = false
+            errorMessage = OfflineRoutingSupport.unavailableMessage
             return
         }
         let input = trip

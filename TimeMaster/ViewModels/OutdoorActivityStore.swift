@@ -60,7 +60,6 @@ final class OutdoorActivityStore: ObservableObject {
     }
 
     func reload() {
-        try? database.bootstrapIfNeeded()
         plannedRoutes = loadPlannedRoutes()
         var loadedByID: [UUID: OutdoorActivity] = [:]
         for manifest in (try? database.listOutdoorActivities()) ?? [] {
@@ -287,7 +286,7 @@ final class OutdoorActivityStore: ObservableObject {
     }
 
     func savePlannedRoute(_ route: PlannedRoute) throws {
-        try database.bootstrapIfNeeded()
+        try FileManager.default.createDirectory(at: routesDirectory, withIntermediateDirectories: true)
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(route)
@@ -325,7 +324,7 @@ final class OutdoorActivityStore: ObservableObject {
     }
 
     func saveTripRecovery(_ route: PlannedRoute?) throws {
-        try database.bootstrapIfNeeded()
+        try FileManager.default.createDirectory(at: routesDirectory, withIntermediateDirectories: true)
         let url = routesDirectory.appendingPathComponent(".trip-recovery.json")
         if let route {
             let encoder = JSONEncoder()

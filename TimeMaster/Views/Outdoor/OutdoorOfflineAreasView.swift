@@ -156,6 +156,12 @@ struct OutdoorOfflineAreasView: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Plan offline. Routes, places, addresses and the planning map stay on this device. No routing account or server is needed.")
+            if !OfflineRoutingSupport.isAvailable {
+                Label(OfflineRoutingSupport.unavailableMessage, systemImage: "info.circle")
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if model.isLoading {
                 TmaxLoadingIndicator("Preparing offline areas…")
                     .frame(maxWidth: .infinity, minHeight: 52)

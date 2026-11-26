@@ -247,6 +247,7 @@ actor OutdoorOfflineTripPacks {
 
 
     func nativeRoute(_ request: [String: Any], region: OfflineTripRegion, cancellation: TMRoutingCancellation) throws -> Data {
+        try OfflineRoutingSupport.requireAvailable()
         try Self.check(cancellation)
         try requireInstalled(region)
         if engineDataID != region.dataID {

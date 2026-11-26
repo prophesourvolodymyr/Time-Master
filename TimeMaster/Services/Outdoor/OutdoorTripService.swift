@@ -7,11 +7,21 @@ enum TripServiceError: LocalizedError {
     var errorDescription: String? { if case let .message(text) = self { return text }; return nil }
 }
 
+enum OfflineRoutingSupport {
+    static let isAvailable = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "_ZNSt3__13pmr19new_delete_resourceEv") != nil
+    static let unavailableMessage = "Offline route planning needs iOS 17."
+
+    static func requireAvailable() throws {
+        guard isAvailable else { throw TripServiceError.message(unavailableMessage) }
+    }
+}
+
 struct OutdoorTripService {
     private let packs = OutdoorOfflineTripPacks.shared
 
     func route(_ trip: OutdoorTrip, previous: OutdoorTrip? = nil) async throws -> OutdoorTrip {
-        try await cancellable { cancellation in
+        try OfflineRoutingSupport.requireAvailable()
+        return try await cancellable { cancellation in
             guard trip.stops.count >= 2 else { throw TripServiceError.message("Add a destination first.") }
             let region = try await packs.region(covering: trip.stops.flatMap { [$0.coordinate] + $0.shapingPoints })
             if trip.kind != .bike, [.gentle, .hills].contains(trip.runningGoal), !region.manifest.hasElevation {
@@ -66,6 +76,7 @@ struct OutdoorTripService {
     }
 
     func suggestions(origin: TripStop, kind: OutdoorActivityKind, distance: Double, stopCount: Int, categories: Set<TripPlaceCategory>, preference: TripRoutingPreference, runningGoal: TripRunningGoal) async throws -> [PlannedRoute] {
+        try OfflineRoutingSupport.requireAvailable()
         guard (1_000...200_000).contains(distance), (0...8).contains(stopCount) else { throw TripServiceError.message("Choose 1–200 km and up to eight places.") }
         let region = try await packs.region(covering: [origin.coordinate])
         let candidates = stopCount > 0 ? try await packs.places(region: region, near: origin.coordinate, radius: distance / 3, categories: categories) : []
