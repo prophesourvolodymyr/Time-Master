@@ -106,7 +106,7 @@ struct PageWheelMorph: Equatable {
     var arcInset: CGFloat
     var wheelCenter: CGPoint
     var wheelRadius: CGFloat
-    static let hubRatio: CGFloat = 0.34
+    static let hubRatio: CGFloat = 0.3
 
     /// The circle through both ends of an arc `width` wide whose line sags `sag` points from its ends to its peak at
     /// `peak` (the middle of the line).

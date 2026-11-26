@@ -284,7 +284,9 @@ extension SlotNavigationDestination {
     }
 }
 
-/// Builds the search index from the stores when the wheel opens, again only after the library or the workouts change.
+/// Keeps the search index of the stores. The index is built away from the main thread, when the app is idle after
+/// launch and again after the library or the workouts change, so opening the wheel never waits for it; a search made
+/// while a rebuild runs uses the previous index and is run again when the new one is ready.
 @MainActor
 final class NavigationSearchModel {
     private struct Signature: Equatable {
@@ -295,30 +297,54 @@ final class NavigationSearchModel {
         var skillsOnWheel: Bool
     }
 
+    /// What an index is built from: plain values copied from the stores on the main thread.
+    private struct Source: @unchecked Sendable {
+        var pages: [ExercisePage]
+        var workouts: [Workout]
+        var groups: [WorkoutGroup]
+        var skillsOnWheel: Bool
+    }
+
     private let workoutStore: WorkoutStore
     private let databaseStore: DatabaseStore
     private var signature: Signature?
     private var index = NavigationSearchIndex(entries: [])
-    private var wheelPages: Set<SlotNavigationDestination> = []
+    private var skillsOnWheel = false
+    private var building: Task<Void, Never>?
+    /// Told when a new index is ready, so a search on screen can be run again.
+    var onIndexChanged: () -> Void = {}
 
     init(workoutStore: WorkoutStore, databaseStore: DatabaseStore) {
         self.workoutStore = workoutStore
         self.databaseStore = databaseStore
     }
 
-    /// Brings the index up to date for the pages on the wheel.
+    /// Brings the index up to date for the pages on the wheel, building it in the background when anything changed.
     func prepare(wheelPages: [String]) {
-        self.wheelPages = Set(wheelPages.compactMap(SlotNavigationDestination.init(rawValue:)))
+        let onWheel = Set(wheelPages.compactMap(SlotNavigationDestination.init(rawValue:)))
         let next = Signature(
             library: databaseStore.libraryRevision,
             pages: databaseStore.allPagesFlat.count,
             workouts: workoutsSignature(),
             groups: groupsSignature(),
-            skillsOnWheel: self.wheelPages.contains(.skills)
+            skillsOnWheel: onWheel.contains(.skills)
         )
         guard next != signature else { return }
         signature = next
-        index = NavigationSearchIndex(entries: buildEntries())
+        skillsOnWheel = next.skillsOnWheel
+        let source = Source(
+            pages: databaseStore.allPagesFlat,
+            workouts: workoutStore.workouts,
+            groups: workoutStore.workoutGroups,
+            skillsOnWheel: next.skillsOnWheel
+        )
+        building?.cancel()
+        building = Task { [weak self] in
+            let entries = await Task.detached(priority: .userInitiated) { Self.entries(from: source) }.value
+            guard let self, !Task.isCancelled else { return }
+            self.index = NavigationSearchIndex(entries: entries)
+            self.onIndexChanged()
+        }
     }
 
     func search(_ query: String) -> NavigationSearchResults {
@@ -342,7 +368,8 @@ final class NavigationSearchModel {
             return databaseStore.children(of: uuid).prefix(40).map { page in
                 NavigationSearchNode(id: "library:\(page.manifest.id)", title: page.title, detail: Self.detail(for: page),
                                      symbol: Self.symbol(for: page),
-                                     target: .libraryPage(page.manifest.id, destination: destination(for: page)),
+                                     target: .libraryPage(page.manifest.id,
+                                                          destination: Self.destination(for: page, skillsOnWheel: skillsOnWheel)),
                                      isMatch: false, canExpand: !page.manifest.childIDs.isEmpty, children: [])
             }
         case .page, .workout:
@@ -370,8 +397,9 @@ final class NavigationSearchModel {
         return hasher.finalize()
     }
 
-    private func buildEntries() -> [NavigationSearchEntry] {
+    private nonisolated static func entries(from source: Source) -> [NavigationSearchEntry] {
         var entries: [NavigationSearchEntry] = []
+        entries.reserveCapacity(source.pages.count + source.workouts.count + source.groups.count + 16)
         for destination in SlotNavigationDestination.allCases where destination.isAvailable {
             entries.append(NavigationSearchEntry(
                 id: "page:\(destination.rawValue)", target: .page(destination), title: destination.title,
@@ -380,51 +408,53 @@ final class NavigationSearchModel {
         }
 
         var groupOfWorkout: [UUID: WorkoutGroup] = [:]
-        for group in workoutStore.workoutGroups {
+        for group in source.groups {
             for id in group.workoutIDs where groupOfWorkout[id] == nil { groupOfWorkout[id] = group }
             entries.append(NavigationSearchEntry(
                 id: "group:\(group.id)", target: .workoutGroup(group.id), title: group.title,
                 detail: group.workoutIDs.count == 1 ? "1 workout" : "\(group.workoutIDs.count) workouts",
-                symbol: Self.groupSymbol, hasChildren: !group.workoutIDs.isEmpty, weight: 1.05
+                symbol: groupSymbol, hasChildren: !group.workoutIDs.isEmpty, weight: 1.05
             ))
         }
-        for workout in workoutStore.workouts {
+        for workout in source.workouts {
             let group = groupOfWorkout[workout.id]
-            let trail = group.map { [NavigationSearchCrumb(id: "group:\($0.id)", title: $0.title, symbol: Self.groupSymbol,
+            let trail = group.map { [NavigationSearchCrumb(id: "group:\($0.id)", title: $0.title, symbol: groupSymbol,
                                                            target: .workoutGroup($0.id))] } ?? []
             let archived = WorkoutTitle.isArchived(workout.name, groupTitle: group?.title)
             entries.append(NavigationSearchEntry(
                 id: "workout:\(workout.id)", target: .workout(workout.id), title: workout.name,
-                detail: "Workout · \(workout.type.name)", symbol: Self.workoutSymbol, trail: trail,
+                detail: "Workout · \(workout.type.name)", symbol: workoutSymbol, trail: trail,
                 aliases: [workout.type.name], weight: archived ? 0.8 : 1.1
             ))
         }
 
-        let index = databaseStore.index
+        let index = PageIndex(pages: source.pages)
         for page in index.pages {
             let crumbs = index.breadcrumbs(for: page.id).dropLast().map { ancestor in
-                NavigationSearchCrumb(id: "library:\(ancestor.manifest.id)", title: ancestor.title,
-                                      symbol: Self.symbol(for: ancestor),
-                                      target: .libraryPage(ancestor.manifest.id, destination: destination(for: ancestor)))
+                NavigationSearchCrumb(
+                    id: "library:\(ancestor.manifest.id)", title: ancestor.title, symbol: symbol(for: ancestor),
+                    target: .libraryPage(ancestor.manifest.id,
+                                         destination: destination(for: ancestor, skillsOnWheel: source.skillsOnWheel))
+                )
             }
             entries.append(NavigationSearchEntry(
                 id: "library:\(page.manifest.id)",
-                target: .libraryPage(page.manifest.id, destination: destination(for: page)),
-                title: page.title, detail: Self.detail(for: page), symbol: Self.symbol(for: page), trail: Array(crumbs),
-                hasChildren: !page.manifest.childIDs.isEmpty, weight: Self.weight(for: page)
+                target: .libraryPage(page.manifest.id, destination: destination(for: page, skillsOnWheel: source.skillsOnWheel)),
+                title: page.title, detail: detail(for: page), symbol: symbol(for: page), trail: Array(crumbs),
+                hasChildren: !page.manifest.childIDs.isEmpty, weight: weight(for: page)
             ))
         }
         return entries
     }
 
-    private func destination(for page: ExercisePage) -> SlotNavigationDestination {
-        page.isSkillLike && page.manifest.noSkills != true && wheelPages.contains(.skills) ? .skills : .database
+    private nonisolated static func destination(for page: ExercisePage, skillsOnWheel: Bool) -> SlotNavigationDestination {
+        page.isSkillLike && page.manifest.noSkills != true && skillsOnWheel ? .skills : .database
     }
 
-    private static let workoutSymbol = "figure.strengthtraining.traditional"
-    private static let groupSymbol = "square.stack.3d.up.fill"
+    private nonisolated static let workoutSymbol = "figure.strengthtraining.traditional"
+    private nonisolated static let groupSymbol = "square.stack.3d.up.fill"
 
-    private static func symbol(for page: ExercisePage) -> String {
+    private nonisolated static func symbol(for page: ExercisePage) -> String {
         switch page.pageType {
         case .exercise: "figure.mixed.cardio"
         case .skill: "star.fill"
@@ -434,7 +464,7 @@ final class NavigationSearchModel {
         }
     }
 
-    private static func detail(for page: ExercisePage) -> String {
+    private nonisolated static func detail(for page: ExercisePage) -> String {
         switch page.pageType {
         case .exercise: "Exercise"
         case .skill: "Skill"
@@ -444,7 +474,7 @@ final class NavigationSearchModel {
         }
     }
 
-    private static func weight(for page: ExercisePage) -> Double {
+    private nonisolated static func weight(for page: ExercisePage) -> Double {
         switch page.pageType {
         case .skill: 1.08
         case .exercise: 1

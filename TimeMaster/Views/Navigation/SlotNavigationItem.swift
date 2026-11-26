@@ -61,11 +61,12 @@ enum SlotNavigationPlacement: String, CaseIterable {
         return translation.height
     }
 
-    /// Whether a drag on the bar pulls it away from its edge into the page wheel: inward and mostly straight.
+    /// Whether a drag on the bar pulls it away from its edge into the page wheel: inward, mostly straight, and far
+    /// enough that a tap or a sideways scrub that wobbles never starts it.
     func beginsWheelPull(translation: CGSize) -> Bool {
         let inward = -translation.height * outwardSign
         guard translation.width.isFinite, inward.isFinite else { return false }
-        return inward > 10 && inward > abs(translation.width) * 1.1
+        return inward > 16 && inward > abs(translation.width) * 1.4
     }
 }
 

@@ -236,6 +236,31 @@ final class PageDeckTests: XCTestCase {
         XCTAssertNil(deck.right)
         XCTAssertTrue(deck.isResting)
     }
+
+    /// The wheel moves the page behind it as a shell, keeps the page it opened on built, and builds the page it rests
+    /// on only after a pause.
+    func testAPageTheWheelPassesStaysAShellUntilTheWheelRestsOnIt() async throws {
+        let deck = PageDeck(page: "home")
+        deck.retain("home")
+        deck.go(to: "schedule", order: order, buildDelay: 0.8)
+        try await waitUntil { deck.isResting }
+        XCTAssertEqual(deck.left, "schedule")
+        XCTAssertEqual(deck.roster.live, ["home"], "the slide shows the shell, and the page the wheel opened on stays built")
+        deck.go(to: "database", order: order, buildDelay: 0.8)
+        try await waitUntil { deck.roster.live.contains("database") }
+        XCTAssertFalse(deck.roster.live.contains("schedule"), "a page the wheel only passed is never built")
+        XCTAssertTrue(deck.roster.live.contains("home"))
+        deck.retain(nil)
+        XCTAssertEqual(deck.roster.live, ["database"], "letting go drops the page the wheel opened on")
+    }
+
+    private func waitUntil(_ condition: () -> Bool) async throws {
+        let deadline = Date().addingTimeInterval(10)
+        while !condition(), Date() < deadline {
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+        XCTAssertTrue(condition())
+    }
 }
 
 @MainActor

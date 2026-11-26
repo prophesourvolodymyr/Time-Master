@@ -38,6 +38,9 @@ struct TmaxGlowBackground: View {
 
     var intensity: Intensity = .ambient
     var rises = false
+    /// The layered gradients at rest, never the animated shader: cheap enough for a page's stand-in that appears
+    /// during a gesture.
+    var still = false
 
     var body: some View {
         glow
@@ -46,10 +49,11 @@ struct TmaxGlowBackground: View {
             .accessibilityHidden(true)
     }
 
-    /// One Metal pass fed with the animated values where the system has shaders; elsewhere the layered gradients at rest.
+    /// One Metal pass fed with the animated values where the system has shaders; elsewhere, or when `still`, the
+    /// layered gradients at rest.
     @ViewBuilder
     private var glow: some View {
-        if #available(iOS 17.0, macOS 14.0, *) {
+        if #available(iOS 17.0, macOS 14.0, *), !still {
             TmaxGlowAnimatedField(intensity: intensity, rises: rises)
         } else {
             GeometryReader { proxy in

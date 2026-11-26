@@ -80,7 +80,8 @@ final class PageWheelUITests: XCTestCase {
 
         slice("schedule").tap()
         XCTAssertTrue(waitUntilSelected("schedule"), "the tapped slice opened its page")
-        XCTAssertFalse(hub.waitForExistence(timeout: 0.2) && hub.isHittable, "the wheel closed")
+        XCTAssertTrue(hub.waitForNonExistence(timeout: 3), "the wheel folded back into the bar")
+        RunLoop.current.run(until: Date().addingTimeInterval(1.2))
         keep("03-schedule-from-wheel")
     }
 

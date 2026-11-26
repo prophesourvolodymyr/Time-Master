@@ -98,9 +98,11 @@ final class PageWheelController: ObservableObject {
     @Published private(set) var rotation: CGFloat = 0
     /// The slice a holding finger or the pointer is on.
     @Published private(set) var hovered: Int?
-    /// The finger or the pointer over the wheel, in global coordinates: it lights the wheel and magnifies the slices
-    /// around it.
+    /// The finger or the pointer over the wheel, in wheel space: it magnifies the slices around it.
     @Published private(set) var touch: CGPoint?
+    /// Where the wheel's orange light sits (it stays where the finger lifted while it fades) and how bright it is.
+    @Published private(set) var light: CGPoint?
+    @Published private(set) var glow: CGFloat = 0
     @Published private(set) var results = NavigationSearchResults.empty
     @Published private(set) var expanded: [String: [NavigationSearchNode]] = [:]
     @Published var searchFocused = false
@@ -116,7 +118,14 @@ final class PageWheelController: ObservableObject {
     @Published var bubbleHeight: CGFloat = 0
     var arc = PageWheelArc.zero
     var reduceMotion = false
-    var search: NavigationSearchModel?
+    var search: NavigationSearchModel? {
+        didSet {
+            search?.onIndexChanged = { [weak self] in
+                guard let self, !self.query.isEmpty else { return }
+                self.queryChanged()
+            }
+        }
+    }
 
     /// The page behind the wheel should become `id` (the deck slides to its shell and builds it).
     var onPreview: (String) -> Void = { _ in }
@@ -183,11 +192,13 @@ final class PageWheelController: ObservableObject {
     func beginPull(selection: Int) {
         guard !items.isEmpty, phase == .closed || phase == .closing else { return }
         closeTask?.cancel()
-        pullDistance = min(max((arc.peak.y - layout.center.y) * 0.72, 150), 260)
+        pullDistance = min(max((arc.peak.y - layout.center.y) * 0.85, 180), 320)
         place(at: selection)
         formedAt = nil
         holdAnchor = nil
         hovered = nil
+        light = nil
+        glow = 0
         query = ""
         results = .empty
         expanded = [:]
@@ -208,9 +219,14 @@ final class PageWheelController: ObservableObject {
             AppInteractionHaptics.shared.crossedThreshold()
             feel(.formed)
         }
-        if progress != nextProgress { progress = nextProgress }
-        if abs(stretch - nextStretch) > 0.001 { stretch = nextStretch }
+        if progress != nextProgress || abs(stretch - nextStretch) > 0.001 {
+            withAnimation(reduceMotion ? nil : .interactiveSpring(response: 0.2, dampingFraction: 0.88, blendDuration: 0.1)) {
+                progress = nextProgress
+                stretch = nextStretch
+            }
+        }
         touch = location
+        lightUp(at: location)
         guard formedAt != nil, raw >= 0.92 else {
             setHovered(nil, now: now)
             return
@@ -224,7 +240,8 @@ final class PageWheelController: ObservableObject {
     func endPull(translation: CGSize, predicted: CGSize, now: TimeInterval = PageWheelClock.now) {
         guard phase == .pulling else { return }
         touch = nil
-        stretch = 0
+        dimLight()
+        withAnimation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.82)) { stretch = 0 }
         if let hovered, isHeld(now: now) {
             commit(hovered)
             return
@@ -251,11 +268,24 @@ final class PageWheelController: ObservableObject {
 
     private func open() {
         setPhase(.open)
-        withAnimation(reduceMotion ? .easeOut(duration: 0.16) : .spring(response: 0.42, dampingFraction: 0.72)) {
+        withAnimation(reduceMotion ? .easeOut(duration: 0.18) : .spring(response: 0.56, dampingFraction: 0.86)) {
             progress = 1
             stretch = 0
         }
         AppInteractionHaptics.shared.opened()
+    }
+
+    /// The orange light under the finger: it comes up softly where the finger is and follows it.
+    private func lightUp(at location: CGPoint) {
+        light = location
+        guard glow < 1 else { return }
+        withAnimation(reduceMotion ? nil : EverBounceMotion.lightOn) { glow = 1 }
+    }
+
+    /// The light fades where the finger left it.
+    private func dimLight() {
+        guard glow > 0 else { return }
+        withAnimation(reduceMotion ? nil : EverBounceMotion.lightOff) { glow = 0 }
     }
 
     // MARK: Using the open wheel
@@ -264,6 +294,7 @@ final class PageWheelController: ObservableObject {
     func touchBegan(at location: CGPoint, now: TimeInterval = PageWheelClock.now) {
         guard phase == .open else { return }
         touch = location
+        lightUp(at: location)
         spinStart = location
         let geometry = geometry(at: 1)
         touchOnHub = geometry.distance(to: location) <= geometry.hubRadius
@@ -278,6 +309,7 @@ final class PageWheelController: ObservableObject {
     func touchMoved(to location: CGPoint, from start: CGPoint, now: TimeInterval = PageWheelClock.now) {
         guard phase == .open else { return }
         touch = location
+        light = location
         let geometry = geometry(at: 1)
         if touchOnHub {
             let slice = geometry.distance(to: location) > geometry.hubRadius
@@ -306,6 +338,7 @@ final class PageWheelController: ObservableObject {
         guard phase == .open else { return }
         let fromHub = touchOnHub
         touch = nil
+        dimLight()
         spinStart = nil
         touchOnHub = false
         if spin.phase == .tracking {
@@ -339,8 +372,10 @@ final class PageWheelController: ObservableObject {
         touch = location
         guard let location else {
             setHovered(nil, now: now)
+            dimLight()
             return
         }
+        lightUp(at: location)
         let geometry = geometry(at: 1)
         let slice = geometry.distance(to: location) <= geometry.radius * 1.08
             ? geometry.slice(at: location, rotation: rotation) : nil
@@ -398,6 +433,7 @@ final class PageWheelController: ObservableObject {
         cancelPreview()
         searchFocused = false
         touch = nil
+        dimLight()
         setHovered(nil, now: PageWheelClock.now)
         setPhase(.closing)
         if id == nil { onCancel() }
@@ -406,8 +442,8 @@ final class PageWheelController: ObservableObject {
         closeTask = Task { @MainActor [weak self] in
             if delay > 0 { try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000)) }
             guard let self, !Task.isCancelled else { return }
-            let duration = self.reduceMotion ? 0.16 : 0.46
-            withAnimation(self.reduceMotion ? .easeOut(duration: duration) : .spring(response: 0.44, dampingFraction: 0.86)) {
+            let duration = self.reduceMotion ? 0.16 : 0.5
+            withAnimation(self.reduceMotion ? .easeOut(duration: duration) : .spring(response: 0.48, dampingFraction: 0.9)) {
                 self.progress = 0
                 self.stretch = 0
             }
@@ -455,6 +491,11 @@ final class PageWheelController: ObservableObject {
         } else {
             expanded[node.id] = search?.children(of: node.target) ?? []
         }
+    }
+
+    /// Builds the search index in the background ahead of the first pull.
+    func warmUp() {
+        search?.prepare(wheelPages: items.map(\.id))
     }
 
     private func queryChanged() {

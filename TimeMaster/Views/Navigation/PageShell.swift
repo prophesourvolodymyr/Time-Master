@@ -42,7 +42,7 @@ struct PageShell: View {
         case .analytics, .database, .physique, .profile, .ranked, .schedule, .skills, .workouts:
             ZStack {
                 Theme.background.ignoresSafeArea()
-                TmaxGlowBackground()
+                TmaxGlowBackground(still: true)
             }
         case .map:
             ZStack {

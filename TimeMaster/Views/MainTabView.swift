@@ -165,6 +165,8 @@ struct MainTabView: View {
             objects.badges.connect(workoutStore: workoutStore, aiStore: aiStore, resume: WorkoutResumeManager.shared)
             if objects.wheel.search == nil {
                 objects.wheel.search = NavigationSearchModel(workoutStore: workoutStore, databaseStore: databaseStore)
+                let wheel = objects.wheel
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { wheel.warmUp() }
             }
             ensureSelection()
 #if os(macOS)

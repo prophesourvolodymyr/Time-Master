@@ -140,8 +140,12 @@ struct SlotCarouselNavigationBar: View, Animatable {
     @State private var edgeScrollTask: Task<Void, Never>?
     @State private var edgeDirection = 0
     @State private var jiggle = false
+    /// Where the finger came down; the ripple of light spreads from there.
     @State private var press: CGPoint?
     @State private var isPressed = false
+    @State private var pressGlow: CGFloat = 0
+    @State private var pressRipple: CGFloat = 0
+    @State private var pressTracking = false
     @GestureState private var itemGestureActive = false
     @GestureState private var reelIsTracking = false
     @GestureState private var touchIsActive = false
@@ -333,7 +337,8 @@ struct SlotCarouselNavigationBar: View, Animatable {
                     curveOffset: curveOffset,
                     expansion: expandedAmount,
                     press: press.map { CGPoint(x: $0.x, y: $0.y - (placement == .bottom ? size.height - surfaceHeight : 0)) },
-                    isLit: isPressed && !isEditing
+                    glow: isEditing ? 0 : pressGlow,
+                    ripple: pressRipple
                 )
                 .frame(height: surfaceHeight)
                 .scaleEffect(
@@ -389,7 +394,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
             .simultaneousGesture(
                 DragGesture(minimumDistance: 0, coordinateSpace: .local)
                     .updating($touchIsActive) { _, active, _ in active = true }
-                    .onChanged { value in pressMoved(to: value.location) }
+                    .onChanged { value in pressChanged(start: value.startLocation, location: value.location) }
                     .onEnded { _ in pressEnded() }
             )
             .highPriorityGesture(
@@ -482,19 +487,39 @@ struct SlotCarouselNavigationBar: View, Animatable {
         }
     }
 
-    private func pressMoved(to location: CGPoint) {
-        guard location.x.isFinite, location.y.isFinite else { return }
-        if let press, abs(press.x - location.x) < 1, abs(press.y - location.y) < 1 { return }
-        press = location
-        guard !isPressed else { return }
-        AppInteractionHaptics.shared.preparePress()
-        withAnimation(reduceMotion ? nil : EverBounceMotion.liftOn) { isPressed = true }
+    /// A finger came down on the bar: the arc lifts a little and a glow blooms where it touched. As soon as the finger
+    /// moves (a scrub or a pull) or lifts, the glow ripples out and fades and the arc settles, like a button's light.
+    private func pressChanged(start: CGPoint, location: CGPoint) {
+        guard start.x.isFinite, start.y.isFinite, location.x.isFinite, location.y.isFinite else { return }
+        if !pressTracking {
+            pressTracking = true
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                press = start
+                pressRipple = 0
+            }
+            AppInteractionHaptics.shared.preparePress()
+            withAnimation(reduceMotion ? nil : EverBounceMotion.lightOn) { pressGlow = 1 }
+            withAnimation(reduceMotion ? nil : EverBounceMotion.liftOn) { isPressed = true }
+            return
+        }
+        guard hypot(location.x - start.x, location.y - start.y) > 8 else { return }
+        releasePress()
     }
 
     private func pressEnded() {
-        guard isPressed || press != nil else { return }
+        pressTracking = false
+        releasePress()
+    }
+
+    private func releasePress() {
+        guard isPressed || pressGlow > 0 else { return }
         withAnimation(reduceMotion ? nil : EverBounceMotion.liftOff) { isPressed = false }
-        withAnimation(EverBounceMotion.lightOff) { press = nil }
+        withAnimation(reduceMotion ? .easeOut(duration: 0.15) : .easeOut(duration: 0.5)) {
+            pressGlow = 0
+            pressRipple = 1
+        }
     }
 
     private var visibleItemCount: Int {
@@ -1209,7 +1234,8 @@ private extension CGPoint {
 
 // MARK: - Surface
 
-/// The arc's surface. Under a finger the glass is washed with light around the touch and its rim catches it.
+/// The arc's surface. Under a finger the glass blooms with warm light around the touch, its rim catches it, and the
+/// light ripples outward as it fades.
 private struct SlotArcSurface: View {
     let theme: SlotNavigationTheme
     let edgeSafeArea: CGFloat
@@ -1217,7 +1243,8 @@ private struct SlotArcSurface: View {
     let curveOffset: CGFloat
     let expansion: CGFloat
     var press: CGPoint?
-    var isLit = false
+    var glow: CGFloat = 0
+    var ripple: CGFloat = 0
     #if os(macOS)
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     #endif
@@ -1243,33 +1270,14 @@ private struct SlotArcSurface: View {
 
     @ViewBuilder
     private func light(_ shape: SlotArcShape) -> some View {
-        if isLit, let press {
-            GeometryReader { proxy in
-                let size = proxy.size
-                let center = UnitPoint(x: press.x / max(size.width, 1), y: press.y / max(size.height, 1))
-                ZStack {
-                    shape.fill(RadialGradient(
-                        stops: [
-                            .init(color: .white.opacity(0.15), location: 0),
-                            .init(color: .white.opacity(0.05), location: 0.45),
-                            .init(color: .white.opacity(0), location: 1)
-                        ],
-                        center: center, startRadius: 0, endRadius: 150
-                    ))
-                    .blendMode(.plusLighter)
-                    SlotArcLineShape(curveOffset: curveOffset, placement: placement, expansion: expansion)
-                        .stroke(RadialGradient(
-                            stops: [
-                                .init(color: .white.opacity(0.7), location: 0),
-                                .init(color: Theme.toolbarOrange.opacity(0.35), location: 0.4),
-                                .init(color: .white.opacity(0), location: 1)
-                            ],
-                            center: center, startRadius: 0, endRadius: 170
-                        ), lineWidth: 1.6)
-                }
-            }
-            .allowsHitTesting(false)
-            .transition(.opacity)
+        if let press {
+            SlotArcPressLight(
+                shape: shape,
+                line: SlotArcLineShape(curveOffset: curveOffset, placement: placement, expansion: expansion),
+                point: press,
+                glow: glow,
+                ripple: ripple
+            )
         }
     }
 
@@ -1298,4 +1306,52 @@ private struct SlotArcSurface: View {
         }
     }
     #endif
+}
+
+/// The light of a press on the arc: a warm bloom on the glass and an orange-lit rim around the touch. `glow` fades it
+/// and `ripple` spreads it outward as it goes; at rest it draws nothing.
+private struct SlotArcPressLight: View, Animatable {
+    let shape: SlotArcShape
+    let line: SlotArcLineShape
+    let point: CGPoint
+    var glow: CGFloat
+    var ripple: CGFloat
+
+    var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(glow, ripple) }
+        set {
+            glow = newValue.first
+            ripple = newValue.second
+        }
+    }
+
+    var body: some View {
+        if glow > 0.001 {
+            GeometryReader { proxy in
+                let size = proxy.size
+                let center = UnitPoint(x: point.x / max(size.width, 1), y: point.y / max(size.height, 1))
+                let reach = 110 + 170 * ripple
+                ZStack {
+                    shape.fill(RadialGradient(
+                        stops: [
+                            .init(color: Theme.toolbarOrange.opacity(0.3 * glow), location: 0),
+                            .init(color: Theme.toolbarOrange.opacity(0.1 * glow), location: 0.45),
+                            .init(color: Theme.toolbarOrange.opacity(0), location: 1)
+                        ],
+                        center: center, startRadius: 0, endRadius: reach
+                    ))
+                    .blendMode(.plusLighter)
+                    line.stroke(RadialGradient(
+                        stops: [
+                            .init(color: .white.opacity(0.65 * glow), location: 0),
+                            .init(color: Theme.toolbarOrange.opacity(0.55 * glow), location: 0.35),
+                            .init(color: Theme.toolbarOrange.opacity(0), location: 1)
+                        ],
+                        center: center, startRadius: 0, endRadius: reach * 1.15
+                    ), lineWidth: 1.6)
+                }
+            }
+            .allowsHitTesting(false)
+        }
+    }
 }

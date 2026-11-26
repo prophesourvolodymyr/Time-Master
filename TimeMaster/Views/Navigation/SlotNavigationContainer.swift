@@ -131,7 +131,6 @@ struct SlotCarouselNavigation<Content: View>: View {
                         .allowsHitTesting(false)
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
-                .clipped()
                 .contentShape(Rectangle())
                 #if os(iOS)
                 .background {
@@ -233,7 +232,7 @@ struct SlotCarouselNavigation<Content: View>: View {
                 }
                 interaction.barSelects = false
                 if let destination, deck.target != destination || deck.isResting {
-                    deck.go(to: destination, order: order)
+                    deck.go(to: destination, order: order, buildDelay: wheelIsActive ? Self.closingBuildDelay : nil)
                 }
                 badges.pageShown(destination)
                 hiddenNavigationDismissTask?.cancel()
@@ -422,7 +421,7 @@ struct SlotCarouselNavigation<Content: View>: View {
         let selection = $selection
         let interaction = interaction
         let open = onOpenSearchTarget
-        wheel.onPreview = { id in deck.go(to: id, order: wheel.items.map(\.id)) }
+        wheel.onPreview = { id in deck.go(to: id, order: wheel.items.map(\.id), buildDelay: Self.holdBuildDelay) }
         wheel.onCommit = { id in
             guard selection.wrappedValue != id else { return }
             interaction.barSelects = true
@@ -439,8 +438,21 @@ struct SlotCarouselNavigation<Content: View>: View {
         wheel.onPhaseChange = { phase in
             let active = phase != .closed
             if wheelIsActive != active { wheelIsActive = active }
+            switch phase {
+            case .pulling: deck.retain(selection.wrappedValue)
+            case .closed:
+                deck.retain(nil)
+                deck.buildTarget()
+            case .open, .closing: break
+            }
         }
     }
+
+    /// How long the wheel rests on a page before the page behind it is built for real (until then it is its shell).
+    private static var holdBuildDelay: Double { 0.65 }
+    /// A page chosen on the wheel is built once the wheel has folded back into the bar (the wheel builds it the moment it
+    /// has closed; this is the latest it waits).
+    private static var closingBuildDelay: Double { 1.2 }
 
     private func openWheel(searching: Bool) {
         guard navigationInteractionEnabled, !items.isEmpty else { return }

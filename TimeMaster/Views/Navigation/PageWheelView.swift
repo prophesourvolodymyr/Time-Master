@@ -38,6 +38,8 @@ struct PageWheelOverlay: View {
                     rotation: wheel.rotation,
                     hovered: wheel.hovered,
                     touch: wheel.touch,
+                    light: wheel.light,
+                    glow: wheel.glow,
                     items: wheel.items,
                     arc: wheel.arc,
                     badges: badges,
@@ -55,7 +57,7 @@ struct PageWheelOverlay: View {
                     .frame(width: layout.searchBar.width, height: layout.searchBar.height)
                     .position(x: layout.searchBar.midX, y: layout.searchBar.midY)
                     .opacity(searchOpacity(progress))
-                    .scaleEffect(0.86 + 0.14 * searchOpacity(progress), anchor: .top)
+                    .offset(y: reduceMotion ? 0 : -18 * (1 - searchOpacity(progress)))
                     .allowsHitTesting(wheel.phase == .open)
 
                 if wheel.phase == .open, !wheel.query.isEmpty, !wheel.results.tree.isEmpty || wheel.results.isEmpty {
@@ -83,16 +85,21 @@ struct PageWheelOverlay: View {
         #endif
     }
 
+    /// The search field arrives once the wheel has mostly formed, sliding down a little as it fades in.
     private func searchOpacity(_ progress: CGFloat) -> CGFloat {
-        min(1, max(0, (progress - 0.55) / 0.45))
+        let amount = min(1, max(0, (progress - 0.5) / 0.5))
+        return amount * amount * (3 - 2 * amount)
     }
 
+    /// The page behind dims and blurs gently at first and fully only as the wheel forms.
     private func scrim(progress: CGFloat) -> some View {
-        ZStack {
+        let amount = Double(min(max(progress, 0), 1))
+        let eased = amount * amount * (3 - 2 * amount)
+        return ZStack {
             if !reduceTransparency {
-                Rectangle().fill(.ultraThinMaterial).opacity(Double(progress) * 0.9)
+                Rectangle().fill(.ultraThinMaterial).opacity(eased * 0.9)
             }
-            Color.black.opacity(Double(progress) * (reduceTransparency ? 0.82 : 0.5))
+            Color.black.opacity(eased * (reduceTransparency ? 0.82 : 0.5))
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
@@ -202,6 +209,8 @@ private struct PageWheelFace: View, Animatable {
     let rotation: CGFloat
     let hovered: Int?
     let touch: CGPoint?
+    let light: CGPoint?
+    let glow: CGFloat
     let items: [SlotNavigationItem]
     let arc: PageWheelArc
     let badges: SlotNavigationBadges
@@ -236,10 +245,14 @@ private struct PageWheelFace: View, Animatable {
         let formed = min(1, max(0, (amount - 0.25) / 0.6))
 
         ZStack {
-            PageWheelDisk(geometry: geometry, rotation: rotation, touch: touch, formed: formed, theme: theme)
+            PageWheelDisk(geometry: geometry, rotation: rotation, formed: formed, theme: theme)
+
+            if let light {
+                PageWheelTouchLight(geometry: geometry, point: light, glow: glow)
+            }
 
             if geometry.hubRadius > 6 {
-                PageWheelHub(side: geometry.hubRadius * 1.3, isPressed: touch.map { geometry.distance(to: $0) <= geometry.hubRadius } ?? false)
+                PageWheelHub(side: geometry.hubRadius * 1.08, isPressed: touch.map { geometry.distance(to: $0) <= geometry.hubRadius } ?? false)
                     .position(geometry.center)
                     .opacity(Double(formed))
             }
@@ -255,8 +268,8 @@ private struct PageWheelFace: View, Animatable {
                 let isTop = index == top
                 let isHovered = index == hovered
                 let barSize = 24 + 8 * barFocus
-                let wheelSize: CGFloat = isTop ? 34 : 29
-                let size = (barSize + (wheelSize - barSize) * amount) * (1 + (reduceMotion ? 0 : 0.34 * lens * lens) + (isHovered ? 0.12 : 0))
+                let wheelSize: CGFloat = isTop ? 27 : 22
+                let size = (barSize + (wheelSize - barSize) * amount) * (1 + (reduceMotion ? 0 : 0.22 * lens * lens) + (isHovered ? 0.1 : 0))
                 let barLabel = barFocus * barFocus
                 PageWheelItem(
                     item: item,
@@ -282,10 +295,11 @@ private struct PageWheelFace: View, Animatable {
     }
 }
 
+/// The wheel's dark glass. While the arc is still rising it keeps the bar's own surface and shadow, so the moment the
+/// bar becomes the wheel nothing jumps; the wheel's soft highlight and its dividers come in as it forms.
 private struct PageWheelDisk: View {
     let geometry: PageWheelGeometry
     let rotation: CGFloat
-    let touch: CGPoint?
     let formed: CGFloat
     let theme: SlotNavigationTheme
 
@@ -296,13 +310,19 @@ private struct PageWheelDisk: View {
             let disk = Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
 
             var shadowed = context
-            shadowed.addFilter(.shadow(color: .black.opacity(0.55), radius: 22, x: 0, y: 10))
-            shadowed.fill(disk, with: .color(Color(hex: "0D0D0E")))
-
-            context.fill(disk, with: .radialGradient(
-                Gradient(colors: [Color(hex: "1E1E20"), Color(hex: "121213"), Color(hex: "0A0A0A")]),
-                center: CGPoint(x: center.x, y: center.y - radius * 0.35), startRadius: 0, endRadius: radius * 1.25
+            shadowed.addFilter(.shadow(
+                color: .black.opacity(0.5 + 0.05 * formed), radius: 12 + 10 * formed, x: 0, y: -8 + 18 * formed
             ))
+            shadowed.fill(disk, with: .color(theme.surface))
+
+            if formed > 0 {
+                var lit = context
+                lit.opacity = formed
+                lit.fill(disk, with: .radialGradient(
+                    Gradient(colors: [Color(hex: "1E1E20"), Color(hex: "121213"), Color(hex: "0A0A0A")]),
+                    center: CGPoint(x: center.x, y: center.y - radius * 0.35), startRadius: 0, endRadius: radius * 1.25
+                ))
+            }
 
             if geometry.count > 0, formed > 0 {
                 let half = geometry.spacing / 2
@@ -315,24 +335,48 @@ private struct PageWheelDisk: View {
                 context.stroke(separators, with: .color(.white.opacity(0.07 * formed)), lineWidth: 1)
             }
 
-            if let touch {
-                var lit = context
-                lit.clip(to: disk)
-                lit.blendMode = .plusLighter
-                lit.fill(disk, with: .radialGradient(
-                    Gradient(colors: [.white.opacity(0.16), .white.opacity(0.05), .clear]),
-                    center: touch, startRadius: 0, endRadius: min(170, radius * 0.9)
-                ))
-            }
-
             context.stroke(disk, with: .color(theme.rim), lineWidth: 1)
-            if let touch {
-                context.stroke(disk, with: .radialGradient(
-                    Gradient(colors: [.white.opacity(0.6), .white.opacity(0.0)]),
-                    center: touch, startRadius: 0, endRadius: 150
-                ), lineWidth: 1.4)
-            }
         }
+    }
+}
+
+/// The orange light under the finger: a warm glow on the glass around the touch and the rim catching it nearby. It
+/// comes up softly, follows the finger and fades where the finger lifted.
+private struct PageWheelTouchLight: View, Animatable {
+    let geometry: PageWheelGeometry
+    let point: CGPoint
+    var glow: CGFloat
+
+    var animatableData: CGFloat {
+        get { glow }
+        set { glow = newValue }
+    }
+
+    var body: some View {
+        Canvas { context, _ in
+            guard glow > 0.001 else { return }
+            let center = geometry.center
+            let radius = geometry.radius
+            let disk = Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
+            let orange = Theme.toolbarOrange
+            let reach = min(150, max(70, radius * 0.72))
+            var lit = context
+            lit.clip(to: disk)
+            lit.blendMode = .plusLighter
+            lit.fill(disk, with: .radialGradient(
+                Gradient(stops: [
+                    .init(color: orange.opacity(0.42 * glow), location: 0),
+                    .init(color: orange.opacity(0.16 * glow), location: 0.45),
+                    .init(color: orange.opacity(0), location: 1)
+                ]),
+                center: point, startRadius: 0, endRadius: reach
+            ))
+            context.stroke(disk, with: .radialGradient(
+                Gradient(colors: [orange.opacity(0.95 * glow), orange.opacity(0)]),
+                center: point, startRadius: 0, endRadius: reach * 1.1
+            ), lineWidth: 1.6)
+        }
+        .allowsHitTesting(false)
     }
 }
 

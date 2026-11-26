@@ -42,6 +42,11 @@ final class PageDeck: ObservableObject {
     private var mountTask: Task<Void, Never>?
     private var dragDirection: CGFloat = 0
     private var dragOrigin: String?
+    /// A page kept built while the wheel is open (the one that was showing), so closing the wheel without a choice
+    /// goes back to it as it was.
+    private var retained: String?
+    /// The page whose build waits for a pause, while the wheel moves through pages behind its glass.
+    private var deferred: String?
 
     static let duration: Double = 0.34
     static let curve = Animation.timingCurve(0.18, 0.84, 0.22, 1, duration: duration)
@@ -125,8 +130,10 @@ final class PageDeck: ObservableObject {
 
     // MARK: Going to a page
 
-    /// Slides from what is on screen now to `id`, builds it half way and rests on it.
-    func go(to id: String, order: [String] = []) {
+    /// Slides from what is on screen now to `id`, builds it half way and rests on it. With `buildDelay` the slide shows
+    /// only the page's shell and the real page is built once the deck has stayed on it that long: the wheel moves the
+    /// page behind it this way, so building a page never stalls the wheel under the finger.
+    func go(to id: String, order: [String] = [], buildDelay: Double? = nil) {
         dragOrigin = nil
         cancelMotion()
         if !roster.live.contains(id) {
@@ -135,15 +142,17 @@ final class PageDeck: ObservableObject {
         }
         target = id
         isResting = false
+        deferred = buildDelay == nil ? nil : id
 
         if left == id, right == nil, abs(split) < 0.001 {
+            if let buildDelay { scheduleBuild(id, after: buildDelay) }
             finish(on: id)
             return
         }
 
         if reduceMotion {
             withoutAnimation { assign(left: id, right: nil, split: 0) }
-            scheduleBuild(id, after: 0)
+            scheduleBuild(id, after: buildDelay ?? 0)
             settle(on: id, after: 0.02)
             return
         }
@@ -168,7 +177,7 @@ final class PageDeck: ObservableObject {
         withAnimation(Self.curve.speed(1 / distance)) {
             split = goal
         }
-        scheduleBuild(id, after: duration * Self.buildPoint)
+        scheduleBuild(id, after: buildDelay ?? duration * Self.buildPoint)
         settle(on: id, after: duration + 0.02)
     }
 
@@ -235,12 +244,30 @@ final class PageDeck: ObservableObject {
             assign(left: id, right: nil, split: 0)
             isResting = true
         }
-        if !roster.live.contains(id) { build(id) }
-        let keep = roster.live.filter { $0 == id }
+        if deferred != id, !roster.live.contains(id) { build(id) }
+        let keep = roster.live.filter { $0 == id || $0 == retained }
         if keep != roster.live { roster.live = keep }
         revealed = revealed.intersection(keep)
         settled = settled.intersection(keep)
         onRest(id)
+    }
+
+    /// Keeps `id` built until it is let go (nil), when the deck drops it unless it is the page shown.
+    func retain(_ id: String?) {
+        retained = id
+        guard id == nil, isResting else { return }
+        let keep = roster.live.filter { $0 == target }
+        if keep != roster.live { roster.live = keep }
+        revealed = revealed.intersection(keep)
+        settled = settled.intersection(keep)
+    }
+
+    /// Builds the page the deck is on, now: the wheel that was moving it has closed.
+    func buildTarget() {
+        deferred = nil
+        guard !roster.live.contains(target) else { return }
+        mountTask?.cancel()
+        build(target)
     }
 
     private func cancelMotion() {
