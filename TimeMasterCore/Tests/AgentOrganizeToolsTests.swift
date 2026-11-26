@@ -1020,6 +1020,44 @@ final class AgentOrganizeToolsTests: XCTestCase {
         XCTAssertEqual(try titles(in: "Boxing"), ["Jab"])
     }
 
+    func testABoardComesBackFromTheTrashWithItsGroupFilesAndItsSkillsInTheirGroup() throws {
+        try folder("Wrestling")
+        try skill("Arm Drag", in: "Wrestling", group: "Hand Fighting")
+        let boardID = try pageID("Wrestling")
+        let section = try XCTUnwrap(try database.getPage(id: boardID).skillBoardSections.first)
+        let groupFile = try database.uploadMediaToPage(pageID: SkillGroupID.make(containerID: boardID, sectionID: section.id), sourceURL: URL(fileURLWithPath: try file("g.jpg")))
+        try call("delete_page", ["page": "Wrestling"])
+        try call("restore_from_trash", ["item": try XCTUnwrap(try trashEntries().first)["id"] as! String])
+        let folder = try database.resolvePageFolder(id: boardID)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: SkillGroupID.mediaFolder(containerFolder: folder, sectionID: section.id).appendingPathComponent(groupFile).path))
+        XCTAssertEqual(try call("get_page", ["page": "Wrestling/Arm Drag"])["group"] as? String, "Hand Fighting")
+    }
+
+    func testAPageTrashedBeforeItsFolderIsRestoredInOrderAndFindsItsFolderAgain() throws {
+        try folder("Boxing")
+        try folder("Drills", in: "Boxing")
+        try exercise("Shadow", in: "Boxing/Drills")
+        try call("delete_page", ["page": "Boxing/Drills"])
+        try call("delete_page", ["page": "Boxing"])
+        let items = try trashEntries()
+        let boxing = try XCTUnwrap(items.first { $0["title"] as? String == "Boxing" })
+        let drills = try XCTUnwrap(items.first { $0["title"] as? String == "Drills" })
+        XCTAssertEqual(drills["parentMissing"] as? Bool, true)
+        try call("restore_from_trash", ["item": boxing["id"] as! String])
+        XCTAssertEqual(try trashEntries().first?["from"] as? String, "Boxing/Drills")
+        XCTAssertNil(try trashEntries().first?["parentMissing"])
+        XCTAssertEqual(try call("restore_from_trash", ["item": drills["id"] as! String])["path"] as? String, "Boxing/Drills")
+        XCTAssertEqual(try call("get_page", ["page": "Boxing/Drills/Shadow"])["path"] as? String, "Boxing/Drills/Shadow")
+    }
+
+    func testARestoredSkillGoesToTheEndOfItsGroup() throws {
+        try folder("Wrestling")
+        for name in ["A", "B", "C"] { try skill(name, in: "Wrestling", group: "Hand Fighting") }
+        try call("delete_page", ["page": "Wrestling/A"])
+        try call("restore_from_trash", ["item": try XCTUnwrap(try trashEntries().first)["id"] as! String])
+        XCTAssertEqual(try column("Wrestling", group: "Hand Fighting", status: .notStarted), ["B", "C", "A"])
+    }
+
     func testABatchRollsBackACopyAndAMoveWhenALaterStepFails() throws {
         try folder("Boxing")
         for name in ["Jab", "Cross"] { try exercise(name, in: "Boxing") }
