@@ -2,6 +2,8 @@ import Foundation
 
 extension Notification.Name {
     static let openAppPage = Notification.Name("com.timemaster.openAppPage")
+    /// Command-Shift-F: the page wheel opens with its search field ready.
+    static let openPageWheelCommand = Notification.Name("com.timemaster.openPageWheel")
 }
 
 enum AppCommandRequest: Equatable {

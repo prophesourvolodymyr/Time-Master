@@ -323,7 +323,6 @@ struct ScrollingChromeButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .background(SlotNavigationContentClearanceReader())
             .modifier(TimeMasterActionFeedback(
                 isPressed: configuration.isPressed,
                 cornerRadius: ScrollingChromeControl.cornerRadius(progress: progress, width: width, height: height)

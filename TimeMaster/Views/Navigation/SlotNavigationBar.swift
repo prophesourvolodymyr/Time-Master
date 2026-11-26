@@ -1,9 +1,9 @@
 // SlotNavigationBar.swift
 //
-// The curved navigation bar with its in-place editor: long-press the arc to edit, drag the
-// icons to reorder them, drag one upward to remove it, tap "+" to add a page from the
-// catalog, and tap the dimmed background to finish. Part of the CarouselNavigation component
-// from the SwiftComponentLibrary, copied into the app.
+// The curved navigation bar with its in-place editor: long-press the arc to edit, tap a page's red minus (or drag it
+// upward) to remove it, drag the icons to reorder them, tap "+" to add a page from the catalog, and tap the dimmed
+// background to finish. Under a finger the arc lights up and gives a little like the app's buttons; pulled up it turns
+// into the page wheel.
 
 import SwiftUI
 
@@ -22,29 +22,41 @@ struct SlotNavigationEditorHeader: View {
     }
 }
 
-
 // MARK: - Bar
 
 struct SlotCarouselNavigationBar: View, Animatable {
     static let inlineHeight: CGFloat = 60
     static let fullHeight: CGFloat = 96
     static let switchArchWidth: CGFloat = 2.4
-    private static let configurationHeight: CGFloat = 156
     private static let accessorySpacing: CGFloat = 12
     private static let originalArchWidth: CGFloat = 40.0 / 34.0
     private static let restingScale: CGFloat = 0.88
     private static let restingOpacity: CGFloat = 0.28
-    private static let artScale: CGFloat = 1.15
 
-    static func accessoryHeight(barHeight: CGFloat, showsCatalog: Bool, hasConfiguration: Bool) -> CGFloat {
-        (showsCatalog ? max(fullHeight, barHeight) + accessorySpacing : 0)
-            + (hasConfiguration ? configurationHeight + accessorySpacing : 0)
+    static func accessoryHeight(barHeight: CGFloat, showsCatalog: Bool) -> CGFloat {
+        showsCatalog ? max(fullHeight, barHeight) + accessorySpacing : 0
     }
 
     static func contentHeight(for layout: SlotNavigationBarLayout, barHeight: CGFloat) -> CGFloat {
         guard layout == .full else { return inlineHeight }
         let height = max(fullHeight, barHeight)
         return height + inwardClearance(for: height)
+    }
+
+    /// The arc line of a full bar laid out in `frame` (global), as the page wheel grows out of it.
+    static func wheelArc(in frame: CGRect, barHeight: CGFloat, placement: SlotNavigationPlacement) -> PageWheelArc {
+        let height = max(fullHeight, barHeight)
+        let surface = CGRect(x: frame.minX, y: placement == .bottom ? frame.maxY - height : frame.minY,
+                             width: frame.width, height: height)
+        let peakY = SlotArcGeometry.curveY(at: surface.midX, in: surface, curveOffset: platformCurveOffset, expansion: 1)
+        let edgeY = SlotArcGeometry.curveY(at: surface.minX, in: surface, curveOffset: platformCurveOffset, expansion: 1)
+        return PageWheelArc(
+            peak: CGPoint(x: surface.midX, y: placement == .bottom ? peakY : surface.minY + surface.maxY - peakY),
+            width: surface.width,
+            sag: max(1, edgeY - peakY),
+            pitch: slotWidth(for: surface.width),
+            inset: 18
+        )
     }
 
     private static func inwardClearance(for height: CGFloat) -> CGFloat {
@@ -84,16 +96,19 @@ struct SlotCarouselNavigationBar: View, Animatable {
         #endif
     }
 
+    static func slotWidth(for viewportWidth: CGFloat) -> CGFloat {
+        min(max(viewportWidth.slotFinite() * 0.22, 76), 92)
+    }
+
     @Binding private var selection: Int
     @Binding private var isEditing: Bool
     @Binding private var showsCatalog: Bool
     private let items: [SlotNavigationItem]
     private let availableItems: [SlotNavigationItem]
-    private let configuration: SlotNavigationConfiguration?
+    private let badges: SlotNavigationBadges
     private let onInsert: (String, Int) -> Void
     private let onMove: (String, Int) -> Void
     private let onRemove: (String) -> Void
-    private let onConfigure: (String) -> Void
     private let onEditingEnded: () -> Void
     private let placement: SlotNavigationPlacement
     private let edgeSafeArea: CGFloat
@@ -102,9 +117,11 @@ struct SlotCarouselNavigationBar: View, Animatable {
     private var editingAmount: CGFloat
     private let theme: SlotNavigationTheme
     private let strings: SlotNavigationStrings
-    private let onSelectionChanged: (Int) -> Void
+    private let isWheelPulling: () -> Bool
+    private let onOpenWheel: () -> Void
+    private let onWheelPull: (SlotReelWheelPull) -> Void
     private let onPageDrag: (CGFloat) -> Void
-    private let onPageDragEnded: () -> Void
+    private let onPageDragEnded: (Int?) -> Void
     private let onInteractionChanged: (Bool) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -122,13 +139,15 @@ struct SlotCarouselNavigationBar: View, Animatable {
     @State private var liftedItem: LiftedItem?
     @State private var edgeScrollTask: Task<Void, Never>?
     @State private var edgeDirection = 0
+    @State private var jiggle = false
+    @State private var press: CGPoint?
+    @State private var isPressed = false
     @GestureState private var itemGestureActive = false
     @GestureState private var reelIsTracking = false
+    @GestureState private var touchIsActive = false
     @State private var holdsExpansion = false
     @State private var reelTicks = SlotReelTicks()
-    @State private var notificationDismissalToken = 0
     #if os(macOS)
-    @GestureState private var touchIsActive = false
     /// Moves the strip outside the editor on the Mac: two-finger scrolls, drags, clicks and selections made elsewhere.
     @StateObject private var reel: SlotReel
     @State private var reelDragTranslation: CGFloat = 0
@@ -157,6 +176,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
     init(
         selection: Binding<Int>,
         items: [SlotNavigationItem],
+        badges: SlotNavigationBadges,
         placement: SlotNavigationPlacement = .bottom,
         edgeSafeArea: CGFloat = 0,
         theme: SlotNavigationTheme = .timeMaster,
@@ -166,27 +186,26 @@ struct SlotCarouselNavigationBar: View, Animatable {
         isEditing: Binding<Bool> = .constant(false),
         showsCatalog: Binding<Bool> = .constant(false),
         availableItems: [SlotNavigationItem] = [],
-        configuration: SlotNavigationConfiguration? = nil,
         onInsert: @escaping (String, Int) -> Void = { _, _ in },
         onMove: @escaping (String, Int) -> Void = { _, _ in },
         onRemove: @escaping (String) -> Void = { _ in },
-        onConfigure: @escaping (String) -> Void = { _ in },
         onEditingEnded: @escaping () -> Void = {},
-        onSelectionChanged: @escaping (Int) -> Void = { _ in },
+        isWheelPulling: @escaping () -> Bool = { false },
+        onOpenWheel: @escaping () -> Void = {},
+        onWheelPull: @escaping (SlotReelWheelPull) -> Void = { _ in },
         onPageDrag: @escaping (CGFloat) -> Void = { _ in },
-        onPageDragEnded: @escaping () -> Void = {},
+        onPageDragEnded: @escaping (Int?) -> Void = { _ in },
         onInteractionChanged: @escaping (Bool) -> Void
     ) {
         _selection = selection
         _isEditing = isEditing
         _showsCatalog = showsCatalog
         self.items = items
+        self.badges = badges
         self.availableItems = availableItems
-        self.configuration = configuration
         self.onInsert = onInsert
         self.onMove = onMove
         self.onRemove = onRemove
-        self.onConfigure = onConfigure
         self.onEditingEnded = onEditingEnded
         self.placement = placement
         self.edgeSafeArea = max(0, edgeSafeArea)
@@ -195,7 +214,9 @@ struct SlotCarouselNavigationBar: View, Animatable {
         self.barHeight = max(Self.fullHeight, barHeight)
         self.expansion = layout == .full ? 1 : 0
         self.editingAmount = isEditing.wrappedValue ? 1 : 0
-        self.onSelectionChanged = onSelectionChanged
+        self.isWheelPulling = isWheelPulling
+        self.onOpenWheel = onOpenWheel
+        self.onWheelPull = onWheelPull
         self.onPageDrag = onPageDrag
         self.onPageDragEnded = onPageDragEnded
         self.onInteractionChanged = onInteractionChanged
@@ -219,17 +240,14 @@ struct SlotCarouselNavigationBar: View, Animatable {
     private var mainHeight: CGFloat { surfaceHeight + inwardClearance }
     private var mainOriginY: CGFloat { placement == .bottom ? accessoryHeight : 0 }
     private var catalogOriginY: CGFloat {
-        placement == .bottom ? accessoryHeight - barHeight - Self.accessorySpacing
-            : mainHeight + Self.accessorySpacing
-                + Self.accessoryHeight(barHeight: barHeight, showsCatalog: false, hasConfiguration: configuration != nil)
+        placement == .bottom ? accessoryHeight - barHeight - Self.accessorySpacing : mainHeight + Self.accessorySpacing
     }
     private var scaleAnchor: UnitPoint { placement == .bottom ? .bottom : .top }
     private var accessoryTransition: AnyTransition {
         reduceMotion ? .opacity : .move(edge: placement.edge).combined(with: .opacity)
     }
     private var accessoryHeight: CGFloat {
-        Self.accessoryHeight(barHeight: barHeight, showsCatalog: isEditing && showsCatalog,
-                             hasConfiguration: isEditing && configuration != nil)
+        Self.accessoryHeight(barHeight: barHeight, showsCatalog: isEditing && showsCatalog)
     }
     private var editorAnimation: Animation? {
         reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.84)
@@ -253,11 +271,6 @@ struct SlotCarouselNavigationBar: View, Animatable {
             if placement == .top {
                 mainArc.frame(height: mainHeight)
             }
-            if isEditing, let configuration {
-                configurationView(configuration)
-                    .frame(height: Self.configurationHeight)
-                    .transition(accessoryTransition)
-            }
             if isEditing, showsCatalog {
                 catalogView
                     .frame(height: barHeight)
@@ -268,12 +281,6 @@ struct SlotCarouselNavigationBar: View, Animatable {
             }
         }
         .coordinateSpace(name: Self.coordinateSpace)
-        #if os(macOS)
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .updating($touchIsActive) { _, active, _ in active = true }
-        )
-        #endif
         .onChange(of: isInteracting) { active in
             withAnimation(active ? dragExpansionAnimation : dragWindDownAnimation) { holdsExpansion = active }
             onInteractionChanged(active)
@@ -288,10 +295,17 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 withAnimation(editorAnimation) { isEditing = true }
             }
         }
+        .accessibilityAction(named: strings.openWheel) { onOpenWheel() }
         .onChange(of: itemGestureActive) { active in
             guard !active else { return }
             DispatchQueue.main.async {
                 if !itemGestureActive { cancelLift() }
+            }
+        }
+        .onChange(of: isEditing) { editing in
+            jiggle = false
+            if editing, !reduceMotion {
+                DispatchQueue.main.async { jiggle = true }
             }
         }
         .onChange(of: scenePhase) { phase in
@@ -306,19 +320,30 @@ struct SlotCarouselNavigationBar: View, Animatable {
     private var mainArc: some View {
         GeometryReader { proxy in
             let size = proxy.size
-            let slotWidth = slotWidth(for: size.width)
+            let slotWidth = Self.slotWidth(for: size.width)
             let arcRect = CGRect(x: 0, y: inwardClearance, width: size.width, height: surfaceHeight)
             let centeredOffset = offset(for: selection, viewportWidth: size.width, slotWidth: slotWidth)
             let displayOffset = stripOffset(viewportWidth: size.width, slotWidth: slotWidth, centeredOffset: centeredOffset)
 
             ZStack {
-                SlotArcSurface(theme: theme, edgeSafeArea: (edgeSafeArea + 24 * editProgress) / arcScaleY, placement: placement,
-                               curveOffset: curveOffset, expansion: expandedAmount)
-                    .frame(height: surfaceHeight)
-                    .scaleEffect(x: arcScaleX, y: arcScaleY, anchor: scaleAnchor)
-                    .offset(y: -24 * editProgress * placement.outwardSign)
-                    .frame(height: size.height, alignment: placement.alignment)
-                    .allowsHitTesting(false)
+                SlotArcSurface(
+                    theme: theme,
+                    edgeSafeArea: (edgeSafeArea + 24 * editProgress) / arcScaleY,
+                    placement: placement,
+                    curveOffset: curveOffset,
+                    expansion: expandedAmount,
+                    press: press.map { CGPoint(x: $0.x, y: $0.y - (placement == .bottom ? size.height - surfaceHeight : 0)) },
+                    isLit: isPressed && !isEditing
+                )
+                .frame(height: surfaceHeight)
+                .scaleEffect(
+                    x: arcScaleX * (isPressed && !reduceMotion && !isEditing ? 1.012 : 1),
+                    y: arcScaleY * (isPressed && !reduceMotion && !isEditing ? 1.06 : 1),
+                    anchor: scaleAnchor
+                )
+                .offset(y: -24 * editProgress * placement.outwardSign)
+                .frame(height: size.height, alignment: placement.alignment)
+                .allowsHitTesting(false)
 
                 ZStack {
                     ForEach(items.indices, id: \.self) { index in
@@ -356,15 +381,25 @@ struct SlotCarouselNavigationBar: View, Animatable {
                     isEnabled: !isEditing && !editorHoldsStrip && !items.isEmpty,
                     pitch: slotWidth,
                     contains: { point, bounds in scrollReaches(point, in: bounds) },
-                    onLand: reelLandingHandler
+                    onLand: reelLandingHandler,
+                    onWheelPull: onWheelPull
                 )
             }
             #endif
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                    .updating($touchIsActive) { _, active, _ in active = true }
+                    .onChanged { value in pressMoved(to: value.location) }
+                    .onEnded { _ in pressEnded() }
+            )
             .highPriorityGesture(
                 reelGesture(size: size, slotWidth: slotWidth, fallbackOffset: centeredOffset),
                 including: isEditing ? .subviews : .all
             )
             .gesture(editorScrollGesture(size: size), including: isEditing ? .all : .subviews)
+            .onChange(of: touchIsActive) { active in
+                if !active { pressEnded() }
+            }
             .onChange(of: reelIsTracking) { tracking in
                 guard !tracking else { return }
                 DispatchQueue.main.async {
@@ -393,9 +428,6 @@ struct SlotCarouselNavigationBar: View, Animatable {
             }
             .onChange(of: selection) { newSelection in
                 guard !isDragging, !isEditing else { return }
-                if items.indices.contains(newSelection), items[newSelection].badgeCount > 0 {
-                    notificationDismissalToken &+= 1
-                }
                 #if os(macOS)
                 reel.resize(count: items.count)
                 reel.show(newSelection)
@@ -438,7 +470,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 withAnimation(tracking ? dragExpansionAnimation : dragWindDownAnimation) {
                     dragIntensity = tracking && !reduceMotion ? 1 : 0
                 }
-                if !tracking { onPageDragEnded() }
+                if !tracking { onPageDragEnded(reel.landing) }
             }
             .onChange(of: reel.position) { position in
                 if reel.isTracking { onPageDrag(position) }
@@ -448,6 +480,21 @@ struct SlotCarouselNavigationBar: View, Animatable {
             }
             #endif
         }
+    }
+
+    private func pressMoved(to location: CGPoint) {
+        guard location.x.isFinite, location.y.isFinite else { return }
+        if let press, abs(press.x - location.x) < 1, abs(press.y - location.y) < 1 { return }
+        press = location
+        guard !isPressed else { return }
+        AppInteractionHaptics.shared.preparePress()
+        withAnimation(reduceMotion ? nil : EverBounceMotion.liftOn) { isPressed = true }
+    }
+
+    private func pressEnded() {
+        guard isPressed || press != nil else { return }
+        withAnimation(reduceMotion ? nil : EverBounceMotion.liftOff) { isPressed = false }
+        withAnimation(EverBounceMotion.lightOff) { press = nil }
     }
 
     private var visibleItemCount: Int {
@@ -490,19 +537,22 @@ struct SlotCarouselNavigationBar: View, Animatable {
         #else
         let selectionBoost: CGFloat = 0
         #endif
+        let pressLift: CGFloat = role == .page && isPressed && !isEditing
+            ? max(0, 1 - abs((press?.x ?? -999) - itemX) / slotWidth) : 0
         let iconSize = baseIconSize + intensity * (expandedIconSize - baseIconSize) + (add ? 8 : 0) + selectionBoost
+            + (reduceMotion ? 0 : 5 * pressLift)
         let baseScale = Self.restingScale + 0.18 * focus
         let expandedScale = Self.switchScale(at: norm)
         let itemScale = (baseScale + intensity * (expandedScale - baseScale)) * (1 + (catalog ? 0 : editProgress) * 0.12)
         let baseOpacity = Self.restingOpacity + (1 - Self.restingOpacity) * proximity
         let expandedOpacity = Self.switchOpacity(at: norm)
-        let normalOpacity = baseOpacity + intensity * (expandedOpacity - baseOpacity)
+        let normalOpacity = max(baseOpacity + intensity * (expandedOpacity - baseOpacity), pressLift * 0.9)
         let itemOpacity = normalOpacity + styleEdit * (max(normalOpacity, 0.72) - normalOpacity)
         let baseLabelOpacity = focus * focus
         let expandedLabelOpacity = max(0, bubbleFactor * 2 - 0.6)
         let normalLabelOpacity = baseLabelOpacity + intensity * (expandedLabelOpacity - baseLabelOpacity)
         let labelOpacity = (normalLabelOpacity + styleEdit * (1 - normalLabelOpacity)) * amount
-        let verticalOffset = -intensity * Self.switchLift(at: norm)
+        let verticalOffset = -intensity * Self.switchLift(at: norm) - (reduceMotion ? 0 : 4 * pressLift)
         let arcY = catalog
             ? SlotArcGeometry.curveY(at: itemX, in: arcRect, curveOffset: curveOffset, expansion: 1)
             : transformedArcY(at: itemX, in: arcRect)
@@ -519,15 +569,17 @@ struct SlotCarouselNavigationBar: View, Animatable {
         let itemY = placedY(boundedY, height: size.height)
         let rootY = (catalog ? catalogOriginY : mainOriginY) + itemY
         let selected = role == .page && selection == index
-        let lit: CGFloat = role == .page ? (isEditing ? (selected ? 1 : 0) : focus) : 0
-        let manipulable = isEditing && configuration == nil && !item.isPending && !add
+        let lit: CGFloat = role == .page ? (isEditing ? (selected ? 1 : 0) : max(focus, pressLift)) : 0
+        let manipulable = isEditing && !item.isPending && !add
+        let removable = role == .page && isEditing && !item.isPending && items.count > 1
+        let badgeCount = role == .page ? badges.count(for: item.id) : 0
         #if os(macOS)
         let edgeProgress = min(1, distance / max(1, size.width / 2))
         let viewportFade = catalog || isEditing ? 1 : 1 - edgeProgress * edgeProgress * (3 - 2 * edgeProgress)
         #endif
 
         return VStack(spacing: labelSpacing) {
-            iconImage(add ? .system("plus.circle") : item.icon, size: 31, lit: lit)
+            SlotNavigationIconImage(icon: add ? .system("plus.circle") : item.icon, size: 31, lit: lit)
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(add ? theme.accent : theme.textPrimary)
                 .scaleEffect(iconSize / 31)
@@ -539,21 +591,20 @@ struct SlotCarouselNavigationBar: View, Animatable {
                             .foregroundStyle(item.isPending ? theme.textSecondary : theme.accent)
                             .background(Circle().fill(theme.surface))
                             .offset(x: 9, y: -2)
-                    } else if isEditing, item.isConfigurable {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(theme.textSecondary)
-                            .offset(x: 11, y: -2)
-                    } else if !isEditing, item.badgeCount > 0 {
-                        SlotCarouselNotificationBadge(
-                            color: theme.destructive,
-                            labelColor: theme.badgeText,
-                            count: item.badgeCount,
-                            dismissalToken: notificationDismissalToken,
-                            isSelected: selected,
-                            reduceMotion: reduceMotion
-                        )
-                        .offset(x: 10, y: -4)
+                    } else if !isEditing, role == .page {
+                        SlotNavigationBadgeView(badges: badges, id: item.id)
+                            .offset(x: 12, y: -5)
+                    }
+                }
+                .overlay(alignment: .topLeading) {
+                    if removable {
+                        SlotNavigationRemoveButton(title: item.title, strings: strings, theme: theme) {
+                            AppInteractionHaptics.shared.pressed()
+                            withAnimation(editorAnimation) { onRemove(item.id) }
+                        }
+                        .accessibilityIdentifier("navigation-remove-\(item.id)")
+                        .offset(x: -12, y: -6)
+                        .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
                     }
                 }
                 .accessibilityHidden(true)
@@ -571,6 +622,8 @@ struct SlotCarouselNavigationBar: View, Animatable {
         }
         .frame(width: slotWidth, height: itemHeight)
         .contentShape(Rectangle())
+        .rotationEffect(.degrees(removable && jiggle ? (index.isMultiple(of: 2) ? 1.8 : -1.8) : 0))
+        .animation(removable && jiggle ? .easeInOut(duration: 0.13).repeatForever(autoreverses: true) : .easeOut(duration: 0.12), value: jiggle)
         .scaleEffect(itemScale, anchor: scaleAnchor)
         .opacity(liftedItem?.item.id == item.id ? 0 : (item.isPending ? (catalog ? 0.55 : 0.4) : itemOpacity))
         #if os(macOS)
@@ -581,7 +634,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
             if !isEditing {
                 if items.indices.contains(index) { AppInteractionHaptics.shared.settled() }
                 settle(on: index, viewportWidth: size.width, slotWidth: slotWidth, projectedTranslation: 0)
-            } else if configuration == nil {
+            } else {
                 switch role {
                 case .prepend, .append:
                     withAnimation(editorAnimation) {
@@ -592,12 +645,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 case .catalog:
                     withAnimation(editorAnimation) { onInsert(item.id, prependInsertion ? 0 : items.count) }
                 case .page:
-                    if item.isConfigurable {
-                        withAnimation(editorAnimation) {
-                            showsCatalog = true
-                            onConfigure(item.id)
-                        }
-                    }
+                    break
                 }
             }
         }
@@ -611,8 +659,9 @@ struct SlotCarouselNavigationBar: View, Animatable {
         .accessibilityLabel(catalog ? strings.addToNavigation(item.title) : (add ? (role == .prepend ? strings.addItemAtStart : strings.addItemAtEnd) : item.title))
         .accessibilityValue(catalog
             ? (item.isPending ? strings.alreadyAddedValue : strings.notSelectedValue)
-            : (selected ? strings.selectedValue : strings.notSelectedValue))
-        .accessibilityHint(isEditing && item.isConfigurable ? strings.configurableHint : item.accessibilityHint)
+            : ([selected ? strings.selectedValue : strings.notSelectedValue, SlotNavigationBadge.accessibilityText(badgeCount)]
+                .compactMap { $0 }.joined(separator: ", ")))
+        .accessibilityHint(item.accessibilityHint)
         .accessibilityAddTraits(selected ? [.isButton, .isSelected] : [.isButton])
         .accessibilityAdjustableAction { direction in
             guard role == .page else { return }
@@ -630,13 +679,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
             }
         }
         .accessibilityAction(named: strings.removeFromNavigation) {
-            if manipulable && role == .page { onRemove(item.id) }
-        }
-        .accessibilityAction(named: strings.changeSource) {
-            if manipulable && role == .page && item.isConfigurable {
-                showsCatalog = true
-                onConfigure(item.id)
-            }
+            if removable { onRemove(item.id) }
         }
         .position(x: itemX, y: itemY)
         .zIndex(1 + zIndex)
@@ -644,35 +687,10 @@ struct SlotCarouselNavigationBar: View, Animatable {
         .animation(isEditing ? editorAnimation : nil, value: liftedItem?.removes)
     }
 
-    @ViewBuilder
-    private func iconImage(_ icon: SlotNavigationIcon, size: CGFloat, lit: CGFloat) -> some View {
-        switch icon {
-        case let .system(name):
-            Image(systemName: name)
-                .font(.system(size: size, weight: .semibold))
-        case let .art(litName, unlitName):
-            ZStack {
-                Image(unlitName)
-                    .resizable()
-                    .interpolation(.high)
-                    .scaledToFit()
-                    .opacity(1 - lit)
-                Image(litName)
-                    .resizable()
-                    .interpolation(.high)
-                    .scaledToFit()
-                    .opacity(lit)
-                    .blendMode(.plusLighter)
-            }
-            .compositingGroup()
-            .frame(width: size * Self.artScale, height: size * Self.artScale)
-        }
-    }
-
     private var catalogView: some View {
         GeometryReader { proxy in
             let size = proxy.size
-            let slotWidth = slotWidth(for: size.width)
+            let slotWidth = Self.slotWidth(for: size.width)
             let initial = offset(for: 0, viewportWidth: size.width, slotWidth: slotWidth)
             ZStack {
                 SlotArcSurface(theme: theme, edgeSafeArea: 0, placement: placement, curveOffset: curveOffset, expansion: 1)
@@ -688,7 +706,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
             .clipped()
             .contentShape(Rectangle())
             .gesture(DragGesture(minimumDistance: 8).onChanged { value in
-                guard configuration == nil, liftedItem == nil else { return }
+                guard liftedItem == nil else { return }
                 if !catalogIsScrolling {
                     catalogIsScrolling = true
                     catalogStartOffset = catalogOffset
@@ -716,21 +734,21 @@ struct SlotCarouselNavigationBar: View, Animatable {
     }
 
     private func boundCatalog(width: CGFloat) {
-        let slot = slotWidth(for: width)
+        let slot = Self.slotWidth(for: width)
         let minimum = offset(for: max(availableItems.count - 1, 0), viewportWidth: width, slotWidth: slot)
         let maximum = offset(for: 0, viewportWidth: width, slotWidth: slot)
         catalogOffset = min(max(catalogOffset, minimum), maximum)
     }
 
     private func editorBoundedOffset(_ value: CGFloat, size: CGSize) -> CGFloat {
-        let slot = slotWidth(for: size.width)
+        let slot = Self.slotWidth(for: size.width)
         let minimum = offset(for: items.count, viewportWidth: size.width, slotWidth: slot)
         let maximum = offset(for: -1, viewportWidth: size.width, slotWidth: slot)
         return min(max(value, minimum), maximum)
     }
 
     private func scrollEditor(_ value: DragGesture.Value, size: CGSize) {
-        guard configuration == nil, liftedItem == nil else { return }
+        guard liftedItem == nil else { return }
         if !isDragging {
             isDragging = true
             dragStartOffset = reelOffset
@@ -753,8 +771,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 if case .second(true, _) = value { active = true }
             }
             .onChanged { value in
-                guard isEditing, configuration == nil,
-                      case let .second(true, drag?) = value else { return }
+                guard isEditing, case let .second(true, drag?) = value else { return }
                 if liftedItem == nil {
                     isDragging = false
                     catalogIsScrolling = false
@@ -788,8 +805,8 @@ struct SlotCarouselNavigationBar: View, Animatable {
         lifted.location = location
         let point = lifted.center
         let localY = placedY(point.y - mainOriginY, height: size.height)
-        lifted.removes = lifted.originalIndex != nil && localY < -16
-        let column = (point.x - reelOffset) / slotWidth(for: size.width)
+        lifted.removes = lifted.originalIndex != nil && items.count > 1 && localY < -16
+        let column = (point.x - reelOffset) / Self.slotWidth(for: size.width)
         if !lifted.removes, column.isFinite, localY >= -8, localY <= size.height + 32,
            point.x >= -24, point.x <= size.width + 24 {
             let remaining = items.count - (lifted.originalIndex == nil ? 0 : 1)
@@ -831,13 +848,14 @@ struct SlotCarouselNavigationBar: View, Animatable {
 
     private func liftedIcon(_ lifted: LiftedItem) -> some View {
         VStack(spacing: 4) {
-            iconImage(lifted.item.icon, size: 33, lit: 1)
+            SlotNavigationIconImage(icon: lifted.item.icon, size: 33, lit: 1)
                 .frame(height: 42)
                 .overlay(alignment: .topTrailing) {
                     if lifted.removes {
                         Image(systemName: "minus.circle.fill")
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(theme.destructive)
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(.white, theme.destructive)
                             .offset(x: 12, y: -4)
                     }
                 }
@@ -852,51 +870,6 @@ struct SlotCarouselNavigationBar: View, Animatable {
         .foregroundStyle(theme.textPrimary)
         .frame(width: 92, height: 90, alignment: .bottom)
         .shadow(color: .black.opacity(0.5), radius: 12, y: 6)
-    }
-
-    private func configurationView(_ configuration: SlotNavigationConfiguration) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(configuration.title)
-                    .font(theme.typography.sectionTitle)
-                Spacer()
-                Button("Cancel", action: configuration.onCancel)
-                    .font(theme.typography.buttonLabel)
-                    .buttonStyle(TimeMasterActionButtonStyle())
-                    .accessibilityIdentifier("navigation-source-cancel")
-            }
-            Text(configuration.message)
-                .font(theme.typography.secondary)
-                .foregroundStyle(theme.textSecondary)
-                .lineLimit(2)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(configuration.choices) { choice in
-                        Button { configuration.onSelect(choice.id) } label: {
-                            Label {
-                                Text(choice.title)
-                            } icon: {
-                                switch choice.icon {
-                                case let .system(name):
-                                    Image(systemName: name)
-                                case .art:
-                                    iconImage(choice.icon, size: 17, lit: 1)
-                                }
-                            }
-                                .font(theme.typography.buttonLabel)
-                                .frame(minHeight: 44)
-                        }
-                        .buttonStyle(TimeMasterActionButtonStyle())
-                        .accessibilityIdentifier("navigation-source-choice-\(choice.id)")
-                    }
-                }
-            }
-        }
-        .foregroundStyle(theme.textPrimary)
-        .buttonStyle(.plain)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(theme.surface)
     }
 
     private func transformedArcY(at x: CGFloat, in rect: CGRect) -> CGFloat {
@@ -930,10 +903,8 @@ struct SlotCarouselNavigationBar: View, Animatable {
         let pages = items
         let editing = $isEditing
         let current = $selection
-        let changed = onSelectionChanged
         return { index in
             guard !editing.wrappedValue, pages.indices.contains(index), index != current.wrappedValue else { return }
-            changed(index)
             current.wrappedValue = index
         }
     }
@@ -963,7 +934,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
     private func reelGesture(size: CGSize, slotWidth: CGFloat, fallbackOffset: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 8, coordinateSpace: .local)
             .updating($reelIsTracking) { value, tracking, _ in
-                if !tracking, Self.isSideways(value.translation) { tracking = true }
+                if !tracking, Self.isSideways(value.translation), !isWheelPulling() { tracking = true }
             }
             .onChanged { value in
                 trackReel(value, size: size, slotWidth: slotWidth, fallbackOffset: fallbackOffset)
@@ -988,7 +959,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
         guard !isEditing else { return }
         let translation = value.translation.slotFinite
         if !isDragging {
-            guard Self.isSideways(translation) else { return }
+            guard Self.isSideways(translation), !isWheelPulling() else { return }
             isDragging = true
             #if os(macOS)
             reelDragTranslation = 0
@@ -1021,6 +992,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
         guard !isEditing else { return }
         let translation = value.translation.slotFinite
         guard isDragging else {
+            guard !isWheelPulling() else { return }
             selectSlot(at: value.startLocation.x, travel: translation, size: size, slotWidth: slotWidth,
                        fallbackOffset: fallbackOffset)
             return
@@ -1042,7 +1014,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
             slotWidth: slotWidth,
             projectedTranslation: projected - translation.width
         )
-        onPageDragEnded()
+        onPageDragEnded(targetIndex)
         #endif
     }
 
@@ -1062,13 +1034,9 @@ struct SlotCarouselNavigationBar: View, Animatable {
         reel.release()
         #else
         withAnimation(dragWindDownAnimation) { dragIntensity = 0 }
-        settle(
-            on: index(for: reelOffset, viewportWidth: size.width, slotWidth: slotWidth),
-            viewportWidth: size.width,
-            slotWidth: slotWidth,
-            projectedTranslation: 0
-        )
-        onPageDragEnded()
+        let landing = index(for: reelOffset, viewportWidth: size.width, slotWidth: slotWidth)
+        settle(on: landing, viewportWidth: size.width, slotWidth: slotWidth, projectedTranslation: 0)
+        onPageDragEnded(landing)
         #endif
     }
 
@@ -1094,16 +1062,11 @@ struct SlotCarouselNavigationBar: View, Animatable {
             ? .easeOut(duration: 0.16)
             : .interpolatingSpring(stiffness: 260, damping: 28, initialVelocity: Double(normalizedVelocity))
 
-        onSelectionChanged(index)
         withAnimation(animation) {
             reelOffset = targetOffset
             hasMeasured = true
         }
         selection = index
-    }
-
-    private func slotWidth(for viewportWidth: CGFloat) -> CGFloat {
-        min(max(viewportWidth.slotFinite() * 0.22, 76), 92)
     }
 
     private func offset(for index: Int, viewportWidth: CGFloat, slotWidth: CGFloat) -> CGFloat {
@@ -1156,6 +1119,48 @@ private final class SlotReelTicks {
     }
 }
 
+/// The red minus on a page while the bar is edited, like the one on a jiggling Home Screen icon.
+private struct SlotNavigationRemoveButton: View {
+    let title: String
+    let strings: SlotNavigationStrings
+    let theme: SlotNavigationTheme
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "minus")
+                .font(.system(size: 11, weight: .black))
+                .foregroundStyle(.white)
+                .frame(width: 22, height: 22)
+                .background(Circle().fill(theme.destructive))
+                .overlay(Circle().strokeBorder(Color.white.opacity(0.35), lineWidth: 0.7))
+                .padding(2)
+                .background(Circle().fill(theme.surface))
+                .shadow(color: .black.opacity(0.45), radius: 3, y: 1)
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+        }
+        .buttonStyle(TimeMasterBounceButtonStyle(cornerRadius: 22, inset: 11, lift: 4))
+        .accessibilityLabel(strings.removeItem(title))
+    }
+}
+
+/// A page's badge on the bar, observing the counts by itself so a change redraws only the badge.
+private struct SlotNavigationBadgeView: View {
+    @ObservedObject var badges: SlotNavigationBadges
+    let id: String
+
+    var body: some View {
+        let count = badges.count(for: id)
+        ZStack {
+            if count > 0 {
+                SlotNavigationBadge(count: count)
+            }
+        }
+        .animation(.spring(response: 0.34, dampingFraction: 0.6), value: count > 0)
+    }
+}
+
 private struct SlotArcHitShape: Shape {
     let surfaceHeight: CGFloat
     let curveOffset: CGFloat
@@ -1184,8 +1189,8 @@ private struct SlotArcHitShape: Shape {
     }
 }
 
-private extension CGFloat {
-    func slotFinite(_ fallback: CGFloat = 0) -> CGFloat {
+extension CGFloat {
+    fileprivate func slotFinite(_ fallback: CGFloat = 0) -> CGFloat {
         isFinite ? self : fallback
     }
 }
@@ -1202,169 +1207,17 @@ private extension CGPoint {
     }
 }
 
-private struct SlotCarouselNotificationBadge: View {
-    let color: Color
-    let labelColor: Color
-    let count: Int
-    let dismissalToken: Int
-    let isSelected: Bool
-    let reduceMotion: Bool
-
-    @State private var tension: CGFloat = 0
-    @State private var stretch: CGFloat = 0
-    @State private var absorption: CGFloat = 0
-    @State private var isHidden = false
-
-    var body: some View {
-        Group {
-            if !isHidden {
-                ZStack {
-                    Circle()
-                        .stroke(color.opacity(0.7), lineWidth: 0.7)
-                        .frame(
-                            width: 3 + (1 - stretch) * 2.5,
-                            height: 3 + (1 - stretch) * 2.5
-                        )
-                        .offset(y: -stretch * 15)
-                        .opacity(stretch * (1 - absorption))
-                        .blur(radius: 0.25)
-
-                    SlotSpaghettificationShape(progress: stretch)
-                        .fill(color)
-                        .frame(width: 18, height: 18)
-                        .scaleEffect(
-                            x: 1 + tension * 0.07,
-                            y: 1 - tension * 0.04
-                        )
-                        .shadow(
-                            color: color.opacity(stretch * 0.32),
-                            radius: 1.2,
-                            x: 0,
-                            y: -stretch * 3
-                        )
-                        .opacity(1 - absorption)
-
-                    Text("\(min(count, 99))")
-                        .font(TimeMasterFont.black(10, relativeTo: .caption2))
-                        .dynamicTypeSize(.large)
-                        .monospacedDigit()
-                        .foregroundStyle(labelColor)
-                        .opacity(max(0, 1 - stretch * 4))
-                }
-                .frame(width: 18, height: 18)
-            }
-        }
-        .frame(width: 18, height: 18)
-        .accessibilityHidden(true)
-        .task(id: isSelected ? dismissalToken : 0) {
-            guard dismissalToken > 0, isSelected else { return }
-            resetVisualState()
-
-            if reduceMotion {
-                withAnimation(.easeOut(duration: 0.16)) {
-                    absorption = 1
-                }
-                try? await Task.sleep(nanoseconds: 160_000_000)
-            } else {
-                withAnimation(.easeOut(duration: 0.08)) {
-                    tension = 1
-                }
-                try? await Task.sleep(nanoseconds: 80_000_000)
-                guard !Task.isCancelled else { return }
-
-                withAnimation(.easeIn(duration: 0.26)) {
-                    tension = 0
-                    stretch = 1
-                }
-                try? await Task.sleep(nanoseconds: 220_000_000)
-                guard !Task.isCancelled else { return }
-
-                withAnimation(.easeIn(duration: 0.14)) {
-                    absorption = 1
-                }
-                try? await Task.sleep(nanoseconds: 140_000_000)
-            }
-
-            guard !Task.isCancelled else { return }
-            isHidden = true
-        }
-        .onChange(of: isSelected) { selected in
-            guard !selected else { return }
-            resetVisualState()
-        }
-    }
-
-    private func resetVisualState() {
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            tension = 0
-            stretch = 0
-            absorption = 0
-            isHidden = false
-        }
-    }
-}
-
-private struct SlotSpaghettificationShape: Shape {
-    var progress: CGFloat
-
-    var animatableData: CGFloat {
-        get { progress }
-        set { progress = newValue }
-    }
-
-    func path(in rect: CGRect) -> Path {
-        let stretch = min(max(progress, 0), 1)
-        guard stretch > 0.001 else {
-            return Path(ellipseIn: rect)
-        }
-
-        let center = CGPoint(x: rect.midX, y: rect.midY)
-        let radius = min(rect.width, rect.height) / 2
-        let verticalPull = radius * 1.65 * stretch
-        let sideRadius = radius * (1 - 0.72 * stretch)
-        let top = CGPoint(x: center.x, y: center.y - radius - verticalPull)
-        let right = CGPoint(x: center.x + sideRadius, y: center.y - radius * 0.06 * stretch)
-        let bottom = CGPoint(x: center.x, y: center.y + radius * (1 - 0.35 * stretch))
-        let left = CGPoint(x: center.x - sideRadius, y: right.y)
-        let curve = radius * 0.55228475
-        let neck = curve * (1 - 0.85 * stretch)
-
-        var path = Path()
-        path.move(to: top)
-        path.addCurve(
-            to: right,
-            control1: CGPoint(x: center.x + neck, y: top.y + verticalPull * 0.12),
-            control2: CGPoint(x: right.x, y: center.y - curve * (1 - 0.28 * stretch))
-        )
-        path.addCurve(
-            to: bottom,
-            control1: CGPoint(x: right.x, y: center.y + curve * (1 - 0.52 * stretch)),
-            control2: CGPoint(x: center.x + curve * (1 - 0.48 * stretch), y: bottom.y)
-        )
-        path.addCurve(
-            to: left,
-            control1: CGPoint(x: center.x - curve * (1 - 0.48 * stretch), y: bottom.y),
-            control2: CGPoint(x: left.x, y: center.y + curve * (1 - 0.52 * stretch))
-        )
-        path.addCurve(
-            to: top,
-            control1: CGPoint(x: left.x, y: center.y - curve * (1 - 0.28 * stretch)),
-            control2: CGPoint(x: center.x - neck, y: top.y + verticalPull * 0.12)
-        )
-        return path
-    }
-}
-
 // MARK: - Surface
 
+/// The arc's surface. Under a finger the glass is washed with light around the touch and its rim catches it.
 private struct SlotArcSurface: View {
     let theme: SlotNavigationTheme
     let edgeSafeArea: CGFloat
     let placement: SlotNavigationPlacement
     let curveOffset: CGFloat
     let expansion: CGFloat
+    var press: CGPoint?
+    var isLit = false
     #if os(macOS)
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     #endif
@@ -1373,17 +1226,51 @@ private struct SlotArcSurface: View {
         let shape = SlotArcShape(edgeExtension: edgeSafeArea, placement: placement, curveOffset: curveOffset, expansion: expansion)
         #if os(macOS)
         glassSurface(shape)
+            .overlay { light(shape) }
         #else
         shape
             .fill(theme.surface)
             .shadow(color: .black.opacity(0.5), radius: 12, x: 0, y: -8 * placement.outwardSign)
             .overlay { rim }
+            .overlay { light(shape) }
         #endif
     }
 
     private var rim: some View {
         SlotArcLineShape(curveOffset: curveOffset, placement: placement, expansion: expansion)
             .stroke(theme.rim, lineWidth: 1)
+    }
+
+    @ViewBuilder
+    private func light(_ shape: SlotArcShape) -> some View {
+        if isLit, let press {
+            GeometryReader { proxy in
+                let size = proxy.size
+                let center = UnitPoint(x: press.x / max(size.width, 1), y: press.y / max(size.height, 1))
+                ZStack {
+                    shape.fill(RadialGradient(
+                        stops: [
+                            .init(color: .white.opacity(0.15), location: 0),
+                            .init(color: .white.opacity(0.05), location: 0.45),
+                            .init(color: .white.opacity(0), location: 1)
+                        ],
+                        center: center, startRadius: 0, endRadius: 150
+                    ))
+                    .blendMode(.plusLighter)
+                    SlotArcLineShape(curveOffset: curveOffset, placement: placement, expansion: expansion)
+                        .stroke(RadialGradient(
+                            stops: [
+                                .init(color: .white.opacity(0.7), location: 0),
+                                .init(color: Theme.toolbarOrange.opacity(0.35), location: 0.4),
+                                .init(color: .white.opacity(0), location: 1)
+                            ],
+                            center: center, startRadius: 0, endRadius: 170
+                        ), lineWidth: 1.6)
+                }
+            }
+            .allowsHitTesting(false)
+            .transition(.opacity)
+        }
     }
 
     #if os(macOS)

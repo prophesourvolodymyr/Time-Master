@@ -75,7 +75,6 @@ struct TimeMasterCardSurface: ViewModifier {
 struct TimeMasterCardButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .background(SlotNavigationContentClearanceReader())
             .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
             .keyNavButtonSurface(.roundedRectangle(cornerRadius: 20))
     }
@@ -102,7 +101,6 @@ struct TimeMasterSelectionButtonStyle: ButtonStyle {
                 .allowsHitTesting(false)
             }
             .contentShape(shape)
-            .background(SlotNavigationContentClearanceReader())
             .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed, cornerRadius: Theme.controlCornerRadius))
             .keyNavButtonSurface(.roundedRectangle(cornerRadius: Theme.controlCornerRadius))
     }

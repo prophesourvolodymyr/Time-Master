@@ -30,6 +30,12 @@ struct TmaxCommands: Commands {
             }
             .keyboardShortcut(",", modifiers: .command)
         }
+        CommandMenu("Go") {
+            Button("Find Anything…") {
+                NotificationCenter.default.post(name: .openPageWheelCommand, object: nil)
+            }
+            .keyboardShortcut("f", modifiers: [.command, .shift])
+        }
         CommandMenu("Database") {
             Button("Show Exercises Database in Finder") {
                 let url = DatabaseManager.shared.exercisesDatabaseURL

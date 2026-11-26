@@ -186,7 +186,6 @@ struct TimeMasterActionButtonStyle: ButtonStyle {
                         .allowsHitTesting(false)
                 }
             }
-            .background(SlotNavigationContentClearanceReader(primaryAction: prominent))
             .contentShape(shape)
             .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed, cornerRadius: radius, lifts: lifts))
             .keyNavButtonSurface(circular ? .circle : .roundedRectangle(cornerRadius: radius))

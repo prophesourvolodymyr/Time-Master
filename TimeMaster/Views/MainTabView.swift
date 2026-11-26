@@ -60,19 +60,22 @@ struct MainTabView: View {
                 selection: $selectedDestination,
                 items: navigationLayout.items,
                 availableItems: navigationLayout.catalog,
+                badges: objects.badges,
+                wheel: objects.wheel,
                 onInsert: { id, index in navigationLayout.insert(id: id, at: index) },
                 onMove: { id, index in navigationLayout.move(id: id, to: index) },
                 onRemove: removeDestination,
                 onEditingEnded: ensureSelection,
+                onOpenSearchTarget: openSearchTarget,
                 barHeight: Self.barHeight,
                 guideDefaultsKey: "tm.navigation.editorGuideSeen",
                 theme: .timeMaster,
                 strings: .timeMaster
-            ) {
-                detailView
+            ) { id in
+                page(for: id)
                     #if os(iOS)
                     .overlay(alignment: .topTrailing) {
-                        if selectedPage != .map {
+                        if id != SlotNavigationDestination.map.rawValue {
                             MainTabOutdoorStatusOverlay(
                                 recorder: outdoorRecorder,
                                 preferences: outdoorPreferencesStore,
@@ -105,6 +108,15 @@ struct MainTabView: View {
             }
             #endif
         }
+        #if os(iOS)
+        .background {
+            Button("Find anything", action: openPageWheelSearch)
+                .keyboardShortcut("f", modifiers: [.command, .shift])
+                .opacity(0)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+        #endif
         .font(TimeMasterFont.body())
         .environmentObject(musicLibraryStore)
         .environmentObject(outdoorPreferencesStore)
@@ -138,6 +150,10 @@ struct MainTabView: View {
         .onReceive(NotificationCenter.default.publisher(for: .openAppPage)) { notification in
             routeToAppPage(notification)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .openPageWheelCommand)) { _ in
+            guard handlesCommands else { return }
+            openPageWheelSearch()
+        }
         .onChange(of: selectedDestination) { destination in
             guard let destination, destination != SlotNavigationDestination.map.rawValue else { return }
             lastPageDestination = destination
@@ -146,6 +162,10 @@ struct MainTabView: View {
             MainThreadStallMonitor.shared.start()
             musicLibraryStore.setCustomTypes(workoutStore.customWorkoutTypes)
             musicLibraryStore.setWorkouts(workoutStore.workouts)
+            objects.badges.connect(workoutStore: workoutStore, aiStore: aiStore, resume: WorkoutResumeManager.shared)
+            if objects.wheel.search == nil {
+                objects.wheel.search = NavigationSearchModel(workoutStore: workoutStore, databaseStore: databaseStore)
+            }
             ensureSelection()
 #if os(macOS)
             keyboardFocused = true
@@ -167,8 +187,8 @@ struct MainTabView: View {
     }
 
     @ViewBuilder
-    private var detailView: some View {
-        switch selectedPage {
+    private func page(for id: String) -> some View {
+        switch SlotNavigationDestination(rawValue: id) ?? .home {
         case .home:
             homeDestination
         case .workouts:
@@ -228,6 +248,35 @@ struct MainTabView: View {
             navigationLayout.insert(id: destination.rawValue, at: navigationLayout.order.count)
         }
         selectedDestination = destination.rawValue
+    }
+
+    private func openPageWheelSearch() {
+        let index = navigationLayout.order.firstIndex { $0.rawValue == selectedDestination } ?? 0
+        objects.wheel.present(selection: index, searching: true)
+    }
+
+    /// Opens what the page wheel's search found: a page, a workout, a section of workouts (on the Workouts page) or a
+    /// library page pushed on the Database or Skills page, which then shows it alone above its root.
+    private func openSearchTarget(_ target: NavigationSearchTarget) {
+        switch target {
+        case .page(let destination):
+            openPage(destination)
+        case .workout(let id):
+            openPage(.workouts)
+            requestedWorkoutID = id
+        case .workoutGroup:
+            openPage(.workouts)
+        case let .libraryPage(id, destination):
+            let state = destination == .skills ? skillsNavigationState : databaseNavigationState
+            openPage(destination)
+            var path = NavigationPath()
+            if let owner = SkillGroupID.split(id) {
+                path.append(DatabaseSkillGroupRoute(containerID: owner.containerID, sectionID: owner.sectionID))
+            } else {
+                path.append(DatabasePageRoute(pageID: id))
+            }
+            state.path = path
+        }
     }
 
     @ViewBuilder
@@ -365,6 +414,8 @@ private final class MainTabObjects: ObservableObject {
     let outdoorStore: OutdoorActivityStore
     let outdoorPreferencesStore: OutdoorRecordingPreferencesStore
     let profileStore = LocalProfileStore()
+    let badges = SlotNavigationBadges()
+    let wheel = PageWheelController()
     #if os(iOS)
     let outdoorRecorder: OutdoorLocationRecorder
     #endif

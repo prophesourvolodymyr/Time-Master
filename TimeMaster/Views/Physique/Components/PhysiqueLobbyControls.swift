@@ -48,7 +48,6 @@ struct PhysiqueGlowButtonStyle: ButtonStyle {
                     .allowsHitTesting(false)
             }
             .contentShape(shape)
-            .background(SlotNavigationContentClearanceReader(primaryAction: true))
             .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
             .keyNavButtonSurface(.roundedRectangle(cornerRadius: Theme.controlCornerRadius))
     }
@@ -71,7 +70,6 @@ struct PhysiqueGlowCardButtonStyle: ButtonStyle {
                 }
             }
             .contentShape(shape)
-            .background(SlotNavigationContentClearanceReader())
             .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
             .keyNavButtonSurface(.roundedRectangle(cornerRadius: cornerRadius))
     }

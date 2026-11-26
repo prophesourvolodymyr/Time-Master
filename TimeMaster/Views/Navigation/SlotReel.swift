@@ -166,23 +166,41 @@ struct SlotReelScrollEvent: Equatable {
     var time: TimeInterval
     /// Whether the pointer is over the bar's surface.
     var inside: Bool
+    /// Natural scrolling (`isDirectionInvertedFromDevice`): the deltas move with the fingers, so fingers going up
+    /// give a negative `deltaY`.
+    var inverted = true
+
+    /// Points the fingers travelled up the trackpad in this event, whatever the scroll-direction setting.
+    var upward: CGFloat { inverted ? -deltaY : deltaY }
+}
+
+/// A two-finger swipe up over the Mac bar pulling the page wheel out of it, with the points travelled upward.
+enum SlotReelWheelPull: Equatable {
+    case began
+    case changed(CGFloat)
+    case ended(CGFloat)
 }
 
 /// Decides which scroll gestures belong to the bar. A gesture is the bar's only when it starts over the surface
 /// and its first points travel mostly sideways; vertical scrolls, gestures that started over the page and the
-/// momentum of a page scroll pass through untouched. Momentum after the bar's own gesture is swallowed, so the
-/// page beneath doesn't drift when the fingers lift.
+/// momentum of a page scroll pass through untouched, except a swipe up that starts over the bar, which pulls the page
+/// wheel out when someone listens for it. Momentum after the bar's own gesture is swallowed, so the page beneath
+/// doesn't drift when the fingers lift.
 @MainActor
 struct SlotReelScrollRouter {
     static let lockDistance: CGFloat = 6
     static let axisBias: CGFloat = 1.15
     static let wheelSpacing: TimeInterval = 0.06
 
-    private enum Claim { case pending, bar, page }
+    private enum Claim { case pending, bar, page, wheel }
+
+    /// Told about a swipe up that started over the bar; nil leaves vertical swipes to the page.
+    var onWheelPull: ((SlotReelWheelPull) -> Void)?
 
     private var claim: Claim?
     private var along: CGFloat = 0
     private var across: CGFloat = 0
+    private var upward: CGFloat = 0
     private var grabbed = false
     private var swallowsMomentum = false
     private var lastWheel = -TimeInterval.infinity
@@ -216,6 +234,7 @@ struct SlotReelScrollRouter {
             if !grabbed { reset(reel: reel, at: time) }
             along = 0
             across = 0
+            upward = 0
             claim = event.inside ? .pending : .page
         case .changed, .ended:
             break
@@ -235,6 +254,7 @@ struct SlotReelScrollRouter {
         case .pending:
             along += event.deltaX
             across += event.deltaY
+            upward += event.upward
             if ended {
                 finish(reel: reel, at: time)
                 return false
@@ -244,6 +264,12 @@ struct SlotReelScrollRouter {
                 if grabbed {
                     reel.release(at: time)
                     grabbed = false
+                }
+                if let onWheelPull, upward > 0 {
+                    claim = .wheel
+                    onWheelPull(.began)
+                    onWheelPull(.changed(upward))
+                    return true
                 }
                 claim = .page
                 return false
@@ -262,17 +288,29 @@ struct SlotReelScrollRouter {
             }
             reel.track(Self.slots(event.deltaX, pitch: pitch), at: time)
             return true
+        case .wheel:
+            upward += event.upward
+            if ended {
+                onWheelPull?(.ended(upward))
+                claim = nil
+                swallowsMomentum = true
+            } else {
+                onWheelPull?(.changed(upward))
+            }
+            return true
         }
     }
 
     /// Lets go of the gesture in progress, for example when the bar leaves the window or editing starts.
     mutating func reset(reel: SlotReel, at time: TimeInterval) {
         if reel.isTracking, claim == .bar || grabbed { reel.release(at: time) }
+        if claim == .wheel { onWheelPull?(.ended(upward)) }
         claim = nil
         grabbed = false
         swallowsMomentum = false
         along = 0
         across = 0
+        upward = 0
     }
 
     private mutating func finish(reel: SlotReel, at time: TimeInterval) {

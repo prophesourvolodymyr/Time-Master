@@ -18,6 +18,8 @@ struct SlotReelScroll: NSViewRepresentable {
     let contains: (CGPoint, CGSize) -> Bool
     /// Receives each slot the reel lands on.
     let onLand: (Int) -> Void
+    /// Receives a two-finger swipe up that started over the bar.
+    var onWheelPull: (SlotReelWheelPull) -> Void = { _ in }
 
     func makeNSView(context: Context) -> SlotReelScrollView {
         let view = SlotReelScrollView()
@@ -38,6 +40,7 @@ struct SlotReelScroll: NSViewRepresentable {
         view.pitch = pitch
         view.contains = contains
         view.isEnabled = isEnabled
+        view.onWheelPull = onWheelPull
         reel.landed = onLand
     }
 }
@@ -51,6 +54,9 @@ final class SlotReelScrollView: NSView {
     /// While off (the bar is being edited) every scroll reaches the page; a gesture the bar held is let go on
     /// the next event rather than during the view update that turned it off.
     var isEnabled = true
+    var onWheelPull: (SlotReelWheelPull) -> Void = { _ in } {
+        didSet { router.onWheelPull = { [weak self] pull in self?.onWheelPull(pull) } }
+    }
 
     private weak var reel: SlotReel?
     private var router = SlotReelScrollRouter()
@@ -144,7 +150,8 @@ private extension SlotReelScrollEvent {
             deltaX: event.scrollingDeltaX,
             deltaY: event.scrollingDeltaY,
             time: event.timestamp,
-            inside: inside
+            inside: inside,
+            inverted: event.isDirectionInvertedFromDevice
         )
     }
 }

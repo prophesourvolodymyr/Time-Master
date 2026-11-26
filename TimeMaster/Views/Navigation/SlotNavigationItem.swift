@@ -1,10 +1,7 @@
 // SlotNavigationItem.swift
 //
-// Navigation models, theme, copy and the app's destination catalog with its saved order.
-// The bar, its editor and the arc are the CarouselNavigation component from the
-// SwiftComponentLibrary (`Sources/CarouselNavigation`), adapted here with TimeMaster's
-// palette, copy and destinations. The component keeps the layout, motion and gestures; the
-// app owns the items, the selection and the persistence.
+// Navigation models, theme, copy and the app's destination catalog with its saved order. The bar, its editor, the arc
+// and the page wheel use them; the app owns the items, the selection and the persistence.
 
 import SwiftUI
 
@@ -62,6 +59,13 @@ enum SlotNavigationPlacement: String, CaseIterable {
         guard translation.width.isFinite, translation.height.isFinite,
               translation.height * outwardSign > abs(translation.width) * 1.3 else { return 0 }
         return translation.height
+    }
+
+    /// Whether a drag on the bar pulls it away from its edge into the page wheel: inward and mostly straight.
+    func beginsWheelPull(translation: CGSize) -> Bool {
+        let inward = -translation.height * outwardSign
+        guard translation.width.isFinite, inward.isFinite else { return false }
+        return inward > 10 && inward > abs(translation.width) * 1.1
     }
 }
 
@@ -132,49 +136,26 @@ extension EnvironmentValues {
 struct SlotNavigationTypography {
     /// Title of the editing overlay, for example "EDIT MENU BAR".
     var editorTitle: Font
-    /// Section titles inside the source picker.
-    var sectionTitle: Font
-    /// Button labels in the source picker and the guide.
-    var buttonLabel: Font
     /// Body copy in the editing guide.
     var body: Font
-    /// Secondary copy under the source picker title.
-    var secondary: Font
-
-    init(
-        editorTitle: Font,
-        sectionTitle: Font,
-        buttonLabel: Font,
-        body: Font,
-        secondary: Font
-    ) {
-        self.editorTitle = editorTitle
-        self.sectionTitle = sectionTitle
-        self.buttonLabel = buttonLabel
-        self.body = body
-        self.secondary = secondary
-    }
 
     static let standard = SlotNavigationTypography(
         editorTitle: TimeMasterFont.pageTitle(31, relativeTo: .title2),
-        sectionTitle: TimeMasterFont.sectionTitle(),
-        buttonLabel: TimeMasterFont.label(),
-        body: TimeMasterFont.body(),
-        secondary: TimeMasterFont.secondary()
+        body: TimeMasterFont.body()
     )
 }
 
-/// Colors used by the navigation surface and its editor chrome.
+/// Colors used by the navigation surface, the wheel and the editor chrome.
 struct SlotNavigationTheme {
-    /// Fill of the arc surface and of the source-picker panel.
+    /// Fill of the arc surface.
     var surface: Color
-    /// Hairline drawn along the arc.
+    /// Hairline drawn along the arc and around the wheel.
     var rim: Color
-    /// Item labels, editor title and picker title.
+    /// Item labels and the editor title.
     var textPrimary: Color
-    /// Guide copy, picker message and the source-change glyph.
+    /// Guide copy.
     var textSecondary: Color
-    /// Removal glyph and notification badge fill.
+    /// The red remove buttons and the notification badges.
     var destructive: Color
     /// Scrim shown over the content while the editor is open.
     var scrim: Color
@@ -182,45 +163,9 @@ struct SlotNavigationTheme {
     var scrimOpacity: Double
     /// Page background behind the arc.
     var background: Color
-    /// Label color inside a notification badge.
-    var badgeText: Color
-    /// Fill behind quiet buttons in the editor chrome.
-    var controlSurface: Color
     /// Brand accent of the editor: the "+" slots, the catalog's add badges and the guide's step markers.
     var accent: Color
-    /// Label color on top of `accent`.
-    var onAccent: Color
     var typography: SlotNavigationTypography
-
-    init(
-        surface: Color,
-        rim: Color,
-        textPrimary: Color,
-        textSecondary: Color,
-        destructive: Color,
-        scrim: Color,
-        scrimOpacity: Double,
-        badgeText: Color,
-        background: Color,
-        controlSurface: Color,
-        accent: Color,
-        onAccent: Color,
-        typography: SlotNavigationTypography = .standard
-    ) {
-        self.surface = surface
-        self.rim = rim
-        self.textPrimary = textPrimary
-        self.textSecondary = textSecondary
-        self.destructive = destructive
-        self.scrim = scrim
-        self.scrimOpacity = scrimOpacity
-        self.badgeText = badgeText
-        self.background = background
-        self.controlSurface = controlSurface
-        self.accent = accent
-        self.onAccent = onAccent
-        self.typography = typography
-    }
 
     /// TimeMaster's palette: the app's near-black background with a single hairline rim.
     static let timeMaster = SlotNavigationTheme(
@@ -228,14 +173,12 @@ struct SlotNavigationTheme {
         rim: Color.white.opacity(0.12),
         textPrimary: Theme.textPrimary,
         textSecondary: Theme.textSecondary,
-        destructive: Color(hex: "FF453A"),
+        destructive: Color(hex: "FF3B30"),
         scrim: .black,
         scrimOpacity: 0.35,
-        badgeText: .white,
         background: Theme.background,
-        controlSurface: Theme.surface2,
         accent: Theme.toolbarOrange,
-        onAccent: .black
+        typography: .standard
     )
 }
 
@@ -245,107 +188,38 @@ struct SlotNavigationGuideStep {
     /// SF Symbol drawn in the step's marker.
     var symbol: String
     var text: String
-
-    init(symbol: String, text: String) {
-        self.symbol = symbol
-        self.text = text
-    }
 }
 
-/// Every string the component shows or announces. Replace them for another language or
-/// another product vocabulary.
+/// Every string the navigation shows or announces.
 struct SlotNavigationStrings {
-    /// Title of the editing overlay.
     var editorTitle: String
-    /// Lines shown the first time the editor opens.
     var guideSteps: [SlotNavigationGuideStep]
-    /// Confirmation button that closes the guide.
     var guideDismissTitle: String
-    /// Accessibility label of the button that reopens the guide.
     var guideAccessibilityLabel: String
-    /// Accessibility action that opens the editor.
     var editNavigation: String
-    /// Accessibility action that closes the editor.
     var doneEditing: String
-    /// Accessibility action that reveals navigation when a destination hides it.
     var showNavigation: String
-    /// Title used for the two "+" slots.
+    var openWheel: String
     var addItemTitle: String
-    /// Accessibility label of the "+" slot at the start of the arc.
     var addItemAtStart: String
-    /// Accessibility label of the "+" slot at the end of the arc.
     var addItemAtEnd: String
-    /// Accessibility label of a catalog entry.
     var addToNavigation: (String) -> String
-    /// Accessibility action that removes an item.
     var removeFromNavigation: String
-    /// Accessibility action that opens the source picker for an item.
-    var changeSource: String
-    /// Accessibility value for the selected item.
+    var removeItem: (String) -> String
     var selectedValue: String
-    /// Accessibility value for an unselected item.
     var notSelectedValue: String
-    /// Accessibility value for a catalog page that is already on the bar.
     var alreadyAddedValue: String
-    /// Accessibility value while the bar is expanded and editable.
     var editingValue: String
-    /// Accessibility value while the bar is expanded and not editable.
     var expandedValue: String
-    /// Accessibility value while the bar is compact.
     var compactValue: String
-    /// Accessibility hint for an item that can change its source.
-    var configurableHint: String
-
-    init(
-        editorTitle: String,
-        guideSteps: [SlotNavigationGuideStep],
-        guideDismissTitle: String,
-        guideAccessibilityLabel: String,
-        editNavigation: String,
-        doneEditing: String,
-        showNavigation: String,
-        addItemTitle: String,
-        addItemAtStart: String,
-        addItemAtEnd: String,
-        addToNavigation: @escaping (String) -> String,
-        removeFromNavigation: String,
-        changeSource: String,
-        selectedValue: String,
-        notSelectedValue: String,
-        alreadyAddedValue: String,
-        editingValue: String,
-        expandedValue: String,
-        compactValue: String,
-        configurableHint: String
-    ) {
-        self.editorTitle = editorTitle
-        self.guideSteps = guideSteps
-        self.guideDismissTitle = guideDismissTitle
-        self.guideAccessibilityLabel = guideAccessibilityLabel
-        self.editNavigation = editNavigation
-        self.doneEditing = doneEditing
-        self.showNavigation = showNavigation
-        self.addItemTitle = addItemTitle
-        self.addItemAtStart = addItemAtStart
-        self.addItemAtEnd = addItemAtEnd
-        self.addToNavigation = addToNavigation
-        self.removeFromNavigation = removeFromNavigation
-        self.changeSource = changeSource
-        self.selectedValue = selectedValue
-        self.notSelectedValue = notSelectedValue
-        self.alreadyAddedValue = alreadyAddedValue
-        self.editingValue = editingValue
-        self.expandedValue = expandedValue
-        self.compactValue = compactValue
-        self.configurableHint = configurableHint
-    }
 
     static let timeMaster = SlotNavigationStrings(
         editorTitle: "Edit menu bar",
         guideSteps: [
             SlotNavigationGuideStep(symbol: "plus", text: "Tap + to add one of the app's pages."),
+            SlotNavigationGuideStep(symbol: "minus", text: "Tap the red minus on a page to take it off the menu."),
             SlotNavigationGuideStep(symbol: "hand.point.up.left", text: "Hold an icon, then drag it to change its position."),
-            SlotNavigationGuideStep(symbol: "arrow.up", text: "Drag an icon upward to remove it from the menu."),
+            SlotNavigationGuideStep(symbol: "circle.dashed", text: "Swipe up on the menu to turn it into the page wheel."),
             SlotNavigationGuideStep(symbol: "checkmark", text: "Tap the dimmed background to finish.")
         ],
         guideDismissTitle: "Got it",
@@ -353,19 +227,19 @@ struct SlotNavigationStrings {
         editNavigation: "Edit navigation",
         doneEditing: "Done",
         showNavigation: "Show navigation",
+        openWheel: "Open page wheel",
         addItemTitle: "Add",
         addItemAtStart: "Add page at beginning",
         addItemAtEnd: "Add page at end",
         addToNavigation: { "Add \($0)" },
         removeFromNavigation: "Remove from navigation",
-        changeSource: "Change page",
+        removeItem: { "Remove \($0)" },
         selectedValue: "Selected",
         notSelectedValue: "Not selected",
         alreadyAddedValue: "Already on the menu",
         editingValue: "Editing navigation",
         expandedValue: "Expanded",
-        compactValue: "Compact",
-        configurableHint: "Tap to change page. Hold to move."
+        compactValue: "Compact"
     )
 }
 
@@ -376,6 +250,39 @@ enum SlotNavigationIcon: Hashable {
     case art(lit: String, unlit: String)
 }
 
+/// A page's icon, lit by `lit` from 0 to 1 (the art icons cross-fade to their glowing version).
+struct SlotNavigationIconImage: View {
+    let icon: SlotNavigationIcon
+    let size: CGFloat
+    var lit: CGFloat = 0
+
+    static let artScale: CGFloat = 1.15
+
+    var body: some View {
+        switch icon {
+        case let .system(name):
+            Image(systemName: name)
+                .font(.system(size: size, weight: .semibold))
+        case let .art(litName, unlitName):
+            ZStack {
+                Image(unlitName)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .opacity(1 - lit)
+                Image(litName)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .opacity(lit)
+                    .blendMode(.plusLighter)
+            }
+            .compositingGroup()
+            .frame(width: size * Self.artScale, height: size * Self.artScale)
+        }
+    }
+}
+
 struct SlotNavigationItem: Identifiable, Hashable {
     let id: String
     let icon: SlotNavigationIcon
@@ -383,8 +290,6 @@ struct SlotNavigationItem: Identifiable, Hashable {
     let accessibilityHint: String
     let presentation: SlotNavigationPresentation
     let isPending: Bool
-    let isConfigurable: Bool
-    let badgeCount: Int
 
     init(
         id: String,
@@ -392,9 +297,7 @@ struct SlotNavigationItem: Identifiable, Hashable {
         title: String,
         accessibilityHint: String = "",
         presentation: SlotNavigationPresentation = .visible,
-        isPending: Bool = false,
-        isConfigurable: Bool = false,
-        badgeCount: Int = 0
+        isPending: Bool = false
     ) {
         self.id = id
         self.icon = icon
@@ -402,45 +305,6 @@ struct SlotNavigationItem: Identifiable, Hashable {
         self.accessibilityHint = accessibilityHint
         self.presentation = presentation
         self.isPending = isPending
-        self.isConfigurable = isConfigurable
-        self.badgeCount = max(0, badgeCount)
-    }
-
-    func withBadgeCount(_ badgeCount: Int) -> SlotNavigationItem {
-        SlotNavigationItem(
-            id: id,
-            icon: icon,
-            title: title,
-            accessibilityHint: accessibilityHint,
-            presentation: presentation,
-            isPending: isPending,
-            isConfigurable: isConfigurable,
-            badgeCount: badgeCount
-        )
-    }
-}
-
-// MARK: - Source picker
-
-struct SlotNavigationConfiguration {
-    let title: String
-    let message: String
-    let choices: [SlotNavigationItem]
-    let onSelect: (String) -> Void
-    let onCancel: () -> Void
-
-    init(
-        title: String,
-        message: String,
-        choices: [SlotNavigationItem],
-        onSelect: @escaping (String) -> Void,
-        onCancel: @escaping () -> Void
-    ) {
-        self.title = title
-        self.message = message
-        self.choices = choices
-        self.onSelect = onSelect
-        self.onCancel = onCancel
     }
 }
 
@@ -448,123 +312,8 @@ enum SlotNavigationBarLayout: Equatable {
     case full
     case inline
 
-    static func resolve(
-        isExpanded: Bool,
-        isInteracting: Bool,
-        isEditing: Bool,
-        isOverlayVisible: Bool,
-        contentRequiresInline: Bool = false,
-        contentPrefersInline: Bool = false
-    ) -> Self {
-        isExpanded || isInteracting || isEditing || isOverlayVisible || !(contentRequiresInline || contentPrefersInline) ? .full : .inline
-    }
-}
-
-struct SlotNavigationClearanceContext: Equatable {
-    let page: String?
-    let viewport: CGRect
-    let placement: SlotNavigationPlacement
-    let dynamicTypeSize: DynamicTypeSize
-    var safeAreaInsets = EdgeInsets()
-    var archedHeight: CGFloat = 0
-}
-
-struct SlotNavigationContentClearance: Equatable {
-    var context: SlotNavigationClearanceContext?
-    var measuredArchedLayout = false
-    var controlCount = 0
-    var controlSize = CGSize.zero
-    var hasObstruction = false
-
-    static func assess(
-        control: CGRect, contentBounds: CGRect, viewport: CGRect,
-        placement: SlotNavigationPlacement, primaryAction: Bool, scrollBounds: CGRect?
-    ) -> (isRelevant: Bool, hasObstruction: Bool) {
-        guard isUsable(control), isUsable(contentBounds), isUsable(viewport),
-              control.intersects(viewport) else { return (false, false) }
-        if let scrollBounds {
-            guard primaryAction, isUsable(scrollBounds),
-                  control.intersects(scrollBounds) else { return (false, false) }
-        }
-        guard control.maxX > contentBounds.minX, control.minX < contentBounds.maxX else { return (false, false) }
-        let boundary = placement == .bottom ? contentBounds.maxY : contentBounds.minY
-        let clippedByMenu = placement == .bottom ? control.maxY > boundary + 1 : control.minY < boundary - 1
-        guard clippedByMenu else { return (true, false) }
-        if let scrollBounds {
-            return (true, placement == .bottom
-                ? scrollBounds.maxY >= boundary - 1
-                : scrollBounds.minY <= boundary + 1)
-        }
-        return (true, true)
-    }
-
-    private static func isUsable(_ rect: CGRect) -> Bool {
-        !rect.isInfinite && rect.origin.x.isFinite && rect.origin.y.isFinite
-            && rect.minX.isFinite && rect.minY.isFinite && rect.maxX.isFinite && rect.maxY.isFinite
-            && rect.size.width > 0 && rect.size.height > 0
-    }
-}
-
-struct SlotNavigationClearanceState {
-    private(set) var context: SlotNavigationClearanceContext?
-    private(set) var controlCount = 0
-    private var controlSize = CGSize.zero
-    private(set) var requiresInline = false
-    private var lastMeasuredArchedLayout: Bool?
-
-    func requiresInline(in context: SlotNavigationClearanceContext) -> Bool {
-        self.context == context && requiresInline
-    }
-
-    mutating func observe(_ measurement: SlotNavigationContentClearance) {
-        guard let context = measurement.context else { return }
-        let contextChanged = self.context != context
-        let controlsChanged = lastMeasuredArchedLayout == measurement.measuredArchedLayout
-            && (controlCount != measurement.controlCount || controlSize != measurement.controlSize)
-        if contextChanged || controlsChanged || measurement.controlCount == 0 {
-            requiresInline = false
-        }
-        self.context = context
-        controlCount = measurement.controlCount
-        controlSize = measurement.controlSize
-        lastMeasuredArchedLayout = measurement.measuredArchedLayout
-        if measurement.measuredArchedLayout && measurement.hasObstruction {
-            requiresInline = true
-        }
-    }
-}
-
-/// Runs the clearance state outside SwiftUI state, so a measurement that changes nothing the bar reacts to re-renders
-/// nothing; the container only learns which context, if any, needs the inline bar.
-final class SlotNavigationClearanceTracker {
-    private static let decisionChangeLimit = 4
-    private var state = SlotNavigationClearanceState()
-    private var decisionChanges = 0
-    private var pinnedContext: SlotNavigationClearanceContext?
-
-    func observe(_ measurement: SlotNavigationContentClearance) -> SlotNavigationClearanceContext? {
-        guard let context = measurement.context else {
-            if let pinnedContext { return pinnedContext }
-            guard let current = state.context, state.requiresInline(in: current) else { return nil }
-            return current
-        }
-        let sameContext = state.context == context
-        if !sameContext {
-            decisionChanges = 0
-            pinnedContext = nil
-        }
-        if pinnedContext == context { return context }
-        let before = sameContext ? state.requiresInline(in: context) : nil
-        state.observe(measurement)
-        let after = state.requiresInline(in: context)
-        if let before, before != after {
-            decisionChanges += 1
-            if decisionChanges >= Self.decisionChangeLimit {
-                pinnedContext = context
-                return context
-            }
-        }
-        return after ? context : nil
+    static func resolve(isExpanded: Bool, isEditing: Bool, isOverlayVisible: Bool, prefersInline: Bool) -> Self {
+        isExpanded || isEditing || isOverlayVisible || !prefersInline ? .full : .inline
     }
 }
 
@@ -784,6 +533,7 @@ final class SlotNavigationLayoutStore: ObservableObject {
     }
 
     func remove(id: String) {
+        guard order.count > 1 else { return }
         order.removeAll { $0.rawValue == id }
         save()
     }

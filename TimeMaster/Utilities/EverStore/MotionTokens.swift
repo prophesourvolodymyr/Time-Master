@@ -79,7 +79,6 @@ struct EverVerticalScrollOffset: ViewModifier {
 struct EverPressButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .background(SlotNavigationContentClearanceReader())
             .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
             .keyNavButtonSurface(.standard)
     }

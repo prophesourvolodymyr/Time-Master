@@ -456,7 +456,8 @@ private struct PageSiblingTrackpadSwipe: NSViewRepresentable {
 #if os(iOS)
 /// A two-finger sideways pan anywhere on the page, next to everything else the page answers: it takes no touch, so
 /// scrolling, the sliding tabs and one-finger swipes keep working. A pan that starts over something that scrolls
-/// sideways is that view's, as is one made while text is edited.
+/// sideways is that view's, as is one made while text is edited. Pages in a sequence are cards: one finger swiping in
+/// from the right edge also brings the next one (from the left edge the swipe goes back, as everywhere).
 private struct PageSiblingPan: UIViewRepresentable {
     var isEnabled: Bool
     var onStep: (Int) -> Void
@@ -505,6 +506,12 @@ private struct PageSiblingPan: UIViewRepresentable {
             pan.delegate = self
             return pan
         }()
+        private lazy var edge: UIScreenEdgePanGestureRecognizer = {
+            let pan = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(edgePanned(_:)))
+            pan.edges = .right
+            pan.delegate = self
+            return pan
+        }()
 
         /// Puts the recognizer on the root view of the controller showing the page, so it covers the page and leaves
         /// with it.
@@ -512,14 +519,17 @@ private struct PageSiblingPan: UIViewRepresentable {
             detach()
             guard probe.window != nil, let page = Self.pageView(holding: probe) else { return }
             page.addGestureRecognizer(recognizer)
+            page.addGestureRecognizer(edge)
         }
 
         func detach() {
             recognizer.view?.removeGestureRecognizer(recognizer)
+            edge.view?.removeGestureRecognizer(edge)
         }
 
         func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-            guard isEnabled, let view = recognizer.view, let window = view.window else { return false }
+            guard isEnabled, let view = gestureRecognizer.view, let window = view.window else { return false }
+            if gestureRecognizer === edge { return !Self.isEditingText(in: window) }
             let translation = recognizer.translation(in: view)
             guard abs(translation.x) > abs(translation.y) else { return false }
             let location = recognizer.location(in: view)
@@ -541,6 +551,14 @@ private struct PageSiblingPan: UIViewRepresentable {
                 velocity: CGSize(width: velocity.x, height: velocity.y)
             ) else { return }
             onStep(step)
+        }
+
+        @objc private func edgePanned(_ pan: UIScreenEdgePanGestureRecognizer) {
+            guard pan.state == .ended, let view = pan.view else { return }
+            let travel = -pan.translation(in: view).x
+            let speed = -pan.velocity(in: view).x
+            guard travel > view.bounds.width * 0.22 || (travel > 24 && speed > 520) else { return }
+            onStep(1)
         }
 
         private static func pageView(holding view: UIView) -> UIView? {
