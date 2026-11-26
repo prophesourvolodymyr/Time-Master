@@ -248,7 +248,7 @@ private struct PageWheelFace: View, Animatable {
             PageWheelDisk(geometry: geometry, rotation: rotation, formed: formed, theme: theme)
 
             if let light {
-                PageWheelTouchLight(geometry: geometry, point: light, glow: glow)
+                PageWheelTouchLight(geometry: geometry, point: light, glow: glow * formed)
             }
 
             if geometry.hubRadius > 6 {
@@ -304,7 +304,7 @@ private struct PageWheelDisk: View {
     let theme: SlotNavigationTheme
 
     var body: some View {
-        Canvas { context, _ in
+        PageWheelScreenCanvas { context in
             let center = geometry.center
             let radius = geometry.radius
             let disk = Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
@@ -340,6 +340,24 @@ private struct PageWheelDisk: View {
     }
 }
 
+/// A canvas over the whole screen that draws in the wheel's coordinates. The wheel is laid out inside the safe area
+/// and a canvas paints only inside its frame, but the glass starts as the bar's surface and has to run under the home
+/// indicator as the bar's does.
+private struct PageWheelScreenCanvas: View {
+    let draw: (inout GraphicsContext) -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            let insets = proxy.safeAreaInsets
+            Canvas { context, _ in
+                context.translateBy(x: insets.leading, y: insets.top)
+                draw(&context)
+            }
+            .ignoresSafeArea()
+        }
+    }
+}
+
 /// The orange light under the finger: a warm glow on the glass around the touch and the rim catching it nearby. It
 /// comes up softly, follows the finger and fades where the finger lifted.
 private struct PageWheelTouchLight: View, Animatable {
@@ -353,7 +371,7 @@ private struct PageWheelTouchLight: View, Animatable {
     }
 
     var body: some View {
-        Canvas { context, _ in
+        PageWheelScreenCanvas { context in
             guard glow > 0.001 else { return }
             let center = geometry.center
             let radius = geometry.radius
