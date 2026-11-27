@@ -1023,7 +1023,8 @@ extension WorkoutSectionManifest {
             restExerciseAlternativeIDs: restExerciseAlternativeIDs.compactMap { UUID(uuidString: $0) },
             isCombo: isCombo,
             iconName: iconName,
-            iconType: iconType.flatMap { SkillBoardIconType(rawValue: $0) }
+            iconType: iconType.flatMap { SkillBoardIconType(rawValue: $0) },
+            examplePageIDs: examplePageIDs.compactMap { UUID(uuidString: $0) }
         )
     }
 }
@@ -1126,7 +1127,8 @@ extension Section {
             bundleVoiceEnabled: bundleVoiceEnabled,
             isCombo: isCombo,
             iconName: iconName,
-            iconType: iconType?.rawValue
+            iconType: iconType?.rawValue,
+            examplePageIDs: examplePageIDs.map(\.uuidString)
         )
     }
 }

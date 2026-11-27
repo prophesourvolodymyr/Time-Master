@@ -365,6 +365,7 @@ struct Section: Identifiable, Codable, Equatable {
     var isCombo: Bool
     var iconName: String?
     var iconType: SkillBoardIconType?
+    var examplePageIDs: [UUID]
 
     init(
         id: UUID = UUID(),
@@ -391,7 +392,8 @@ struct Section: Identifiable, Codable, Equatable {
         restExerciseAlternativeIDs: [UUID] = [],
         isCombo: Bool = false,
         iconName: String? = nil,
-        iconType: SkillBoardIconType? = nil
+        iconType: SkillBoardIconType? = nil,
+        examplePageIDs: [UUID] = []
     ) {
         self.id = id
         self.name = name
@@ -410,6 +412,7 @@ struct Section: Identifiable, Codable, Equatable {
         self.isCombo = isCombo
         self.iconName = iconName
         self.iconType = iconType
+        self.examplePageIDs = examplePageIDs
         self.bigRestRow = bigRestRow ?? (customRestAfter == 0
             ? nil
             : RestRow(kind: .big, duration: customRestAfter ?? restAfter))
@@ -445,7 +448,7 @@ struct Section: Identifiable, Codable, Equatable {
         case sets, repCount, restBetweenSets, customRestAfter, prepareTime
         case mediaItems, photoFilenames, photoFilename, restAfter
         case pageID, mode, slots, bigRestRow, bundleOrder, bundleVoiceEnabled
-        case isCombo, iconName, iconType
+        case isCombo, iconName, iconType, examplePageIDs
     }
 
     init(from decoder: Decoder) throws {
@@ -466,6 +469,7 @@ struct Section: Identifiable, Codable, Equatable {
         isCombo = try c.decodeIfPresent(Bool.self, forKey: .isCombo) ?? false
         iconName = try c.decodeIfPresent(String.self, forKey: .iconName)
         iconType = try c.decodeIfPresent(SkillBoardIconType.self, forKey: .iconType)
+        examplePageIDs = try c.decodeIfPresent([UUID].self, forKey: .examplePageIDs) ?? []
         let decodedSlots = try c.decodeIfPresent([SetSlot].self, forKey: .slots) ?? []
         if let value = try c.decodeIfPresent(Int.self, forKey: .customRestAfter) {
             customRestAfter = value
@@ -515,6 +519,7 @@ struct Section: Identifiable, Codable, Equatable {
         if isCombo { try c.encode(true, forKey: .isCombo) }
         try c.encodeIfPresent(iconName, forKey: .iconName)
         try c.encodeIfPresent(iconType, forKey: .iconType)
+        if !examplePageIDs.isEmpty { try c.encode(examplePageIDs, forKey: .examplePageIDs) }
     }
 
     var effectiveSlots: [SetSlot] {

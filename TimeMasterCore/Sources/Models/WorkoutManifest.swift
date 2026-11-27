@@ -241,12 +241,13 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
     public var isCombo: Bool
     public var iconName: String?
     public var iconType: String?
+    public var examplePageIDs: [String]
 
     enum CodingKeys: String, CodingKey {
         case id, exerciseID, name, alias, duration, sets, repCount, restBetweenSets
         case prepareTime, customRestAfter, isTimerEnabled, mediaFilenames, mode, slots
         case bigRestRow, bundleOrder, bundleVoiceEnabled, restExerciseID, restExerciseAlternativeIDs
-        case isCombo, iconName, iconType
+        case isCombo, iconName, iconType, examplePageIDs
     }
 
     public init(
@@ -271,7 +272,8 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         restExerciseAlternativeIDs: [String] = [],
         isCombo: Bool = false,
         iconName: String? = nil,
-        iconType: String? = nil
+        iconType: String? = nil,
+        examplePageIDs: [String] = []
     ) {
         self.id = id
         self.exerciseID = exerciseID
@@ -295,6 +297,7 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         self.isCombo = isCombo
         self.iconName = iconName
         self.iconType = iconType
+        self.examplePageIDs = examplePageIDs
     }
 
     public init(from decoder: Decoder) throws {
@@ -321,6 +324,7 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         isCombo = try c.decodeIfPresent(Bool.self, forKey: .isCombo) ?? false
         iconName = try c.decodeIfPresent(String.self, forKey: .iconName)
         iconType = try c.decodeIfPresent(String.self, forKey: .iconType)
+        examplePageIDs = try c.decodeIfPresent([String].self, forKey: .examplePageIDs) ?? []
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -347,6 +351,7 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         if isCombo { try c.encode(true, forKey: .isCombo) }
         try c.encodeIfPresent(iconName, forKey: .iconName)
         try c.encodeIfPresent(iconType, forKey: .iconType)
+        if !examplePageIDs.isEmpty { try c.encode(examplePageIDs, forKey: .examplePageIDs) }
     }
 
     public var restExerciseChoices: [String] {
