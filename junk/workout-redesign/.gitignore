@@ -1,0 +1,5 @@
+# generated mockups embed frames of the real library videos (other people's footage) and this repo is public: keep them local
+*.svg
+media/
+build/clips.json
+build/__pycache__/
