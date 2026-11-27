@@ -76,8 +76,8 @@ struct TmaxMarqueeText: View {
     }
 }
 
-/// A name that may take up to `lines` lines. When it needs more, it becomes one scrolling line instead of ending in
-/// three dots.
+/// A name that may take up to `lines` lines. When it needs more, or the room it is given is too short for the lines it
+/// needs, it becomes one scrolling line instead of ending in three dots.
 struct TmaxFittingTitle: View {
     let text: String
     let font: Font
@@ -87,11 +87,14 @@ struct TmaxFittingTitle: View {
     var kerning: CGFloat = 0
 
     @State private var width: CGFloat = 0
-    @State private var fullHeight: CGFloat = 0
+    @State private var idealHeight: CGFloat = 0
     @State private var lineHeight: CGFloat = 0
+    @State private var visibleHeight: CGFloat = 0
+    @State private var squeezed = false
 
     private var needsScrolling: Bool {
-        width > 1 && lineHeight > 0 && fullHeight > lineHeight * CGFloat(lines) + 2
+        width > 1 && lineHeight > 0 && idealHeight > 0
+            && (squeezed || idealHeight > lineHeight * CGFloat(lines) + 2)
     }
 
     var body: some View {
@@ -99,21 +102,38 @@ struct TmaxFittingTitle: View {
             if needsScrolling {
                 TmaxMarqueeText(text, font: font, color: color, forceActive: forceActive, kerning: kerning)
             } else {
-                if let color {
-                    Text(text).font(font).kerning(kerning).foregroundStyle(color).lineLimit(lines)
-                } else {
-                    Text(text).font(font).kerning(kerning).lineLimit(lines)
-                }
+                wrapped
+                    .background(TmaxHeightReader {
+                        visibleHeight = $0
+                        checkSqueeze()
+                    })
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(TmaxWidthReader { width = $0 })
-        .background(alignment: .topLeading) {
+        .background(alignment: .topLeading) { measurement }
+        .onChange(of: width) { _ in squeezed = false }
+        .onChange(of: text) { _ in squeezed = false }
+        .onChange(of: idealHeight) { _ in checkSqueeze() }
+        .onChange(of: lineHeight) { _ in checkSqueeze() }
+    }
+
+    @ViewBuilder
+    private var wrapped: some View {
+        if let color {
+            Text(text).font(font).kerning(kerning).foregroundStyle(color).lineLimit(lines)
+        } else {
+            Text(text).font(font).kerning(kerning).lineLimit(lines)
+        }
+    }
+
+    private var measurement: some View {
+        GeometryReader { proxy in
             ZStack(alignment: .topLeading) {
                 Text(text).font(font).kerning(kerning)
-                    .frame(width: max(1, width), alignment: .leading)
+                    .frame(width: max(1, proxy.size.width), alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
-                    .background(TmaxHeightReader { fullHeight = $0 })
+                    .background(TmaxHeightReader { idealHeight = $0 })
                 Text("Ag").font(font).kerning(kerning)
                     .lineLimit(1)
                     .fixedSize()
@@ -122,6 +142,11 @@ struct TmaxFittingTitle: View {
             .hidden()
             .accessibilityHidden(true)
         }
+    }
+
+    private func checkSqueeze() {
+        guard !needsScrolling, width > 1, lineHeight > 0, idealHeight > 0, visibleHeight > 0 else { return }
+        if visibleHeight + 1 < min(idealHeight, lineHeight * CGFloat(lines) + 2) { squeezed = true }
     }
 }
 
