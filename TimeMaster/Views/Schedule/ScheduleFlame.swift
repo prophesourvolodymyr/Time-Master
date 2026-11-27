@@ -32,12 +32,23 @@ struct ScheduleFlame: View {
             return Gradient(colors: showsCore ? burningColors : burningColors.map { $0.opacity(0.42) })
         }()
         let outline: Color = hollow ? .gray.opacity(0.6) : accent.opacity(isBurning ? 0.9 : 0.35)
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion || !isBurning || scenePhase != .active)) { timeline in
+        TimelineView(.animation(minimumInterval: 1.0 / 24, paused: reduceMotion || !isBurning || scenePhase != .active)) { timeline in
             let phase = reduceMotion || !isBurning ? 0 : timeline.date.timeIntervalSinceReferenceDate * 2.4
             Canvas { context, size in
                 let bounds = CGRect(origin: .zero, size: size).insetBy(dx: size.width * 0.12, dy: size.height * 0.12)
                 let path = flame(in: bounds, phase: phase, level: CGFloat(difficulty))
-                if showsCore { context.addFilter(.shadow(color: accent.opacity(isBurning ? 0.48 : 0.08), radius: size.width * 0.1)) }
+                if showsCore && isBurning {
+                    let glow = bounds.insetBy(dx: -size.width * 0.1, dy: -size.height * 0.08)
+                    context.fill(
+                        Path(ellipseIn: glow),
+                        with: .radialGradient(
+                            Gradient(colors: [accent.opacity(0.42), accent.opacity(0)]),
+                            center: CGPoint(x: bounds.midX, y: bounds.midY + bounds.height * 0.12),
+                            startRadius: 0,
+                            endRadius: glow.width * 0.55
+                        )
+                    )
+                }
                 context.fill(path, with: .linearGradient(
                     gradient,
                     startPoint: CGPoint(x: bounds.midX, y: bounds.minY),

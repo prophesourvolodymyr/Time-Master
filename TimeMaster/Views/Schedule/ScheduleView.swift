@@ -7,6 +7,7 @@ struct ScheduleView: View {
     @EnvironmentObject private var outdoorStore: OutdoorActivityStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Binding var week: Date
     @State private var sheet: Sheet?
     @State private var playerWorkout: Workout?
@@ -15,6 +16,7 @@ struct ScheduleView: View {
     @AppStorage("schedule.challengeOffered") private var challengeOffered = false
     @State private var pullArmed = false
     @State private var pullFired = false
+    @State private var weekDirection: CGFloat = 1
     @ScaledMetric(relativeTo: .largeTitle) private var flameSize = 56.0
 
     private enum Sheet: Identifiable {
@@ -160,14 +162,18 @@ struct ScheduleView: View {
                     if let error = store.scheduleError {
                         Text(error).font(TimeMasterFont.body(13, relativeTo: .footnote)).foregroundStyle(.red).frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    VStack(spacing: 12) {
-                        ForEach(days, id: \.self) { day in
-                            ScheduleDayView(date: day, now: now, items: store.scheduleOccurrences(on: day),
-                                            isVacation: isVacation, isChallengeDay: challenge.weekdays.contains(WeeklyWorkoutSchedule.weekday(day)),
-                                            onAdd: { sheet = .entry(day, nil, $0) },
-                                            onEdit: { sheet = .entry(day, $0, $0.workoutID == nil) },
-                                            onStart: { playerWorkout = $0 })
+                    ZStack(alignment: .top) {
+                        VStack(spacing: 12) {
+                            ForEach(days, id: \.self) { day in
+                                ScheduleDayView(date: day, now: now, items: store.scheduleOccurrences(on: day),
+                                                isVacation: isVacation, isChallengeDay: challenge.weekdays.contains(WeeklyWorkoutSchedule.weekday(day)),
+                                                onAdd: { sheet = .entry(day, nil, $0) },
+                                                onEdit: { sheet = .entry(day, $0, $0.workoutID == nil) },
+                                                onStart: { playerWorkout = $0 })
+                            }
                         }
+                        .id(week)
+                        .transition(weekTransition)
                     }
                 }
                 .padding(.horizontal, 20).padding(.top, 24).padding(.bottom, 24)
@@ -205,14 +211,7 @@ struct ScheduleView: View {
                     .foregroundStyle(.secondary)
                     .accessibilityLabel("Hold for previous week")
             }
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) {
-                    previousWeekButton
-                    Spacer(minLength: 0)
-                    weekIdentity(progress.weekNumber).fixedSize(horizontal: true, vertical: false)
-                    Spacer(minLength: 0)
-                    nextWeekButton
-                }
+            if dynamicTypeSize.isAccessibilitySize {
                 VStack(spacing: 12) {
                     weekIdentity(progress.weekNumber, stacked: true)
                     HStack {
@@ -221,12 +220,21 @@ struct ScheduleView: View {
                         nextWeekButton
                     }
                 }
+            } else {
+                HStack(spacing: 12) {
+                    previousWeekButton
+                    Spacer(minLength: 0)
+                    weekIdentity(progress.weekNumber)
+                    Spacer(minLength: 0)
+                    nextWeekButton
+                }
             }
             Text(weekRange).font(TimeMasterFont.black(15, relativeTo: .subheadline)).monospacedDigit().foregroundStyle(.secondary)
             if week != currentWeek {
                 Button("This week", systemImage: "arrow.uturn.backward") { move(to: currentWeek) }
                     .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .buttonStyle(TimeMasterToolbarWideButtonStyle())
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.9)))
             }
         }
     }
@@ -236,6 +244,8 @@ struct ScheduleView: View {
         return layout {
             Text(week > currentWeek ? "Upcoming" : "Week \(number)")
                 .font(TimeMasterFont.black(34, relativeTo: .largeTitle)).monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
                 .contentTransition(.numericText())
             if isVacation {
                 Image(systemName: "snowflake").font(.largeTitle).foregroundStyle(.cyan)
@@ -293,9 +303,18 @@ struct ScheduleView: View {
         move(to: date)
     }
 
+    private var weekTransition: AnyTransition {
+        reduceMotion ? .opacity : .asymmetric(
+            insertion: .offset(x: weekDirection * 36).combined(with: .opacity),
+            removal: .identity
+        )
+    }
+
     private func move(to date: Date) {
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.24)) {
-            week = WeeklyWorkoutSchedule.weekStart(date)
+        let target = WeeklyWorkoutSchedule.weekStart(date)
+        weekDirection = target >= week ? 1 : -1
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
+            week = target
         }
     }
 }

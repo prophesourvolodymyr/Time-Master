@@ -15,6 +15,7 @@ struct ScheduleDayView: View {
     let onStart: (Workout) -> Void
     @State private var pendingRemoval: WeeklyWorkoutSchedule.Entry?
     @State private var expanded: Bool?
+    @State private var lingering = false
     @ScaledMetric(relativeTo: .body) private var statusSize = 44.0
     @ScaledMetric(relativeTo: .largeTitle) private var branchInset = 24.0
 
@@ -30,35 +31,25 @@ struct ScheduleDayView: View {
         VStack(spacing: 0) {
             dayHeader
                 .zIndex(1)
-            if isExpanded {
-                VStack(spacing: 8) {
-                    if isVacation {
-                        branch { Label("Vacation", systemImage: "beach.umbrella").padding(.vertical, 16) }
-                    } else {
-                        ForEach(items) { item in
-                            branch { workoutRow(item) }
-                        }
-                        if !isPast {
-                            branch { addControl }
-                        } else if items.isEmpty {
-                            branch {
-                                Text(isChallengeDay ? "No workouts" : "Rest day").padding(.vertical, 16)
-                            }
-                        }
-                    }
+            ScheduleRevealLayout(progress: isExpanded ? 1 : 0) {
+                if isExpanded || lingering {
+                    expandedContent
+                        .opacity(isExpanded ? 1 : 0)
+                        .allowsHitTesting(isExpanded)
+                        .accessibilityHidden(!isExpanded)
+                        .transition(.opacity)
                 }
-                .font(TimeMasterFont.secondary())
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, branchInset)
-                .padding(.top, 8)
-                .transition(reduceMotion ? .identity : .asymmetric(
-                    insertion: .offset(y: -8).combined(with: .opacity),
-                    removal: .opacity
-                ))
+            }
+            .clipped()
+        }
+        .onChange(of: isExpanded) { open in
+            guard !open else { return }
+            lingering = true
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 560_000_000)
+                if !isExpanded { lingering = false }
             }
         }
-        .clipped()
         .accessibilityElement(children: .contain)
         .accessibilityLabel(date.formatted(.dateTime.weekday(.wide).month().day()))
         .confirmationDialog("Remove workout from this date?", isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } }), titleVisibility: .visible) {
@@ -70,9 +61,47 @@ struct ScheduleDayView: View {
         } message: { Text("The repeating Plan and other dates stay unchanged.") }
     }
 
+    private var expandedContent: some View {
+        VStack(spacing: 8) {
+            if isVacation {
+                branch { Label("Vacation", systemImage: "beach.umbrella").padding(.vertical, 16) }
+            } else {
+                ForEach(items) { item in
+                    branch { workoutRow(item) }
+                }
+                if !isPast {
+                    branch { addControl }
+                } else if items.isEmpty {
+                    branch {
+                        Text(isChallengeDay ? "No workouts" : "Rest day").padding(.vertical, 16)
+                    }
+                }
+            }
+        }
+        .font(TimeMasterFont.secondary())
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, branchInset)
+        .padding(.top, 8)
+    }
+
+    private var expansionTint: some View {
+        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        return ZStack {
+            shape.fill(LinearGradient(
+                colors: [Theme.toolbarOrange.opacity(0.12), .clear],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ))
+            shape.strokeBorder(Theme.toolbarOrange.opacity(0.65), lineWidth: 1)
+        }
+        .opacity(isExpanded && !isToday ? 1 : 0)
+        .allowsHitTesting(false)
+    }
+
     private var dayHeader: some View {
         Button {
-            withAnimation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.88)) {
+            withAnimation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.92)) {
                 expanded = !isExpanded
             }
         } label: {
@@ -88,7 +117,8 @@ struct ScheduleDayView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)
-            .modifier(TimeMasterCardSurface(emphasized: isToday || isExpanded))
+            .background { expansionTint }
+            .modifier(TimeMasterCardSurface(emphasized: isToday))
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
         .buttonStyle(TimeMasterCardButtonStyle())
@@ -266,5 +296,32 @@ struct ScheduleDayView: View {
         }
         if let duration = item.entry.durationSeconds { return "\(duration / 60) min" }
         return "No time set"
+    }
+}
+
+/// Shows its one child at a fraction of its natural height. The fraction animates with the surrounding spring, so a
+/// day card opens and closes in one continuous motion while the cards below it follow.
+private struct ScheduleRevealLayout: Layout {
+    var progress: CGFloat
+
+    var animatableData: CGFloat {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let content = subviews.first else { return .zero }
+        let size = content.sizeThatFits(ProposedViewSize(width: proposal.width, height: nil))
+        return CGSize(width: size.width, height: size.height * max(0, progress))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard let content = subviews.first else { return }
+        let size = content.sizeThatFits(ProposedViewSize(width: bounds.width, height: nil))
+        content.place(
+            at: CGPoint(x: bounds.minX, y: bounds.minY),
+            anchor: .topLeading,
+            proposal: ProposedViewSize(width: bounds.width, height: size.height)
+        )
     }
 }
