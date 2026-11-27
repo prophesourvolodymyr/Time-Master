@@ -24,12 +24,14 @@ struct BundleSectionEditor: View {
     var body: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
-                Picker("Exercise order", selection: $section.bundleOrder) {
-                    Label("In order", systemImage: "list.number").tag(BundleOrder.ordered)
-                    Label("Random", systemImage: "shuffle").tag(BundleOrder.random)
-                }
-                .pickerStyle(.segmented)
-                .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 8), action: { section.bundleOrder = section.bundleOrder == .ordered ? .random : .ordered })
+                TmaxTabBar(
+                    [
+                        TmaxTab(BundleOrder.ordered, title: "In order", symbol: "list.number"),
+                        TmaxTab(BundleOrder.random, title: "Random", symbol: "shuffle")
+                    ],
+                    selection: $section.bundleOrder,
+                    accessibilityLabel: "Exercise order"
+                )
                 Button {
                     section.bundleVoiceEnabled.toggle()
                 } label: {
@@ -446,10 +448,12 @@ struct BundleSectionEditor: View {
                 .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 10))
                 .disabled(exercise.exercisePageID == nil || onOpenPage == nil)
                 .accessibilityLabel("Open \(exercise.displayName)")
-                Text(exercise.displayName)
-                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                TmaxMarqueeText(
+                    exercise.displayName,
+                    font: TimeMasterFont.black(15, relativeTo: .subheadline),
+                    forceActive: draggedID == exercise.id
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
                 if section.isTimerEnabled {
                     DurationPickerView(seconds: slotValue(setID: setID, exerciseID: exercise.id, rest: false), range: 1...600, step: 1, compact: true)
                 } else {
@@ -619,9 +623,7 @@ struct BundleSectionEditor: View {
         } label: {
             HStack(spacing: 6) {
                 BundlePageThumbnail(pageID: pageID, size: 24, fallbackIcon: "figure.cooldown")
-                Text(title)
-                    .font(TimeMasterFont.black(12, relativeTo: .caption))
-                    .lineLimit(1)
+                TmaxMarqueeText(title, font: TimeMasterFont.black(12, relativeTo: .caption))
                 if isDefault && hasChoices {
                     Image(systemName: "star.fill")
                         .font(.system(size: 9))

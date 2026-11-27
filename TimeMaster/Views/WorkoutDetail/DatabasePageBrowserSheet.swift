@@ -12,6 +12,7 @@ struct DatabasePageBrowserSheet: View {
     let onAddBundle: ([WorkoutBundleSource], Int, Int, Int, Int, Int, Int) -> Void
     let onNewExercise: (() -> Void)?
     let maxExerciseSeconds: Int?
+    let examplesMode: Bool
 
     @State private var isGridMode = false
     @State private var sortOption: PageSortOption = .name
@@ -37,14 +38,16 @@ struct DatabasePageBrowserSheet: View {
         onAddBundle: @escaping ([WorkoutBundleSource], Int, Int, Int, Int, Int, Int) -> Void,
         onNewExercise: (() -> Void)? = nil,
         initialBundleMode: Bool = false,
-        maxExerciseSeconds: Int? = nil
+        maxExerciseSeconds: Int? = nil,
+        examplesMode: Bool = false
     ) {
         self.workout = workout
         self.onAdd = onAdd
         self.onAddBundle = onAddBundle
         self.onNewExercise = onNewExercise
         self.maxExerciseSeconds = maxExerciseSeconds
-        _isBundleMode = State(initialValue: initialBundleMode)
+        self.examplesMode = examplesMode
+        _isBundleMode = State(initialValue: initialBundleMode || examplesMode)
     }
 
     private var pages: [ExercisePage] {
@@ -155,7 +158,7 @@ struct DatabasePageBrowserSheet: View {
                 if previewPage != nil, !isBundleMode { previewBar }
                 if isBundleMode, !bundleOrder.isEmpty { bundleBar }
             }
-            .timeMasterNavigationTitle(isBundleMode ? "Bundle Mode" : "Browse Pages")
+            .timeMasterNavigationTitle(examplesMode ? "Add Examples" : (isBundleMode ? "Bundle Mode" : "Browse Pages"))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -204,19 +207,21 @@ struct DatabasePageBrowserSheet: View {
                     .menuIndicator(.hidden)
                     .accessibilityLabel("Sort pages")
                 }
-                AppToolbar.iconItem(placement: .primaryAction) {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isBundleMode.toggle()
-                            if !isBundleMode {
-                                selectedBundleIDs.removeAll()
-                                bundleOrder.removeAll()
+                if !examplesMode {
+                    AppToolbar.iconItem(placement: .primaryAction) {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isBundleMode.toggle()
+                                if !isBundleMode {
+                                    selectedBundleIDs.removeAll()
+                                    bundleOrder.removeAll()
+                                }
                             }
+                        } label: {
+                            Image(systemName: isBundleMode ? "rectangle.stack.fill" : "rectangle.stack")
                         }
-                    } label: {
-                        Image(systemName: isBundleMode ? "rectangle.stack.fill" : "rectangle.stack")
+                        .foregroundStyle(isBundleMode ? Theme.toolbarOrange : Theme.toolbarOrange.opacity(0.9))
                     }
-                    .foregroundStyle(isBundleMode ? Theme.toolbarOrange : Theme.toolbarOrange.opacity(0.9))
                 }
             }
             .overlay(alignment: .bottom) {
@@ -552,17 +557,19 @@ struct DatabasePageBrowserSheet: View {
         VStack(spacing: 0) {
             VStack(spacing: 8) {
                 let selectedSources = selectedBundleSources
-                Text("\(selectedSources.count) items selected")
+                Text(examplesMode ? "\(selectedSources.count) selected" : "\(selectedSources.count) items selected")
                     .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                     .foregroundColor(Theme.textPrimary)
 
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 8)], spacing: 8) {
-                    compactStepper(label: "Dur", value: $duration, range: 1...600, step: 1, unit: "s")
-                    compactStepper(label: "Sets", value: $sets, range: 1...20, step: 1, unit: "")
-                    compactStepper(label: "Reps", value: $reps, range: 0...100, step: 1, unit: "")
-                    compactStepper(label: "Rest", value: $restAfter, range: 0...120, step: 5, unit: "s")
-                    compactStepper(label: "Btwn", value: $restBetweenSets, range: 0...120, step: 5, unit: "s")
-                    compactStepper(label: "Prep", value: $prepareTime, range: 0...30, step: 1, unit: "s")
+                if !examplesMode {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 8)], spacing: 8) {
+                        compactStepper(label: "Dur", value: $duration, range: 1...600, step: 1, unit: "s")
+                        compactStepper(label: "Sets", value: $sets, range: 1...20, step: 1, unit: "")
+                        compactStepper(label: "Reps", value: $reps, range: 0...100, step: 1, unit: "")
+                        compactStepper(label: "Rest", value: $restAfter, range: 0...120, step: 5, unit: "s")
+                        compactStepper(label: "Btwn", value: $restBetweenSets, range: 0...120, step: 5, unit: "s")
+                        compactStepper(label: "Prep", value: $prepareTime, range: 0...30, step: 1, unit: "s")
+                    }
                 }
 
                 if !selectedSources.isEmpty {
@@ -610,14 +617,14 @@ struct DatabasePageBrowserSheet: View {
 
                 Button {
                     onAddBundle(selectedSources, duration, sets, reps, restAfter, restBetweenSets, prepareTime)
-                    showToastMessage("Bundle created")
+                    showToastMessage(examplesMode ? "Examples added" : "Bundle created")
                     selectedBundleIDs.removeAll()
                     bundleOrder.removeAll()
-                    isBundleMode = false
+                    if !examplesMode { isBundleMode = false }
                 } label: {
                     HStack {
-                        Image(systemName: "rectangle.stack.fill")
-                        Text("Create Bundle Section")
+                        Image(systemName: examplesMode ? "photo.on.rectangle.angled" : "rectangle.stack.fill")
+                        Text(examplesMode ? "Add as Examples" : "Create Bundle Section")
                     }
                     .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                     .foregroundColor(.black)

@@ -695,6 +695,7 @@
 		87BE78ED3678C42A6CA383C0 /* OutdoorTripStopField.swift in Sources */ = {isa = PBXBuildFile; fileRef = E04D4E6725BCC8B902A866D6 /* OutdoorTripStopField.swift */; };
 		881C4DFB9C66AB1B763949CF /* ChecklistPictureChooser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B58B7EF85946EFE24BC3ADE3 /* ChecklistPictureChooser.swift */; };
 		88263109985F8F0EFCD35590 /* SkillGalleryCover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62F8AC10D67B285BBD7CE56F /* SkillGalleryCover.swift */; };
+		88926A11654004F3AFC651B5 /* TmaxMarquee.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3047197F2D957A0997A2F7D9 /* TmaxMarquee.swift */; };
 		8892EA6C5EC6F226A954DF07 /* WorkoutGroupViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37705E2CB10C2D8FC661A999 /* WorkoutGroupViews.swift */; };
 		88A4A4771145115DC0A74661 /* MarkdownBlockTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E44F32F65B21B1A3366733 /* MarkdownBlockTextView.swift */; };
 		895B628DEFD5D54381D4A684 /* MacVideoEditorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23EE3E0BC826FCFD182367D3 /* MacVideoEditorModel.swift */; };
@@ -1079,6 +1080,7 @@
 		D39BC72A6413061EB8FBD805 /* PageCardDragDrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFE6A2345135E511C7B87393 /* PageCardDragDrop.swift */; };
 		D3E7AC99223DDE2F78A3BE1D /* MediaCommentBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC6DD924311A49304DFC099 /* MediaCommentBubble.swift */; };
 		D3F1228F46A1E152D6C2E5A4 /* WorkoutLiveIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF1901BDE57C7A688CD40E7 /* WorkoutLiveIntents.swift */; };
+		D44D70C230D479E3F68A77A7 /* TmaxMarquee.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3047197F2D957A0997A2F7D9 /* TmaxMarquee.swift */; };
 		D4598C123643F2E2CC8746F2 /* ReachabilityAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = C83A693DF17BAE0299EC5DB2 /* ReachabilityAction.swift */; };
 		D47FA15B476118F89CEBFB19 /* ExerciseLibraryBackup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85BA9642EB19666688C371C6 /* ExerciseLibraryBackup.swift */; };
 		D4B1387CCE4B3E889CC31997 /* OutdoorActivityPineSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F786CE0AA31679A4215E233B /* OutdoorActivityPineSupport.swift */; };
@@ -1495,6 +1497,7 @@
 		2F01ECFC1F36BFC78A7BCE2C /* WorkoutNowPlayingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutNowPlayingController.swift; sourceTree = "<group>"; };
 		2F435C38E0A49A5A662AEB9F /* MediaPreviewSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPreviewSheet.swift; sourceTree = "<group>"; };
 		2FC58B5BE9F87D52E9B872D9 /* TmaxGlow.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = TmaxGlow.metal; sourceTree = "<group>"; };
+		3047197F2D957A0997A2F7D9 /* TmaxMarquee.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmaxMarquee.swift; sourceTree = "<group>"; };
 		314C3634D7760EA2FDB30AE9 /* ChecklistGalleryModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistGalleryModifier.swift; sourceTree = "<group>"; };
 		318F4F914EAB50EE4B30D694 /* ChecklistErrorBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistErrorBanner.swift; sourceTree = "<group>"; };
 		31AF35A8C9D810F6A66D610F /* AsyncCoverImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncCoverImage.swift; sourceTree = "<group>"; };
@@ -2524,6 +2527,7 @@
 				E3323F148BE5A75196E090AC /* MainTabView.swift */,
 				98723CC88843CFE43FCD13CF /* ScrollingChrome.swift */,
 				87D6EC1DBCFFFFF93CA1DD5F /* SpotlightSearchBar.swift */,
+				3047197F2D957A0997A2F7D9 /* TmaxMarquee.swift */,
 				FDD7DC32B8F431675708ADE3 /* TmaxTabBar.swift */,
 				25940776DFB474B5E84C5344 /* AICoach */,
 				36739A7D9D5BF1203FCD3C10 /* Analytics */,
@@ -4026,6 +4030,7 @@
 				64E8C0CF168AF48304F22644 /* TmaxLoadingIndicator.swift in Sources */,
 				3DE689BF1E1DB9E628E3042F /* TmaxLoadingState.swift in Sources */,
 				B17BA1C4911A23EEFB6B37E8 /* TmaxMark.swift in Sources */,
+				88926A11654004F3AFC651B5 /* TmaxMarquee.swift in Sources */,
 				2962BA5463FEB634FBBE868D /* TmaxMenu.swift in Sources */,
 				02681A888AB09F22D07F6231 /* TmaxMenuOverlay.swift in Sources */,
 				18801CD5C9296733A81006F5 /* TmaxPointer.swift in Sources */,
@@ -4659,6 +4664,7 @@
 				1618CBEAE8E1829601F44DA7 /* TmaxLoadingIndicator.swift in Sources */,
 				037DE4CD2905F911C3C741F6 /* TmaxLoadingState.swift in Sources */,
 				4E95389CFDB91B4292F5D70A /* TmaxMark.swift in Sources */,
+				D44D70C230D479E3F68A77A7 /* TmaxMarquee.swift in Sources */,
 				FC57561F05D8DA8644B95E04 /* TmaxMenu.swift in Sources */,
 				70CF16AC5F81B00CCAED0EE6 /* TmaxMenuOverlay.swift in Sources */,
 				269A37D81C4065DC557C3DB3 /* TmaxPointer.swift in Sources */,

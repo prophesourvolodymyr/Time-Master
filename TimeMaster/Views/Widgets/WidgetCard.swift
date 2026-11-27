@@ -88,13 +88,14 @@ struct WidgetTitle: View {
     @Environment(\.widgetTint) private var tint
 
     var body: some View {
-        Text(text)
-            .font(WidgetFont.title(size))
-            .kerning(-size * 0.015)
-            .foregroundStyle(tint.ink)
-            .lineLimit(lines)
-            .minimumScaleFactor(0.7)
-            .multilineTextAlignment(.leading)
+        TmaxFittingTitle(
+            text: text,
+            font: WidgetFont.title(size),
+            color: tint.ink,
+            lines: lines,
+            kerning: -size * 0.015
+        )
+        .multilineTextAlignment(.leading)
     }
 }
 
@@ -104,11 +105,7 @@ struct WidgetLabel: View {
     @Environment(\.widgetTint) private var tint
 
     var body: some View {
-        Text(text)
-            .font(WidgetFont.label())
-            .foregroundStyle(tint.secondaryInk)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
+        TmaxMarqueeText(text, font: WidgetFont.label(), color: tint.secondaryInk)
     }
 }
 

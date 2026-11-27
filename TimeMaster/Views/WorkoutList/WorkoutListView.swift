@@ -1221,10 +1221,7 @@ private struct WorkoutsSummaryCard: View {
                     .foregroundStyle(Theme.textPrimary)
                     .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: 8)
-                Text(summary.weekRange)
-                    .font(TimeMasterFont.caption())
-                    .foregroundStyle(Theme.textSecondary)
-                    .lineLimit(1)
+                TmaxMarqueeText(summary.weekRange, font: TimeMasterFont.caption(), color: Theme.textSecondary)
             }
             HStack(spacing: 0) {
                 metric(.sessions, value: "\(summary.sessions)", label: summary.sessions == 1 ? "session" : "sessions", spoken: summary.spokenSessions)
@@ -1291,16 +1288,13 @@ private struct WorkoutsSummaryCard: View {
                         .symbolVariant(.fill)
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(Theme.toolbarOrange)
-                    Text(value)
-                        .font(TimeMasterFont.black(20, relativeTo: .title3).monospacedDigit())
-                        .foregroundStyle(Theme.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                    TmaxMarqueeText(
+                        value,
+                        font: TimeMasterFont.black(20, relativeTo: .title3).monospacedDigit(),
+                        color: Theme.textPrimary
+                    )
                 }
-                Text(label)
-                    .font(TimeMasterFont.micro())
-                    .foregroundStyle(Theme.textSecondary)
-                    .lineLimit(1)
+                TmaxMarqueeText(label, font: TimeMasterFont.micro(), color: Theme.textSecondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
@@ -1395,10 +1389,11 @@ private struct WorkoutsSummaryStrip: View {
                 .symbolVariant(.fill)
                 .font(.caption.weight(.bold))
                 .foregroundStyle(Theme.toolbarOrange)
-            Text(value)
-                .font(TimeMasterFont.black(15, relativeTo: .subheadline).monospacedDigit())
-                .foregroundStyle(Theme.textPrimary)
-                .lineLimit(1)
+            TmaxMarqueeText(
+                value,
+                font: TimeMasterFont.black(15, relativeTo: .subheadline).monospacedDigit(),
+                color: Theme.textPrimary
+            )
         }
     }
 }

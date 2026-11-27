@@ -215,6 +215,7 @@ private struct BuilderValueFace<Label: View>: View {
             .font(TimeMasterFont.black(12, relativeTo: .caption).monospacedDigit())
             .foregroundStyle(tone.ink.opacity(hovered || isPressed ? 1 : 0.88))
             .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, 9)
             .frame(minWidth: BuilderMetrics.valueWidth, minHeight: 24)
             .background(Capsule().fill(isPressed ? tone.chipPressed : (hovered ? tone.chipHover : tone.chip)))
@@ -239,6 +240,7 @@ struct BuilderValueText: View {
             .font(TimeMasterFont.black(12, relativeTo: .caption).monospacedDigit())
             .foregroundStyle(tone.secondaryInk)
             .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
             .frame(minWidth: BuilderMetrics.valueWidth)
     }
 }
@@ -336,24 +338,25 @@ struct BuilderRowTitle: View {
     let title: String
     var subtitle: String?
     var level: Int
+    var forceActive: Bool
 
-    init(_ title: String, subtitle: String? = nil, level: Int = 1) {
+    init(_ title: String, subtitle: String? = nil, level: Int = 1, forceActive: Bool = false) {
         self.title = title
         self.subtitle = subtitle
         self.level = level
+        self.forceActive = forceActive
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text(title)
-                .font(TimeMasterFont.black(level <= 1 ? 15 : 14, relativeTo: .subheadline))
-                .foregroundStyle(Theme.textPrimary)
-                .lineLimit(1)
+            TmaxMarqueeText(
+                title,
+                font: TimeMasterFont.black(level <= 1 ? 15 : 14, relativeTo: .subheadline),
+                color: Theme.textPrimary,
+                forceActive: forceActive
+            )
             if let subtitle {
-                Text(subtitle)
-                    .font(TimeMasterFont.micro())
-                    .foregroundStyle(Theme.textSecondary)
-                    .lineLimit(1)
+                TmaxMarqueeText(subtitle, font: TimeMasterFont.micro(), color: Theme.textSecondary, forceActive: forceActive)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -635,6 +638,7 @@ struct BuilderRowChrome: ViewModifier {
     let slice: BuilderSlice?
     var tone: BuilderTone = .dark
     var vertical: CGFloat = BuilderMetrics.rowVertical(1)
+    var pulse = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hovered = false
 
@@ -654,6 +658,17 @@ struct BuilderRowChrome: ViewModifier {
                 } else if hovered {
                     tone.hover.allowsHitTesting(false)
                 }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Theme.toolbarOrange.opacity(pulse ? 0.22 : 0))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(Theme.toolbarOrange.opacity(pulse ? 0.85 : 0), lineWidth: 1.5)
+                    )
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 1)
+                    .allowsHitTesting(false)
             }
             .contentShape(Rectangle())
             .environment(\.builderRowHovered, hovered)

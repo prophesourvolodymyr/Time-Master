@@ -469,6 +469,7 @@ final class EverTouchTracker {
         location = point
         startedAt = ProcessInfo.processInfo.systemUptime
         AppInteractionHaptics.shared.preparePress()
+        NotificationCenter.default.post(name: .tmaxTouchBegan, object: nil, userInfo: ["x": point.x, "y": point.y])
     }
 
     fileprivate func moved(to point: CGPoint) {

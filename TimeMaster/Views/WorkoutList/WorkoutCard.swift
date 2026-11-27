@@ -21,10 +21,12 @@ struct WorkoutCard: View {
                 WorkoutCoverMosaic(workout: workout, size: 64)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 7) {
-                    Text(workout.name)
-                        .font(TimeMasterFont.black(17, relativeTo: .headline))
-                        .foregroundStyle(Theme.textPrimary)
-                        .lineLimit(2)
+                    TmaxFittingTitle(
+                        text: workout.name,
+                        font: TimeMasterFont.black(17, relativeTo: .headline),
+                        color: Theme.textPrimary,
+                        lines: 2
+                    )
                     categoryBadge
                     if let schedule {
                         scheduleBadge(schedule)
@@ -92,11 +94,11 @@ struct WorkoutCard: View {
                 Image(systemName: icon)
                     .font(.system(size: prominent ? 17 : 14, weight: .bold))
                     .foregroundStyle(Theme.toolbarOrange)
-                Text(value)
-                    .font(TimeMasterFont.black(prominent ? 24 : 20, relativeTo: .title3).monospacedDigit())
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+                TmaxMarqueeText(
+                    value,
+                    font: TimeMasterFont.black(prominent ? 24 : 20, relativeTo: .title3).monospacedDigit(),
+                    color: Theme.textPrimary
+                )
             }
             Text(label)
                 .font(TimeMasterFont.caption())

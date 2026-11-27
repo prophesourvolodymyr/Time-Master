@@ -27,7 +27,6 @@ struct WorkoutDetailView: View {
     @State private var expandedRestRowIDs: Set<UUID> = []
     @State private var noteEditTarget: RestNoteTarget?
     @State private var showBrowserSheet = false
-    @State private var showingAddOptions = false
     @State private var showingSavedWorkoutPicker = false
     @State private var browserStartsInBundleMode = false
     @State private var bundleToEdit: Section?
@@ -38,6 +37,10 @@ struct WorkoutDetailView: View {
     @State private var sectionIDs: [UUID] = []
     @State private var musicConfigurationOpen = false
     @GestureState private var musicRevealDrag: CGFloat = 0
+    @State private var highlightedRowID: RowID?
+    @State private var pendingScrollAnchor: UnitPoint = .bottom
+    @State private var previewFocusRow: RowID?
+    @State private var pendingScrollDelay: Double = 0
 
     let workoutID: UUID
     let liveContext: WorkoutLiveContext?
@@ -57,13 +60,15 @@ struct WorkoutDetailView: View {
         case end
         case pending
         case section(UUID)
-        case bundleEditor(UUID)
+        case bundleEdit(UUID)
+        case bundleSet(UUID)
         case preparation(UUID)
         case set(UUID)
         case drop(UUID)
         case dropRest(UUID)
         case slotRest(UUID)
         case bigRest(UUID)
+        case example(UUID, UUID)
         case restExercise(UUID, UUID)
         case restEmpty(UUID)
         case restContent(UUID, UUID)
@@ -77,7 +82,10 @@ struct WorkoutDetailView: View {
         case restExercise(RestTarget, UUID)
         case restEmpty(RestTarget)
         case restContent(RestTarget, RestContent)
-        case bundleEditor
+        case bundleEdit
+        case bundleSet(SetSlot, Int)
+        case bundleChild(SetSlot, Int, Int)
+        case example(UUID)
     }
 
     /// One row under a section's head, with its place on the section's rail and card.
@@ -104,6 +112,11 @@ struct WorkoutDetailView: View {
 
     private func animateEditor(_ changes: () -> Void) {
         withAnimation(editorAnimation, changes)
+    }
+
+    private var browsingForExamples: Bool {
+        if case .addExamples = browserTarget { return true }
+        return false
     }
 
     private var workout: Workout {
@@ -190,6 +203,17 @@ struct WorkoutDetailView: View {
         .font(TimeMasterFont.body())
         .background(Theme.background.ignoresSafeArea())
         .quickPreviewHost(quickPreview) { openPreviewed($0) }
+        .onReceive(quickPreview.$index) { index in
+            guard quickPreview.isPresented else { return }
+            followPreview(stepAt: index)
+        }
+        .onReceive(quickPreview.$isPresented) { presented in
+            if presented {
+                followPreview(stepAt: quickPreview.index)
+            } else {
+                settlePreview()
+            }
+        }
         .modifier(WorkoutFloatingControlsOverlay(
             workoutName: workout.name,
             context: heroPage == nil ? liveContext : nil,
@@ -303,7 +327,13 @@ struct WorkoutDetailView: View {
                     )
                 },
                 onAddBundle: { sources, dur, sets, reps, restAfter, restBetween, prepareTime in
-                    guard case .newSection = browserTarget, !sources.isEmpty else { return }
+                    guard !sources.isEmpty else { return }
+                    if case .addExamples(let sectionID) = browserTarget {
+                        showBrowserSheet = false
+                        addExamples(sources.compactMap(\.pageID), to: sectionID)
+                        return
+                    }
+                    guard case .newSection = browserTarget else { return }
                     showBrowserSheet = false
                     animateEditor {
                         pendingSection = PendingSectionConfig(
@@ -326,17 +356,13 @@ struct WorkoutDetailView: View {
                 },
                 onNewExercise: nil,
                 initialBundleMode: browserStartsInBundleMode,
-                maxExerciseSeconds: restExerciseLimit(for: browserTarget)
+                maxExerciseSeconds: restExerciseLimit(for: browserTarget),
+                examplesMode: browsingForExamples
             )
             .environmentObject(databaseStore)
             .environmentObject(store)
             .onDisappear {
                 browserStartsInBundleMode = false
-            }
-        }
-        .sheet(isPresented: $showingAddOptions) {
-            WorkoutAddContentSheet { type in
-                handleAddContentType(type)
             }
         }
         .sheet(isPresented: $showingSavedWorkoutPicker) {
@@ -439,6 +465,73 @@ struct WorkoutDetailView: View {
         quickPreview.present(steps, at: index)
     }
 
+    private func followPreview(stepAt index: Int) {
+        let steps = quickPreview.steps
+        guard steps.indices.contains(index) else { return }
+        let step = steps[index]
+        guard let sectionID = UUID(uuidString: step.blockID),
+              let section = workout.sections.first(where: { $0.id == sectionID }) else { return }
+        let target = previewTarget(for: step, in: section)
+        previewFocusRow = target.row
+        let needsOpening = !expandedSectionIDs.contains(sectionID)
+            || target.rest.map { !expandedRestRowIDs.contains($0) } == true
+        withAnimation(disclosureAnimation) {
+            expandedSectionIDs.insert(sectionID)
+            if let restID = target.rest { expandedRestRowIDs.insert(restID) }
+        }
+        pendingScrollAnchor = .center
+        pendingScrollDelay = needsOpening ? 0.22 : 0
+        pendingScrollTargetID = target.row
+    }
+
+    private func settlePreview() {
+        guard let row = previewFocusRow else { return }
+        previewFocusRow = nil
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.3)) { highlightedRowID = row }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_900_000_000)
+            guard highlightedRowID == row else { return }
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.6)) { highlightedRowID = nil }
+        }
+    }
+
+    private func previewTarget(for step: QuickPreviewStep, in section: Section) -> (row: RowID, rest: UUID?) {
+        func owner(after prefix: String) -> UUID? {
+            guard step.id.hasPrefix(prefix) else { return nil }
+            return UUID(uuidString: String(step.id.dropFirst(prefix.count).prefix(36)))
+        }
+        let isBundle = section.mode == .bundle
+        if let slotID = owner(after: "set-") { return (.set(slotID), nil) }
+        if let dropID = owner(after: "drop-") {
+            if isBundle,
+               let child = section.bundleSets.flatMap(\.children).first(where: { child in child.drops.contains { $0.id == dropID } }) {
+                return (.set(child.id), nil)
+            }
+            return (.drop(dropID), nil)
+        }
+        if let ownerID = owner(after: "rest-exercise-") {
+            if ownerID == section.id && isBundle { return (.bigRest(section.id), nil) }
+            if isBundle {
+                let isChild = section.bundleSets.contains { set in set.children.contains { $0.id == ownerID } }
+                return (isChild ? .set(ownerID) : .bundleSet(ownerID), nil)
+            }
+            let target = ownerID == section.id
+                ? RestTarget(sectionID: section.id, slotID: nil, isBig: true)
+                : RestTarget(sectionID: section.id, slotID: ownerID, isBig: false)
+            if let restID = restRowID(for: target), let pageID = step.pageID {
+                return (.restExercise(restID, pageID), restID)
+            }
+            return (.section(section.id), nil)
+        }
+        if let contentID = owner(after: "rest-content-"), !isBundle {
+            let rows = section.effectiveSlots.compactMap(\.restRow) + [section.bigRestRow].compactMap { $0 }
+            if let row = rows.first(where: { row in row.contents.contains { $0.id == contentID } }) {
+                return (.restContent(row.id, contentID), row.id)
+            }
+        }
+        return (.section(section.id), nil)
+    }
+
     private func openPreviewed(_ request: QuickPreviewOpen) {
         if let tab = request.tab {
             PageTabMemory.remember(tab, for: request.pageID.uuidString)
@@ -467,7 +560,7 @@ struct WorkoutDetailView: View {
                 .padding(.horizontal, 24)
             VStack(spacing: 10) {
                 Button {
-                    showingAddOptions = true
+                    openBrowser(.newSection)
                 } label: {
                     HStack {
                         Image(systemName: "plus.circle.fill")
@@ -477,22 +570,6 @@ struct WorkoutDetailView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
-                Button {
-                    openBrowser(.newSection)
-                } label: {
-                    HStack {
-                        Image(systemName: "folder.fill.badge.plus")
-                        Text("Browse Exercises")
-                    }
-                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
-                    .foregroundStyle(Theme.textPrimary)
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .background(Capsule().fill(Theme.surface))
-                    .overlay(Capsule().strokeBorder(Theme.separator, lineWidth: 1))
-                    .contentShape(Capsule())
-                }
-                .buttonStyle(TimeMasterCardButtonStyle())
-                .keyNavShape(.capsule)
             }
             .frame(maxWidth: 320)
             .padding(.top, 6)
@@ -524,10 +601,12 @@ struct WorkoutDetailView: View {
                     Text(current.type.name)
                         .font(TimeMasterFont.black(12, relativeTo: .caption))
                         .foregroundStyle(Theme.textSecondary)
-                    Text(current.name)
-                        .font(TimeMasterFont.black(17, relativeTo: .headline))
-                        .foregroundStyle(Theme.textPrimary)
-                        .lineLimit(2)
+                    TmaxFittingTitle(
+                        text: current.name,
+                        font: TimeMasterFont.black(17, relativeTo: .headline),
+                        color: Theme.textPrimary,
+                        lines: 2
+                    )
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -561,14 +640,12 @@ struct WorkoutDetailView: View {
                 HStack(spacing: 10) {
                     WorkoutCoverMosaic(workout: current, size: compactSummaryCover, styleOverride: .exerciseThumbnails)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(current.name)
-                            .font(TimeMasterFont.black(15, relativeTo: .subheadline))
-                            .foregroundStyle(Theme.textPrimary)
-                            .lineLimit(1)
-                        Text("\(current.sectionCount) sections · \(setCount) sets · \(duration) · \(summaryCompletedSessionCount) completed")
-                            .font(TimeMasterFont.caption().monospacedDigit())
-                            .foregroundStyle(Theme.textSecondary)
-                            .lineLimit(1)
+                        TmaxMarqueeText(current.name, font: TimeMasterFont.black(15, relativeTo: .subheadline), color: Theme.textPrimary)
+                        TmaxMarqueeText(
+                            "\(current.sectionCount) sections · \(setCount) sets · \(duration) · \(summaryCompletedSessionCount) completed",
+                            font: TimeMasterFont.caption().monospacedDigit(),
+                            color: Theme.textSecondary
+                        )
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -613,16 +690,9 @@ struct WorkoutDetailView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(Theme.toolbarOrange)
                     .accessibilityHidden(true)
-                Text(value)
-                    .font(TimeMasterFont.black(17, relativeTo: .headline).monospacedDigit())
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                TmaxMarqueeText(value, font: TimeMasterFont.black(17, relativeTo: .headline).monospacedDigit(), color: Theme.textPrimary)
             }
-            Text(label)
-                .font(TimeMasterFont.micro())
-                .foregroundStyle(Theme.textSecondary)
-                .lineLimit(1)
+            TmaxMarqueeText(label, font: TimeMasterFont.micro(), color: Theme.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -630,7 +700,7 @@ struct WorkoutDetailView: View {
     private func editorHeader(width: CGFloat) -> some View {
         let metrics = ScrollingChromeMetrics(
             width: width, horizontalPadding: 0, compactControlSize: 48,
-            controlSpacing: 4, controlCount: 4
+            controlSpacing: 4, controlCount: 3
         )
         let progress: CGFloat = editorControlsExpanded ? 0 : 1
         let morph = metrics.morph(progress)
@@ -665,17 +735,14 @@ struct WorkoutDetailView: View {
             ReachabilityAction("back", title: "Back to workouts") {
                 editorBackButton(diameter: 48)
             },
-            ReachabilityAction("music", title: "Music") {
-                editorMusicButton(progress: 1, diameter: 48)
+            ReachabilityAction("add", title: "Add exercise from the database") {
+                editorAddButton(progress: 1, diameter: 48)
             },
             ReachabilityAction("more", title: "Workout actions", dismissesOnActivation: false) {
                 editorActionsMenu(progress: 1, diameter: 48)
             },
-            ReachabilityAction("add", title: "Add to workout") {
-                editorAddButton(progress: 1, diameter: 48)
-            },
-            ReachabilityAction("browse", title: "Browse exercises") {
-                editorBrowseButton(progress: 1, diameter: 48)
+            ReachabilityAction("music", title: "Music") {
+                editorMusicButton(progress: 1, diameter: 48)
             },
             ReachabilityAction("settings", title: "Workout Settings") {
                 Button { showingWorkoutSettings = true } label: {
@@ -690,10 +757,9 @@ struct WorkoutDetailView: View {
 
     private func editorHeaderControls(progress: CGFloat, diameter: CGFloat) -> some View {
         HStack(spacing: 4) {
-            editorMusicButton(progress: progress, diameter: diameter)
-            editorActionsMenu(progress: progress, diameter: diameter)
             editorAddButton(progress: progress, diameter: diameter)
-            editorBrowseButton(progress: progress, diameter: diameter)
+            editorActionsMenu(progress: progress, diameter: diameter)
+            editorMusicButton(progress: progress, diameter: diameter)
         }
     }
 
@@ -725,21 +791,12 @@ struct WorkoutDetailView: View {
     }
 
     private func editorAddButton(progress: CGFloat, diameter: CGFloat) -> some View {
-        Button { showingAddOptions = true } label: {
+        Button { openBrowser(.newSection) } label: {
             editorHeaderIcon("plus", diameter: diameter, title: "Add", progress: progress)
         }
         .buttonStyle(ScrollingChromeButtonStyle(progress: progress, width: diameter, height: diameter))
         .foregroundStyle(Theme.textPrimary)
-        .accessibilityLabel("Add to workout")
-    }
-
-    private func editorBrowseButton(progress: CGFloat, diameter: CGFloat) -> some View {
-        Button { openBrowser(.newSection) } label: {
-            editorHeaderIcon("folder.fill.badge.plus", diameter: diameter, title: "Browse", progress: progress)
-        }
-        .buttonStyle(ScrollingChromeButtonStyle(progress: progress, width: diameter, height: diameter))
-        .foregroundStyle(Theme.textPrimary)
-        .accessibilityLabel("Browse exercises")
+        .accessibilityLabel("Add exercise from the database")
     }
 
     private func editorHeaderIcon(_ name: String, diameter: CGFloat, title: String = "", progress: CGFloat = 1) -> some View {
@@ -753,6 +810,22 @@ struct WorkoutDetailView: View {
 
     @ViewBuilder
     private var editorActionMenuItems: some View {
+        Button { handleAddContentType(.bundle) } label: {
+            Label("Add Bundle", systemImage: "rectangle.stack.fill")
+        }
+        Button { handleAddContentType(.combo) } label: {
+            Label("Add Combo", systemImage: "figure.boxing")
+        }
+        Button { handleAddContentType(.workout) } label: {
+            Label("Add Saved Workout", systemImage: "figure.strengthtraining.traditional")
+        }
+        Button { handleAddContentType(.bike) } label: {
+            Label("Add Bike Section", systemImage: "bicycle")
+        }
+        Button { handleAddContentType(.runWalk) } label: {
+            Label("Add Walk & Run Section", systemImage: "figure.run")
+        }
+        Divider()
         Button { showingWorkoutSettings = true } label: {
             Label("Workout Settings", systemImage: "slider.horizontal.3")
         }
@@ -782,12 +855,17 @@ struct WorkoutDetailView: View {
                 .task(id: pendingScrollTargetID) {
                     guard let targetID = pendingScrollTargetID else { return }
                     await Task.yield()
+                    if pendingScrollDelay > 0 {
+                        try? await Task.sleep(nanoseconds: UInt64(pendingScrollDelay * 1_000_000_000))
+                    }
                     guard !Task.isCancelled else { return }
                     withAnimation(editorAnimation) {
-                        proxy.scrollTo(targetID, anchor: .bottom)
+                        proxy.scrollTo(targetID, anchor: pendingScrollAnchor)
                     }
                     if pendingScrollTargetID == targetID {
                         pendingScrollTargetID = nil
+                        pendingScrollDelay = 0
+                        pendingScrollAnchor = .bottom
                     }
                 }
         }
@@ -916,7 +994,12 @@ struct WorkoutDetailView: View {
     }
 
     private func rowChrome(_ item: BuilderRowItem) -> BuilderRowChrome {
-        BuilderRowChrome(rail: item.rail, slice: rowSlice(item.slice), vertical: BuilderMetrics.rowVertical(item.level))
+        BuilderRowChrome(
+            rail: item.rail,
+            slice: rowSlice(item.slice),
+            vertical: BuilderMetrics.rowVertical(item.level),
+            pulse: highlightedRowID == item.id
+        )
     }
 
     private func liveRing(_ item: BuilderRowItem) -> Double? {
@@ -1002,12 +1085,18 @@ struct WorkoutDetailView: View {
 
         if isExpanded {
             if section.mode == .bundle {
-                items.append(BuilderRowItem(
-                    id: .bundleEditor(section.id),
-                    kind: .bundleEditor,
-                    level: 1,
-                    progress: liveValue(section, phase: .active)
-                ))
+                items.append(BuilderRowItem(id: .bundleEdit(section.id), kind: .bundleEdit, level: 1))
+                for (setIndex, set) in section.bundleSets.enumerated() {
+                    items.append(BuilderRowItem(id: .bundleSet(set.id), kind: .bundleSet(set, setIndex), level: 1))
+                    let exercises = set.children.isEmpty ? [set] : set.children
+                    for (position, child) in exercises.enumerated() {
+                        items.append(BuilderRowItem(
+                            id: .set(child.id),
+                            kind: .bundleChild(child, setIndex, position),
+                            level: 2
+                        ))
+                    }
+                }
             } else {
                 for (index, slot) in section.effectiveSlots.enumerated() {
                     if section.preparationTime(for: slot) > 0 {
@@ -1047,6 +1136,9 @@ struct WorkoutDetailView: View {
                         appendRestDetails(rest, target, level: 2)
                     }
                 }
+                for pageID in section.examplePageIDs {
+                    items.append(BuilderRowItem(id: .example(section.id, pageID), kind: .example(pageID), level: 1))
+                }
             }
         }
 
@@ -1067,10 +1159,7 @@ struct WorkoutDetailView: View {
         let rails = BuilderRail.thread(
             levels: items.map(\.level),
             progress: items.map(\.progress),
-            crossing: items.map { item -> Bool in
-                if case .bundleEditor = item.kind { return true }
-                return false
-            },
+            crossing: items.map { _ in false },
             rootProgress: liveValue(section, phase: .active),
             live: liveContext != nil
         )
@@ -1098,8 +1187,14 @@ struct WorkoutDetailView: View {
             restEmptyRow(target: target, item: item)
         case .restContent(let target, let content):
             restContentRow(content, target: target, item: item)
-        case .bundleEditor:
-            bundleEditorRow(section, item: item)
+        case .bundleEdit:
+            bundleEditRow(section, item: item)
+        case .bundleSet(let set, let index):
+            bundleSetRow(section: section, set: set, index: index, item: item)
+        case .bundleChild(let child, let setIndex, let position):
+            bundleChildRow(section: section, child: child, setIndex: setIndex, position: position, item: item)
+        case .example(let pageID):
+            exampleRow(section: section, pageID: pageID, item: item)
         }
     }
 
@@ -1122,7 +1217,12 @@ struct WorkoutDetailView: View {
                 )
             } else {
                 timedSectionHeader(section, isExpanded: isExpanded, progress: liveContext == nil ? nil : rail.fill)
-                    .modifier(BuilderRowChrome(rail: rail, slice: rowSlice(slice), vertical: BuilderMetrics.headerVertical))
+                    .modifier(BuilderRowChrome(
+                        rail: rail,
+                        slice: rowSlice(slice),
+                        vertical: BuilderMetrics.headerVertical,
+                        pulse: highlightedRowID == .section(section.id)
+                    ))
             }
         }
         .keyNavTarget(id: section.id, role: .primary, shape: .roundedRectangle(cornerRadius: 12)) {
@@ -1176,14 +1276,17 @@ struct WorkoutDetailView: View {
                 toggleSection(section.id)
             } label: {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(section.name)
-                        .font(TimeMasterFont.black(17, relativeTo: .headline))
-                        .foregroundStyle(Theme.textPrimary)
-                        .lineLimit(1)
-                    Text(sectionSummary(section))
-                        .font(TimeMasterFont.caption().monospacedDigit())
-                        .foregroundStyle(Theme.textSecondary)
-                        .lineLimit(1)
+                    TmaxMarqueeText(
+                        section.name,
+                        font: TimeMasterFont.black(17, relativeTo: .headline),
+                        color: Theme.textPrimary,
+                        forceActive: draggedSectionID == section.id
+                    )
+                    TmaxMarqueeText(
+                        sectionSummary(section),
+                        font: TimeMasterFont.caption().monospacedDigit(),
+                        color: Theme.textSecondary
+                    )
                 }
                 .frame(maxWidth: .infinity, minHeight: BuilderMetrics.root, alignment: .leading)
                 .contentShape(Rectangle())
@@ -1193,13 +1296,13 @@ struct WorkoutDetailView: View {
             .accessibilityLabel("\(section.name), \(sectionSummary(section))")
             .accessibilityHint(isExpanded ? "Collapses the section" : "Expands the section")
             BuilderCluster {
-                Button {
-                    addSlot(in: section.id)
+                TmaxMenu {
+                    sectionAddMenuItems(section)
                 } label: {
                     Image(systemName: "plus")
                 }
-                .buttonStyle(BuilderChipButtonStyle())
-                .accessibilityLabel("Add set to \(section.name)")
+                .builderChipMenu()
+                .accessibilityLabel("Add to \(section.name)")
             } middle: {
                 TmaxMenu {
                     sectionMenuItems(section)
@@ -1238,6 +1341,11 @@ struct WorkoutDetailView: View {
         } else {
             if let firstSlot = section.effectiveSlots.first {
                 Button {
+                    openBrowser(.addExamples(section.id))
+                } label: {
+                    Label("Add Examples from Database", systemImage: "photo.on.rectangle.angled")
+                }
+                Button {
                     openBrowser(.addDrop(section.id, firstSlot.id))
                 } label: {
                     Label("Add Drop Set", systemImage: "arrow.down.right")
@@ -1274,6 +1382,10 @@ struct WorkoutDetailView: View {
         }
         let time = formatCompactDuration(section.calculatedDuration)
         parts.append(section.isTimerEnabled ? time : (section.mode == .bundle ? "~\(time)" : "Until Done"))
+        if !section.examplePageIDs.isEmpty {
+            let count = section.examplePageIDs.count
+            parts.append("\(count) \(count == 1 ? "example" : "examples")")
+        }
         return parts.joined(separator: " · ")
     }
 
@@ -1968,16 +2080,220 @@ struct WorkoutDetailView: View {
         noteEditTarget = RestNoteTarget(target: target, contentID: content.id, text: content.text)
     }
 
-    private func bundleEditorRow(_ section: Section, item: BuilderRowItem) -> some View {
-        BundleSectionEditor(section: Binding(
-            get: { workout.sections.first(where: { $0.id == section.id }) ?? section },
-            set: { store.updateSection(in: workout, section: $0) }
-        )) { pageID in
-            previewPage(pageID, key: nil, sectionID: section.id, fallbackIcon: "figure.boxing")
+    private func bundleEditRow(_ section: Section, item: BuilderRowItem) -> some View {
+        BuilderTimelineRow(level: item.level) {
+            BuilderGlyphNode(systemImage: "slider.horizontal.3", size: BuilderMetrics.node(item.level), tint: Theme.toolbarOrange)
+        } title: {
+            Button {
+                bundleToEdit = section
+            } label: {
+                BuilderRowTitle(
+                    section.isCombo ? "Edit combo" : "Edit bundle",
+                    subtitle: section.bundleOrder == .random ? "Random order · tap to edit" : "In order · tap to edit",
+                    level: item.level
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens the bundle editor")
+        } trailing: {
+            BuilderCluster {
+                Button {
+                    bundleToEdit = section
+                } label: {
+                    Image(systemName: "pencil")
+                }
+                .buttonStyle(BuilderChipButtonStyle())
+                .accessibilityLabel("Edit \(section.name)")
+            } middle: {
+                EmptyView()
+            } last: {
+                EmptyView()
+            }
         }
-        .modifier(BuilderRowChrome(rail: item.rail, slice: rowSlice(item.slice), vertical: 10))
+        .modifier(rowChrome(item))
+        .keyNavTarget(id: AnyHashable(item.id), role: .primary, shape: .roundedRectangle(cornerRadius: 10)) {
+            bundleToEdit = section
+        }
         .builderGroupedRow()
         .id(item.id)
+    }
+
+    private func bundleSetRow(section: Section, set: SetSlot, index: Int, item: BuilderRowItem) -> some View {
+        let count = max(1, set.children.count)
+        let seconds = (set.children.isEmpty ? [set] : set.children).reduce(0) { $0 + $1.duration }
+        let time = formatCompactDuration(seconds)
+        return BuilderTimelineRow(level: item.level) {
+            BuilderGlyphNode(
+                systemImage: section.isCombo ? "repeat" : "list.number",
+                size: BuilderMetrics.node(item.level),
+                tint: Theme.toolbarOrange
+            )
+        } title: {
+            BuilderRowTitle(
+                section.isCombo ? "Round \(index + 1)" : "Set \(index + 1)",
+                subtitle: "\(count) \(count == 1 ? "exercise" : "exercises")",
+                level: item.level
+            )
+        } trailing: {
+            BuilderValueText(text: section.isTimerEnabled ? time : "~\(time)")
+        }
+        .modifier(rowChrome(item))
+        .builderGroupedRow()
+        .id(item.id)
+    }
+
+    private func bundleChildRow(section: Section, child: SetSlot, setIndex: Int, position: Int, item: BuilderRowItem) -> some View {
+        let key = "set-\(child.id)"
+        let untimed = !section.isTimerEnabled
+        let reps = untimed ? child.repCount : nil
+        let subtitle = "\(section.isCombo ? "Round" : "Set") \(setIndex + 1) · \(position + 1)" + (reps.map { " · \($0) reps" } ?? "")
+        let title = section.isCombo ? ComboCall.spoken(child.displayName) : child.displayName
+        let open: (() -> Void)? = child.exercisePageID.map { id in
+            { previewPage(id, key: key, sectionID: section.id, fallbackIcon: "figure.boxing") }
+        }
+        return BuilderTimelineRow(level: item.level) {
+            if section.isCombo {
+                BuilderGlyphNode(systemImage: "waveform", size: BuilderMetrics.node(item.level), tint: ComboStyle.bright)
+            } else {
+                pageNode(
+                    pageID: child.exercisePageID,
+                    size: BuilderMetrics.node(item.level),
+                    fallbackIcon: "figure.boxing",
+                    heroKey: key
+                )
+            }
+        } title: {
+            Button {
+                open?()
+            } label: {
+                BuilderRowTitle(title, subtitle: subtitle, level: item.level)
+            }
+            .buttonStyle(.plain)
+            .disabled(open == nil)
+            .accessibilityHint("Previews the exercise")
+        } trailing: {
+            BuilderValueText(text: untimed ? "Until Done" : formatCompactDuration(child.duration))
+        }
+        .modifier(rowChrome(item))
+        .keyNavTarget(id: AnyHashable(item.id), role: .primary, shape: .roundedRectangle(cornerRadius: 10), action: open)
+        .builderGroupedRow()
+        .id(item.id)
+    }
+
+    private func exampleRow(section: Section, pageID: UUID, item: BuilderRowItem) -> some View {
+        let key = "example-\(section.id)-\(pageID)"
+        let title = databaseStore.page(id: pageID)?.title ?? "Example"
+        return BuilderTimelineRow(level: item.level) {
+            Button {
+                previewExample(sectionID: section.id, pageID: pageID)
+            } label: {
+                pageThumbnail(pageID: pageID, size: BuilderMetrics.node(item.level), fallbackIcon: "photo.on.rectangle.angled")
+                    .workoutHeroSource(key)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Preview example")
+        } title: {
+            Button {
+                previewExample(sectionID: section.id, pageID: pageID)
+            } label: {
+                BuilderRowTitle(title, subtitle: "Example from the database", level: item.level)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Previews this example")
+        } trailing: {
+            BuilderCluster {
+                EmptyView()
+            } middle: {
+                TmaxMenu {
+                    exampleMenuItems(section: section, pageID: pageID, key: key)
+                } label: {
+                    Image(systemName: "ellipsis")
+                }
+                .builderChipMenu()
+                .accessibilityLabel("Example actions")
+            } last: {
+                EmptyView()
+            }
+        }
+        .modifier(rowChrome(item))
+        .keyNavTarget(id: AnyHashable(item.id), role: .primary, shape: .roundedRectangle(cornerRadius: 10)) {
+            previewExample(sectionID: section.id, pageID: pageID)
+        }
+        .builderContextMenu {
+            exampleMenuItems(section: section, pageID: pageID, key: key)
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                removeExample(pageID, from: section.id)
+            } label: {
+                Label("Remove", systemImage: "trash")
+            }
+            .tint(.red)
+        }
+        .builderGroupedRow()
+        .id(item.id)
+    }
+
+    @ViewBuilder
+    private func exampleMenuItems(section: Section, pageID: UUID, key: String) -> some View {
+        Button {
+            previewExample(sectionID: section.id, pageID: pageID)
+        } label: {
+            Label("Preview", systemImage: "play.rectangle")
+        }
+        Button {
+            openPage(pageID, from: key, fallbackIcon: "figure.run")
+        } label: {
+            Label("Open Exercise Page", systemImage: "book.pages")
+        }
+        Divider()
+        Button(role: .destructive) {
+            removeExample(pageID, from: section.id)
+        } label: {
+            Label("Remove Example", systemImage: "trash")
+        }
+    }
+
+    @ViewBuilder
+    private func sectionAddMenuItems(_ section: Section) -> some View {
+        Button {
+            addSlot(in: section.id)
+        } label: {
+            Label("Add Set", systemImage: "plus")
+        }
+        Button {
+            openBrowser(.addExamples(section.id))
+        } label: {
+            Label("Add Examples from Database", systemImage: "photo.on.rectangle.angled")
+        }
+    }
+
+    private func previewExample(sectionID: UUID, pageID: UUID) {
+        let steps = QuickPreviewSteps.steps(for: workout) { databaseStore.page(id: $0) }
+        let block = sectionID.uuidString
+        guard let index = steps.firstIndex(where: { $0.blockID == block && !$0.isRest })
+            ?? steps.firstIndex(where: { $0.blockID == block }) else {
+            openPage(pageID, from: nil, fallbackIcon: "figure.run")
+            return
+        }
+        quickPreview.present(steps, at: index, example: pageID)
+    }
+
+    private func addExamples(_ ids: [UUID], to sectionID: UUID) {
+        animateEditor {
+            mutateSection(id: sectionID) { section in
+                for id in ids where id != section.pageID && !section.examplePageIDs.contains(id) {
+                    section.examplePageIDs.append(id)
+                }
+            }
+            expandedSectionIDs.insert(sectionID)
+        }
+    }
+
+    private func removeExample(_ pageID: UUID, from sectionID: UUID) {
+        animateEditor {
+            mutateSection(id: sectionID) { $0.examplePageIDs.removeAll { $0 == pageID } }
+        }
     }
 
     private func toggleSection(_ id: UUID) {
@@ -2185,8 +2501,6 @@ struct WorkoutDetailView: View {
     // MARK: - Helpers
 
     private func handleAddContentType(_ type: WorkoutAddContentType) {
-        showingAddOptions = false
-
         switch type {
         case .combo:
             addComboSection()
@@ -2358,6 +2672,8 @@ struct WorkoutDetailView: View {
                     expandedRestRowIDs.insert(restID)
                 }
             }
+        case .addExamples(let sectionID):
+            addExamples([page.id], to: sectionID)
         }
         showBrowserSheet = false
     }
@@ -2471,7 +2787,7 @@ struct WorkoutDetailView: View {
     }
 
     private func editorDidScroll(_ scroll: ScrollingChromeScroll) {
-        setControlsExpanded(chrome.reveal.expanded(editorControlsExpanded, after: scroll))
+        if editorControlsExpanded, ScrollingChromeCollapse.shouldCollapse(scroll) { setControlsExpanded(false) }
         setSummaryPinned(chrome.pinsSummary(at: scroll.offset))
     }
 
@@ -2794,7 +3110,6 @@ private let workoutDetailScrollSpace = "workout-detail-scroll"
 /// scrolling never re-renders the rows.
 final class WorkoutEditorChromeState: ObservableObject {
     @Published var summaryPinned = false
-    var reveal = ScrollingChromeReveal()
     var headerHeight: CGFloat = 0
     var summaryHeight: CGFloat = 0
 
@@ -2845,139 +3160,6 @@ private enum WorkoutAddContentType {
     case workout
     case bike
     case runWalk
-}
-
-private struct WorkoutAddContentSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    let onSelect: (WorkoutAddContentType) -> Void
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Choose what to add to this workout.")
-                        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
-                        .foregroundColor(Theme.textSecondary)
-
-                    option(
-                        title: "Bundle",
-                        subtitle: "Select multiple exercises together",
-                        icon: "rectangle.stack.fill",
-                        type: .bundle
-                    )
-                    comboOption
-                    option(
-                        title: "Workout",
-                        subtitle: "Add a saved workout",
-                        icon: "figure.strengthtraining.traditional",
-                        type: .workout
-                    )
-                    option(
-                        title: "Bike",
-                        subtitle: "Add a timed bike section",
-                        icon: "bicycle",
-                        type: .bike
-                    )
-                    option(
-                        title: "Walk & Run",
-                        subtitle: "Add a timed outdoor section",
-                        icon: "figure.run",
-                        type: .runWalk
-                    )
-                }
-                .padding(20)
-            }
-            .background(Theme.background.ignoresSafeArea())
-            .timeMasterNavigationTitle("Add to Workout")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                AppToolbar.item(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundColor(.white)
-                }
-            }
-        }
-        .font(TimeMasterFont.body())
-        #if os(macOS)
-        .frame(minWidth: 420, minHeight: 430)
-        #endif
-    }
-
-    private func option(
-        title: String,
-        subtitle: String,
-        icon: String,
-        type: WorkoutAddContentType
-    ) -> some View {
-        Button {
-            onSelect(type)
-        } label: {
-            HStack(spacing: 14) {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundColor(.white)
-                    .frame(width: 42, height: 42)
-                    .background(Theme.surface2)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title)
-                        .font(TimeMasterFont.black(17, relativeTo: .headline))
-                        .foregroundColor(.white)
-                    Text(subtitle)
-                        .font(TimeMasterFont.caption())
-                        .foregroundColor(Theme.textSecondary)
-                }
-
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(Theme.textSecondary)
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var comboOption: some View {
-        Button {
-            onSelect(.combo)
-        } label: {
-            HStack(spacing: 14) {
-                Image(systemName: "figure.boxing")
-                    .font(.title3)
-                    .foregroundColor(.white)
-                    .frame(width: 42, height: 42)
-                    .background(ComboStyle.gradient)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Combo")
-                        .font(TimeMasterFont.black(17, relativeTo: .headline))
-                        .foregroundColor(.white)
-                    Text("Boxing calls said aloud: 1-2-3")
-                        .font(TimeMasterFont.caption())
-                        .foregroundColor(Theme.textSecondary)
-                }
-
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(Theme.textSecondary)
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-        }
-        .buttonStyle(.plain)
-    }
 }
 
 private struct SavedWorkoutPickerSheet: View {
@@ -3100,6 +3282,7 @@ private enum BuilderBrowserTarget {
     case setRestExercise(UUID, UUID)
     case bigRestExercise(UUID)
     case restStretch(RestTarget)
+    case addExamples(UUID)
 }
 
 private struct RestTarget {

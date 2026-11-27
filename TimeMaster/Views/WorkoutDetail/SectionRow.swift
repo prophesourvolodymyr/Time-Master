@@ -10,10 +10,7 @@ struct SectionRow: View {
             mediaThumbnail
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text(section.name)
-                        .font(TimeMasterFont.black(17, relativeTo: .headline))
-                        .foregroundColor(Theme.textPrimary)
-                        .lineLimit(1)
+                    TmaxMarqueeText(section.name, font: TimeMasterFont.black(17, relativeTo: .headline), color: Theme.textPrimary)
                     if section.sets > 1 {
                         Text("\(section.sets)×")
                             .font(TimeMasterFont.black(12, relativeTo: .caption).monospacedDigit())

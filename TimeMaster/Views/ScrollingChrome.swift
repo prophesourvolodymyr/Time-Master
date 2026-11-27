@@ -93,9 +93,19 @@ struct ScrollingChromeHeader<Controls: View>: View {
         return (expandedRoom * (1 - collapse) + compactRoom * collapse) / max(0.01, scale)
     }
 
+    private var toggleExpansion: (() -> Void)? {
+        guard let setExpanded else { return nil }
+        let expand = progress > 0.5
+        return {
+            EverHaptic.selection()
+            setExpanded(expand)
+        }
+    }
+
     var body: some View {
         let compactScale = min(1, compactTitleSize / expandedTitleSize)
         let scale = 1 + (compactScale - 1) * progress
+        let toggle = toggleExpansion
 
         ScrollingChromeHeaderLayout(
             progress: progress,
@@ -103,83 +113,51 @@ struct ScrollingChromeHeader<Controls: View>: View {
             metrics: metrics,
             leadingControlWidth: leadingControlWidth
         ) {
-            ScrollingChromeTitle(text: title, limit: titleLimit(scale: scale))
+            ScrollingChromeTitle(text: title, limit: titleLimit(scale: scale), toggle: toggle)
                 .foregroundStyle(Theme.textPrimary)
                 .scaleEffect(scale, anchor: .topLeading)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(title)
-                .accessibilityAddTraits(.isHeader)
+                .accessibilityHint(toggle == nil ? "" : (progress > 0.5 ? "Shows the page actions" : "Hides the page actions"))
+                .accessibilityAddTraits(toggle == nil ? .isHeader : [.isHeader, .isButton])
             controls()
                 .oneHandedActionSource()
         }
         .padding(.horizontal, metrics.horizontalPadding)
         #if os(macOS)
         .preference(key: MacWindowTitlePreferenceKey.self, value: title)
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 10, coordinateSpace: .global)
-                .onChanged { value in
-                    guard abs(value.translation.height) > metrics.compactControlSize / 2,
-                          abs(value.translation.height) > abs(value.translation.width) else { return }
-                    setExpanded?(value.translation.height > 0)
-                }
-        )
         .accessibilityAction(named: "Expand page actions") { setExpanded?(true) }
         .accessibilityAction(named: "Collapse page actions") { setExpanded?(false) }
         #endif
     }
 }
 
-/// The page title on one line. When it is wider than the room the controls leave it, its end fades out and it slowly
-/// scrolls to the end and back once each time it appears or changes, so all of it can be read and an idle page then
-/// draws nothing; with Reduce Motion it stays still with the fade.
+private struct ScrollingChromeTitleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.opacity(configuration.isPressed ? 0.55 : 1)
+    }
+}
+
+/// The page title on one line. When it is wider than the room the controls leave it, its end fades out and the
+/// adaptive marquee scrolls it to the end and back now and then while the page is at rest; a tap on it shows or hides
+/// the page actions.
 private struct ScrollingChromeTitle: View {
     let text: String
     let limit: CGFloat
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var textWidth: CGFloat = 0
-    @State private var boxWidth: CGFloat = 0
-    @State private var offset: CGFloat = 0
-    private let fadeWidth: CGFloat = 28
-
-    private var overflow: CGFloat { max(0, textWidth - boxWidth) }
+    let toggle: (() -> Void)?
 
     var body: some View {
-        TimeMasterPageTitle(text, size: 39, relativeTo: .title)
-            .lineLimit(1)
-            .fixedSize()
-            .background(widthReader { textWidth = $0 })
-            .offset(x: offset)
-            .frame(maxWidth: limit, alignment: .leading)
-            .background(widthReader { boxWidth = $0 })
-            .clipped()
-            .mask {
-                HStack(spacing: 0) {
-                    Rectangle()
-                    LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
-                        .frame(width: overflow > 1 ? fadeWidth : 0)
-                }
-            }
-            .task(id: "\(Int(overflow))-\(reduceMotion)-\(text)") { await scroll() }
-    }
-
-    private func widthReader(_ update: @escaping (CGFloat) -> Void) -> some View {
-        GeometryReader { proxy in
-            Color.clear
-                .onAppear { update(proxy.size.width) }
-                .onChange(of: proxy.size.width) { update($0) }
+        let title = TmaxMarquee(text: text, kind: .title) {
+            TimeMasterPageTitle(text, size: 39, relativeTo: .title)
         }
-    }
-
-    private func scroll() async {
-        offset = 0
-        guard overflow > 1, !reduceMotion else { return }
-        let travel = Double(overflow) / 28
-        try? await Task.sleep(nanoseconds: 1_600_000_000)
-        guard !Task.isCancelled else { return }
-        withAnimation(.linear(duration: travel)) { offset = -overflow }
-        try? await Task.sleep(nanoseconds: UInt64((travel + 1.4) * 1_000_000_000))
-        guard !Task.isCancelled else { return }
-        withAnimation(.linear(duration: travel)) { offset = 0 }
+        .frame(maxWidth: limit, alignment: .leading)
+        .contentShape(Rectangle())
+        if let toggle {
+            Button(action: toggle) { title }
+                .buttonStyle(ScrollingChromeTitleButtonStyle())
+        } else {
+            title
+        }
     }
 }
 
@@ -384,7 +362,6 @@ extension View {
 /// the content below it.
 final class ScrollingChromeState: ObservableObject {
     @Published private(set) var expanded = false
-    private var reveal = ScrollingChromeReveal()
 
     func setExpanded(_ expanded: Bool, reduceMotion: Bool) {
         guard expanded != self.expanded else { return }
@@ -394,7 +371,8 @@ final class ScrollingChromeState: ObservableObject {
     }
 
     func update(_ scroll: ScrollingChromeScroll, reduceMotion: Bool) {
-        setExpanded(reveal.expanded(expanded, after: scroll), reduceMotion: reduceMotion)
+        guard expanded, ScrollingChromeCollapse.shouldCollapse(scroll) else { return }
+        setExpanded(false, reduceMotion: reduceMotion)
     }
 }
 
@@ -525,26 +503,11 @@ struct ScrollingChromeScroll: Equatable {
     var isInteracting: Bool
 }
 
-struct ScrollingChromeReveal {
-    static let pullDistance: CGFloat = 32
-    static let collapseDistance: CGFloat = 24
-    private static let restingBand: CGFloat = 4
-    private static let continuousStep: CGFloat = 64
+enum ScrollingChromeCollapse {
+    static let distance: CGFloat = 24
 
-    private var previousOffset: CGFloat?
-    private var pullArmed = false
-
-    mutating func expanded(_ expanded: Bool, after scroll: ScrollingChromeScroll) -> Bool {
-        let previous = previousOffset
-        previousOffset = scroll.offset
-        if !scroll.isInteracting || scroll.offset > Self.restingBand {
-            pullArmed = false
-        } else if let previous, previous >= -Self.restingBand, previous - scroll.offset <= Self.continuousStep {
-            pullArmed = true
-        }
-        if scroll.offset > Self.collapseDistance { return false }
-        if pullArmed, scroll.offset < -Self.pullDistance { return true }
-        return expanded
+    static func shouldCollapse(_ scroll: ScrollingChromeScroll) -> Bool {
+        scroll.isInteracting && scroll.offset > distance
     }
 }
 

@@ -78,10 +78,8 @@ struct BundleSectionHeader: View {
             VStack(spacing: 5) {
                 BundleExerciseThumbnail(slot: slot, size: 52)
                     .workoutHeroSource(key)
-                Text(slot.displayName)
-                    .font(TimeMasterFont.body(11, relativeTo: .caption2))
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
+                TmaxMarqueeText(slot.displayName, font: TimeMasterFont.body(11, relativeTo: .caption2))
+                    .frame(maxWidth: .infinity)
             }
             .frame(width: 60)
         }
@@ -119,13 +117,9 @@ struct BundleSectionHeader: View {
                     .padding(.leading, BuilderMetrics.handleGap)
                 Button(action: onToggle) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(section.name)
-                            .font(TimeMasterFont.black(17, relativeTo: .headline))
-                            .lineLimit(1)
-                        Text(summary)
-                            .font(TimeMasterFont.caption().monospacedDigit())
+                        TmaxMarqueeText(section.name, font: TimeMasterFont.black(17, relativeTo: .headline))
+                        TmaxMarqueeText(summary, font: TimeMasterFont.caption().monospacedDigit())
                             .opacity(0.6)
-                            .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, minHeight: BuilderMetrics.root, alignment: .leading)
                     .contentShape(Rectangle())
@@ -229,10 +223,8 @@ private struct BundleRestChip: View {
                 Text("\(seconds) s")
                     .font(TimeMasterFont.black(10, relativeTo: .caption2).monospacedDigit())
                     .lineLimit(1)
-                Text(title)
-                    .font(TimeMasterFont.body(10, relativeTo: .caption2))
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
+                TmaxMarqueeText(title, font: TimeMasterFont.body(10, relativeTo: .caption2))
+                    .frame(maxWidth: .infinity)
             }
             .opacity(0.65)
             .frame(width: 52)

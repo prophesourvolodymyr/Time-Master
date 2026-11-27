@@ -51,10 +51,7 @@ struct WorkoutGroupHeader: View {
                         }
                     }
                     .frame(width: 30, height: 30)
-                    Text(title)
-                        .font(TimeMasterFont.black(24, relativeTo: .title2))
-                        .foregroundStyle(Theme.textPrimary)
-                        .lineLimit(1)
+                    TmaxMarqueeText(title, font: TimeMasterFont.black(24, relativeTo: .title2), color: Theme.textPrimary)
                     Text("\(count)")
                         .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                         .monospacedDigit()
