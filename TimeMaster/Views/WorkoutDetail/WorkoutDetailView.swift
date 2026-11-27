@@ -60,7 +60,6 @@ struct WorkoutDetailView: View {
         case end
         case pending
         case section(UUID)
-        case bundleEdit(UUID)
         case bundleSet(UUID)
         case preparation(UUID)
         case set(UUID)
@@ -82,7 +81,6 @@ struct WorkoutDetailView: View {
         case restExercise(RestTarget, UUID)
         case restEmpty(RestTarget)
         case restContent(RestTarget, RestContent)
-        case bundleEdit
         case bundleSet(SetSlot, Int)
         case bundleChild(SetSlot, Int, Int)
         case example(UUID)
@@ -1085,7 +1083,6 @@ struct WorkoutDetailView: View {
 
         if isExpanded {
             if section.mode == .bundle {
-                items.append(BuilderRowItem(id: .bundleEdit(section.id), kind: .bundleEdit, level: 1))
                 for (setIndex, set) in section.bundleSets.enumerated() {
                     items.append(BuilderRowItem(id: .bundleSet(set.id), kind: .bundleSet(set, setIndex), level: 1))
                     let exercises = set.children.isEmpty ? [set] : set.children
@@ -1187,8 +1184,6 @@ struct WorkoutDetailView: View {
             restEmptyRow(target: target, item: item)
         case .restContent(let target, let content):
             restContentRow(content, target: target, item: item)
-        case .bundleEdit:
-            bundleEditRow(section, item: item)
         case .bundleSet(let set, let index):
             bundleSetRow(section: section, set: set, index: index, item: item)
         case .bundleChild(let child, let setIndex, let position):
@@ -2078,44 +2073,6 @@ struct WorkoutDetailView: View {
 
     private func editNote(_ content: RestContent, target: RestTarget) {
         noteEditTarget = RestNoteTarget(target: target, contentID: content.id, text: content.text)
-    }
-
-    private func bundleEditRow(_ section: Section, item: BuilderRowItem) -> some View {
-        BuilderTimelineRow(level: item.level) {
-            BuilderGlyphNode(systemImage: "slider.horizontal.3", size: BuilderMetrics.node(item.level), tint: Theme.toolbarOrange)
-        } title: {
-            Button {
-                bundleToEdit = section
-            } label: {
-                BuilderRowTitle(
-                    section.isCombo ? "Edit combo" : "Edit bundle",
-                    subtitle: section.bundleOrder == .random ? "Random order · tap to edit" : "In order · tap to edit",
-                    level: item.level
-                )
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint("Opens the bundle editor")
-        } trailing: {
-            BuilderCluster {
-                Button {
-                    bundleToEdit = section
-                } label: {
-                    Image(systemName: "pencil")
-                }
-                .buttonStyle(BuilderChipButtonStyle())
-                .accessibilityLabel("Edit \(section.name)")
-            } middle: {
-                EmptyView()
-            } last: {
-                EmptyView()
-            }
-        }
-        .modifier(rowChrome(item))
-        .keyNavTarget(id: AnyHashable(item.id), role: .primary, shape: .roundedRectangle(cornerRadius: 10)) {
-            bundleToEdit = section
-        }
-        .builderGroupedRow()
-        .id(item.id)
     }
 
     private func bundleSetRow(section: Section, set: SetSlot, index: Int, item: BuilderRowItem) -> some View {

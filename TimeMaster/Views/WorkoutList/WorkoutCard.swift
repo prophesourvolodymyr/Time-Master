@@ -25,7 +25,8 @@ struct WorkoutCard: View {
                         text: workout.name,
                         font: TimeMasterFont.black(17, relativeTo: .headline),
                         color: Theme.textPrimary,
-                        lines: 2
+                        lines: 2,
+                        deferred: true
                     )
                     categoryBadge
                     if let schedule {
@@ -94,11 +95,11 @@ struct WorkoutCard: View {
                 Image(systemName: icon)
                     .font(.system(size: prominent ? 17 : 14, weight: .bold))
                     .foregroundStyle(Theme.toolbarOrange)
-                TmaxMarqueeText(
-                    value,
-                    font: TimeMasterFont.black(prominent ? 24 : 20, relativeTo: .title3).monospacedDigit(),
-                    color: Theme.textPrimary
-                )
+                Text(value)
+                    .font(TimeMasterFont.black(prominent ? 24 : 20, relativeTo: .title3).monospacedDigit())
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
             }
             Text(label)
                 .font(TimeMasterFont.caption())

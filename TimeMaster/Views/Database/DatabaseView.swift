@@ -1472,22 +1472,47 @@ private struct DatabaseSearchSheet: View {
     @State private var searchText = ""
     @FocusState private var searchFocused: Bool
 
-    private var results: [ExercisePage] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return [] }
-        if let known = store.derived.pageSearch, known.query == query { return known.pages }
-        let found = store.allPagesFlat
-            .filter { page in
-                page.title.localizedCaseInsensitiveContains(query) ||
-                page.manifest.markdownBody.localizedCaseInsensitiveContains(query)
-            }
-            .sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
-        store.derived.pageSearch = (query, found)
-        return found
+    @State private var found: [ExercisePage] = []
+    @State private var settledQuery = ""
+    @State private var working = false
+
+    private var trimmedQuery: String { searchText.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    /// Filters the library for `query` away from the main thread once typing pauses; emptying the field clears the
+    /// results at once, and a repeat of the last query answers from the cache.
+    private func search(_ query: String) async {
+        guard !query.isEmpty else {
+            found = []
+            settledQuery = ""
+            working = false
+            return
+        }
+        if let known = store.derived.pageSearch, known.query == query {
+            found = known.pages
+            settledQuery = query
+            working = false
+            return
+        }
+        working = true
+        try? await Task.sleep(nanoseconds: 140_000_000)
+        guard !Task.isCancelled else { return }
+        let pages = store.allPagesFlat
+        let result = await Task.detached(priority: .userInitiated) {
+            pages
+                .filter { page in
+                    page.title.localizedCaseInsensitiveContains(query) ||
+                        page.manifest.markdownBody.localizedCaseInsensitiveContains(query)
+                }
+                .sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
+        }.value
+        guard !Task.isCancelled else { return }
+        store.derived.pageSearch = (query, result)
+        found = result
+        settledQuery = query
+        working = false
     }
 
     var body: some View {
-        let found = results
         NavigationStack(path: $navigationState.path) {
             ZStack {
                 Theme.background.ignoresSafeArea()
@@ -1499,6 +1524,13 @@ private struct DatabaseSearchSheet: View {
                             .textFieldStyle(.plain)
                             .foregroundStyle(Theme.textPrimary)
                             .focused($searchFocused)
+                        if working {
+                            ProgressView()
+                                .progressViewStyle(.circular)
+                                .tint(Theme.toolbarOrange)
+                                .scaleEffect(0.8)
+                                .transition(.opacity)
+                        }
                         if !searchText.isEmpty {
                             Button {
                                 searchText = ""
@@ -1535,12 +1567,21 @@ private struct DatabaseSearchSheet: View {
                         .padding(28)
                     } else if found.isEmpty {
                         VStack(spacing: 10) {
-                            Image(systemName: "doc.text.magnifyingglass")
-                                .font(.system(size: 34))
-                                .foregroundStyle(Theme.textSecondary)
-                            Text("No matching pages")
-                                .font(TimeMasterFont.sectionTitle())
-                                .foregroundStyle(Theme.textPrimary)
+                            if working || settledQuery != trimmedQuery {
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                                    .tint(Theme.toolbarOrange)
+                                Text("Searching…")
+                                    .font(TimeMasterFont.sectionTitle())
+                                    .foregroundStyle(Theme.textPrimary)
+                            } else {
+                                Image(systemName: "doc.text.magnifyingglass")
+                                    .font(.system(size: 34))
+                                    .foregroundStyle(Theme.textSecondary)
+                                Text("No matching pages")
+                                    .font(TimeMasterFont.sectionTitle())
+                                    .foregroundStyle(Theme.textPrimary)
+                            }
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
@@ -1548,9 +1589,11 @@ private struct DatabaseSearchSheet: View {
                             ForEach(found) { page in
                                 NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
                                     HStack(spacing: 12) {
-                                        Image(systemName: page.isNote ? "note.text" : (page.isContainer ? "rectangle.stack" : "doc.text"))
-                                            .foregroundStyle(Theme.toolbarOrange)
-                                            .frame(width: 24)
+                                        DelayedCoverThumb(
+                                            url: page.coverImageURL,
+                                            symbol: page.isNote ? "note.text" : (page.isContainer ? "rectangle.stack" : "doc.text"),
+                                            side: 34
+                                        )
                                         VStack(alignment: .leading, spacing: 3) {
                                             Text(page.title)
                                                 .foregroundStyle(Theme.textPrimary)
@@ -1608,6 +1651,7 @@ private struct DatabaseSearchSheet: View {
         .quickPreviewHost(navigationState)
         .environmentObject(navigationState)
         .onAppear { searchFocused = true }
+        .task(id: trimmedQuery) { await search(trimmedQuery) }
         .findCommand {
             navigationState.path = NavigationPath()
             searchFocused = true

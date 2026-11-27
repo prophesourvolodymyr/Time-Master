@@ -80,6 +80,41 @@ struct AsyncCoverImage: View {
     }
 }
 
+/// A small square picture for a search row: its symbol shows with the text at once and the cover takes its place a
+/// moment later, once it has loaded, so a list of results never waits for pictures.
+struct DelayedCoverThumb: View {
+    let url: URL?
+    let symbol: String
+    var side: CGFloat = 30
+    var tint: Color = Theme.toolbarOrange
+    var delay: Double = 0.45
+
+    @State private var showsCover = false
+
+    var body: some View {
+        ZStack {
+            Image(systemName: symbol)
+                .font(.system(size: side * 0.46, weight: .bold))
+                .foregroundStyle(tint)
+                .opacity(showsCover ? 0 : 1)
+            if showsCover, let url {
+                AsyncCoverImage(url: url, fallbackIcon: symbol, height: side, overlayGradient: false)
+                    .frame(width: side, height: side)
+                    .clipShape(RoundedRectangle(cornerRadius: side * 0.27, style: .continuous))
+                    .transition(.opacity)
+            }
+        }
+        .frame(width: side, height: side)
+        .task(id: url) {
+            showsCover = false
+            guard url != nil else { return }
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.3)) { showsCover = true }
+        }
+    }
+}
+
 extension String {
     var nilIfEmpty: String? {
         isEmpty ? nil : self

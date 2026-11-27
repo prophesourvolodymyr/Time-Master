@@ -88,6 +88,12 @@ struct NavigationSearchNode: Identifiable, Hashable {
     var children: [NavigationSearchNode]
 }
 
+/// The picture that goes with a result and the symbol kept under it until the picture has loaded.
+struct NavigationSearchCover {
+    let url: URL
+    let symbol: String
+}
+
 struct NavigationSearchResults: Equatable {
     var query = ""
     var hits: [NavigationSearchHit] = []
@@ -105,6 +111,8 @@ struct NavigationSearchResults: Equatable {
 struct NavigationSearchIndex {
     let entries: [NavigationSearchEntry]
     static let treeLimit = 8
+    /// The letter-by-letter fuzzy pass is the slow one; it only runs when fewer plain matches than this were found.
+    static let fuzzyBelow = 6
 
     init(entries: [NavigationSearchEntry]) {
         self.entries = entries
@@ -116,9 +124,21 @@ struct NavigationSearchIndex {
         let tokens = normalized.split(separator: " ").map(String.init)
         var hits: [NavigationSearchHit] = []
         hits.reserveCapacity(64)
-        for entry in entries {
-            guard let score = Self.score(normalized, tokens: tokens, entry: entry) else { continue }
+        var unmatched: [Int] = []
+        unmatched.reserveCapacity(entries.count)
+        for (position, entry) in entries.enumerated() {
+            guard let score = Self.score(normalized, tokens: tokens, entry: entry, fuzzy: false) else {
+                unmatched.append(position)
+                continue
+            }
             hits.append(NavigationSearchHit(entry: entry, score: score))
+        }
+        if hits.count < Self.fuzzyBelow, normalized.count >= 3 {
+            for position in unmatched {
+                let entry = entries[position]
+                guard let score = Self.score(normalized, tokens: tokens, entry: entry, fuzzy: true) else { continue }
+                hits.append(NavigationSearchHit(entry: entry, score: score))
+            }
         }
         hits.sort { lhs, rhs in
             if lhs.score != rhs.score { return lhs.score > rhs.score }
@@ -187,10 +207,10 @@ struct NavigationSearchIndex {
         return best
     }
 
-    private static func score(_ query: String, tokens: [String], entry: NavigationSearchEntry) -> Double? {
-        var best = score(query, tokens: tokens, in: entry.key)
+    private static func score(_ query: String, tokens: [String], entry: NavigationSearchEntry, fuzzy: Bool) -> Double? {
+        var best = score(query, tokens: tokens, in: entry.key, fuzzy: fuzzy)
         for alias in entry.aliasKeys {
-            guard let aliasScore = score(query, tokens: tokens, in: alias).map({ $0 * 0.92 }) else { continue }
+            guard let aliasScore = score(query, tokens: tokens, in: alias, fuzzy: fuzzy).map({ $0 * 0.92 }) else { continue }
             best = max(best ?? 0, aliasScore)
         }
         if !entry.contextKey.isEmpty,
@@ -343,12 +363,38 @@ final class NavigationSearchModel {
             let entries = await Task.detached(priority: .userInitiated) { Self.entries(from: source) }.value
             guard let self, !Task.isCancelled else { return }
             self.index = NavigationSearchIndex(entries: entries)
+            self.building = nil
             self.onIndexChanged()
         }
     }
 
     func search(_ query: String) -> NavigationSearchResults {
         index.search(query)
+    }
+
+    /// The index as it stands, for running a search away from the main thread.
+    func snapshot() -> NavigationSearchIndex { index }
+
+    /// Whether there is anything to search yet; the first index of a launch is built in the background.
+    var hasIndex: Bool { !index.entries.isEmpty }
+
+    /// The picture to show beside a result (a library page's cover, a workout's first exercise cover) and the symbol to
+    /// keep under it while it loads; nil when the result has no picture of its own.
+    func cover(for target: NavigationSearchTarget) -> NavigationSearchCover? {
+        switch target {
+        case .libraryPage(let id, _):
+            guard let page = databaseStore.page(manifestID: id), let url = page.coverImageURL else { return nil }
+            return NavigationSearchCover(url: url, symbol: Self.symbol(for: page))
+        case .workout(let id):
+            guard let workout = workoutStore.workout(id: id) else { return nil }
+            let library = databaseStore
+            let url = workout.sections.lazy
+                .compactMap { section in section.pageID.flatMap { library.page(id: $0)?.coverImageURL } }
+                .first
+            return url.map { NavigationSearchCover(url: $0, symbol: Self.workoutSymbol) }
+        case .page, .workoutGroup:
+            return nil
+        }
     }
 
     /// What sits inside `target` one level down, for opening a level of the result tree further.

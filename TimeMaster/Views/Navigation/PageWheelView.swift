@@ -60,7 +60,9 @@ struct PageWheelOverlay: View {
                     .offset(y: reduceMotion ? 0 : -18 * (1 - searchOpacity(progress)))
                     .allowsHitTesting(wheel.phase == .open)
 
-                if wheel.phase == .open, !wheel.query.isEmpty, !wheel.results.tree.isEmpty || wheel.results.isEmpty {
+                if wheel.phase == .open, !wheel.query.isEmpty,
+                   wheel.isSearching || !wheel.results.tree.isEmpty
+                    || (wheel.results.query == wheel.query && wheel.results.isEmpty) {
                     PageWheelBubble(wheel: wheel, layout: layout)
                         .transition(reduceMotion ? .opacity : .scale(scale: 0.6, anchor: layout.bubbleOnSide ? .leading : .top)
                             .combined(with: .opacity))
@@ -475,6 +477,7 @@ struct PageWheelSearchField: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @State private var pulse = false
 
     var body: some View {
         let isFocused = wheel.searchFocused
@@ -495,6 +498,15 @@ struct PageWheelSearchField: View {
                 #if os(iOS)
                 .textInputAutocapitalization(.never)
                 #endif
+            if wheel.isSearching {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .tint(Theme.toolbarOrange)
+                    .scaleEffect(0.8)
+                    .frame(width: 24, height: 24)
+                    .transition(.opacity)
+                    .accessibilityLabel("Searching")
+            }
             if !wheel.query.isEmpty {
                 Button {
                     wheel.query = ""
@@ -525,10 +537,26 @@ struct PageWheelSearchField: View {
             )
             .allowsHitTesting(false)
         }
-        .shadow(color: isFocused ? Theme.toolbarOrange.opacity(0.35) : .black.opacity(0.35), radius: isFocused ? 18 : 12, y: 6)
+        .shadow(
+            color: wheel.isSearching ? Theme.toolbarOrange.opacity(pulse ? 0.7 : 0.3)
+                : (isFocused ? Theme.toolbarOrange.opacity(0.35) : .black.opacity(0.35)),
+            radius: wheel.isSearching ? (pulse ? 28 : 14) : (isFocused ? 18 : 12),
+            y: 6
+        )
+        .onChange(of: wheel.isSearching) { searching in
+            guard !reduceMotion else { return }
+            if searching {
+                withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) { pulse = true }
+            } else {
+                withAnimation(.easeOut(duration: 0.25)) { pulse = false }
+            }
+        }
         .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.7), value: isFocused)
         .contentShape(shape)
-        .onTapGesture { wheel.searchFocused = true }
+        .onTapGesture {
+            focused.wrappedValue = true
+            wheel.searchFocused = true
+        }
         .everBounce(isFocused, in: shape, kind: .lift(EverBounceMotion.lift), lights: true)
     }
 
@@ -574,17 +602,30 @@ struct PageWheelBubble: View {
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
                 Spacer(minLength: 0)
+                if wheel.isSearching {
+                    ProgressView()
+                        .tint(Theme.toolbarOrange)
+                        .scaleEffect(0.7)
+                        .frame(width: 18, height: 18)
+                        .transition(.opacity)
+                }
             }
             .padding(.horizontal, 16)
             .padding(.top, 14)
             .padding(.bottom, 8)
 
             if tree.isEmpty {
-                Text("Nothing in Tmax matches “\(wheel.query)”.")
-                    .font(TimeMasterFont.secondary())
-                    .foregroundStyle(Theme.textSecondary)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 14)
+                if wheel.isSearching {
+                    PageWheelSkeletonRows()
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 14)
+                } else {
+                    Text("Nothing in Tmax matches “\(wheel.query)”.")
+                        .font(TimeMasterFont.secondary())
+                        .foregroundStyle(Theme.textSecondary)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 14)
+                }
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -597,6 +638,7 @@ struct PageWheelBubble: View {
                 }
                 .frame(maxHeight: max(60, frame.height - 64))
                 .fixedSize(horizontal: false, vertical: true)
+                .opacity(wheel.isSearching ? 0.55 : 1)
             }
         }
         .padding(.leading, layout.bubbleOnSide ? 18 : 0)
@@ -621,6 +663,7 @@ struct PageWheelBubble: View {
     }
 
     private func header(_ tree: [NavigationSearchNode]) -> String {
+        if wheel.isSearching && tree.isEmpty { return "Searching…" }
         if tree.isEmpty { return "No match" }
         let count = wheel.results.hits.filter { !$0.entry.isPage }.prefix(NavigationSearchIndex.treeLimit).count
         return "\(count) \(count == 1 ? "match" : "matches") for “\(wheel.query.trimmingCharacters(in: .whitespaces))”"
@@ -646,21 +689,16 @@ private struct PageWheelTreeRows: View {
                             PageWheelTreeGuide()
                                 .frame(width: 10, height: 30)
                         }
-                        Image(systemName: node.symbol)
-                            .font(.system(size: depth == 0 ? 13 : 14, weight: .bold))
-                            .foregroundStyle(node.isMatch || depth == 0 ? Theme.toolbarOrange : Theme.textSecondary)
-                            .frame(width: 22)
+                        PageWheelResultIcon(node: node, depth: depth, wheel: wheel)
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(depth == 0 ? node.title.uppercased() : node.title)
-                                .font(depth == 0 ? TimeMasterFont.black(11, relativeTo: .caption) : TimeMasterFont.body(15, relativeTo: .subheadline))
-                                .tracking(depth == 0 ? 1.2 : 0)
-                                .foregroundStyle(node.isMatch || depth == 0 ? Theme.textPrimary : Theme.textPrimary.opacity(0.72))
-                                .lineLimit(1)
+                            TmaxMarqueeText(
+                                depth == 0 ? node.title.uppercased() : node.title,
+                                font: depth == 0 ? TimeMasterFont.black(11, relativeTo: .caption) : TimeMasterFont.body(15, relativeTo: .subheadline),
+                                color: node.isMatch || depth == 0 ? Theme.textPrimary : Theme.textPrimary.opacity(0.72),
+                                kerning: depth == 0 ? 1.2 : 0
+                            )
                             if !node.detail.isEmpty, depth > 0 {
-                                Text(node.detail)
-                                    .font(TimeMasterFont.caption())
-                                    .foregroundStyle(Theme.textSecondary)
-                                    .lineLimit(1)
+                                TmaxMarqueeText(node.detail, font: TimeMasterFont.caption(), color: Theme.textSecondary)
                             }
                         }
                         Spacer(minLength: 0)
@@ -692,6 +730,72 @@ private struct PageWheelTreeRows: View {
                 PageWheelTreeRows(node: child, depth: depth + 1, wheel: wheel)
             }
         }
+    }
+}
+
+/// The icon of a result row. Its symbol shows at once with the text; a library page's cover or a workout's first
+/// exercise cover takes its place a moment later, once it has loaded.
+private struct PageWheelResultIcon: View {
+    let node: NavigationSearchNode
+    let depth: Int
+    let wheel: PageWheelController
+
+    @State private var cover: NavigationSearchCover?
+    @State private var showsCover = false
+
+    private var side: CGFloat { depth == 0 ? 22 : 30 }
+
+    var body: some View {
+        ZStack {
+            Image(systemName: node.symbol)
+                .font(.system(size: depth == 0 ? 13 : 14, weight: .bold))
+                .foregroundStyle(node.isMatch || depth == 0 ? Theme.toolbarOrange : Theme.textSecondary)
+                .opacity(showsCover ? 0 : 1)
+            if showsCover, let cover {
+                AsyncCoverImage(url: cover.url, fallbackIcon: cover.symbol, height: side, overlayGradient: false)
+                    .frame(width: side, height: side)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .transition(.opacity)
+            }
+        }
+        .frame(width: side, height: side)
+        .task(id: node.id) {
+            showsCover = false
+            cover = nil
+            guard depth > 0, let found = wheel.search?.cover(for: node.target) else { return }
+            cover = found
+            try? await Task.sleep(nanoseconds: 450_000_000)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.3)) { showsCover = true }
+        }
+    }
+}
+
+/// Grey bars where the results will be while the search is still working.
+private struct PageWheelSkeletonRows: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var lit = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(0..<3, id: \.self) { row in
+                HStack(spacing: 10) {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.white.opacity(lit ? 0.14 : 0.07))
+                        .frame(width: 30, height: 30)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Capsule().fill(Color.white.opacity(lit ? 0.14 : 0.07)).frame(width: row == 1 ? 150 : 190, height: 10)
+                        Capsule().fill(Color.white.opacity(lit ? 0.09 : 0.04)).frame(width: 80, height: 8)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) { lit = true }
+        }
+        .accessibilityHidden(true)
     }
 }
 

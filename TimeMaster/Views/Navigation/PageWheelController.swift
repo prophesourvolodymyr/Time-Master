@@ -105,6 +105,8 @@ final class PageWheelController: ObservableObject {
     @Published private(set) var glow: CGFloat = 0
     @Published private(set) var results = NavigationSearchResults.empty
     @Published private(set) var expanded: [String: [NavigationSearchNode]] = [:]
+    /// A search is waiting for its pause or its index, or running; the field and the bubble show it.
+    @Published private(set) var isSearching = false
     @Published var searchFocused = false
     @Published var query = "" {
         didSet { if query != oldValue { queryChanged() } }
@@ -144,6 +146,8 @@ final class PageWheelController: ObservableObject {
     private var previewed: String?
     private var previewTask: Task<Void, Never>?
     private var closeTask: Task<Void, Never>?
+    private var searchTask: Task<Void, Never>?
+    private var loadingTask: Task<Void, Never>?
     private var formedAt: TimeInterval?
     /// Where the finger last came to rest and since when: a page opens behind the wheel, and on release, only once the
     /// finger holds on a slice, never while it only passes over slices on its way.
@@ -459,7 +463,8 @@ final class PageWheelController: ObservableObject {
     // MARK: Search
 
     func submit() {
-        guard let best = results.best else {
+        let pending = isSearching && !query.isEmpty ? search?.search(query).best : nil
+        guard let best = pending ?? results.best else {
             if query.isEmpty { commit(top) }
             return
         }
@@ -499,10 +504,36 @@ final class PageWheelController: ObservableObject {
     }
 
     private func queryChanged() {
-        expanded = [:]
+        searchTask?.cancel()
+        loadingTask?.cancel()
+        if !expanded.isEmpty { expanded = [:] }
         guard let search else { return }
-        let next = search.search(query)
-        results = next
+        let typed = query
+        guard !typed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            isSearching = false
+            if results != .empty { results = .empty }
+            return
+        }
+        loadingTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 220_000_000)
+            guard !Task.isCancelled, let self else { return }
+            self.isSearching = true
+        }
+        searchTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 80_000_000)
+            guard !Task.isCancelled, let self, search.hasIndex else { return }
+            let index = search.snapshot()
+            let next = await Task.detached(priority: .userInitiated) { index.search(typed) }.value
+            guard !Task.isCancelled, self.query == typed else { return }
+            self.loadingTask?.cancel()
+            self.results = next
+            self.isSearching = false
+            self.turn(toward: next)
+        }
+    }
+
+    /// Turns the wheel to the page the best match lives on.
+    private func turn(toward next: NavigationSearchResults) {
         guard let destination = next.destination,
               let index = items.firstIndex(where: { $0.id == destination.rawValue }), phase == .open else { return }
         let target = Double(geometry(at: 1).rotation(bringing: index, near: CGFloat(spin.target ?? Double(rotation))))

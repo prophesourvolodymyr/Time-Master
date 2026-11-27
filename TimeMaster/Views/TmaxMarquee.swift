@@ -77,7 +77,11 @@ struct TmaxMarqueeText: View {
 }
 
 /// A name that may take up to `lines` lines. When it needs more, or the room it is given is too short for the lines it
-/// needs, it becomes one scrolling line instead of ending in three dots.
+/// needs, it becomes one scrolling line instead of ending in three dots. Nothing is measured into state: a hidden copy
+/// of the text limited to `lines` fixes the room, and the full text is offered exactly that room, so the choice is made
+/// in the same layout pass. In a long list (`deferred`) the title is plain two-line text for its first moments and
+/// turns adaptive once it has been on screen, so a page of many cards opens without paying for all of them at once;
+/// a title short enough to always fit its lines never needs the upgrade.
 struct TmaxFittingTitle: View {
     let text: String
     let font: Font
@@ -85,41 +89,70 @@ struct TmaxFittingTitle: View {
     var lines = 2
     var forceActive = false
     var kerning: CGFloat = 0
+    var deferred = false
 
-    @State private var width: CGFloat = 0
-    @State private var idealHeight: CGFloat = 0
-    @State private var lineHeight: CGFloat = 0
-    @State private var visibleHeight: CGFloat = 0
-    @State private var squeezed = false
+    @State private var adaptive = false
 
-    private var needsScrolling: Bool {
-        width > 1 && lineHeight > 0 && idealHeight > 0
-            && (squeezed || idealHeight > lineHeight * CGFloat(lines) + 2)
-    }
+    private static let alwaysFits = 22
+    /// Long enough that it cannot fit two lines on a phone: it rests as one faded line from the first frame.
+    private static let certainlyLong = 46
+
+    private var upgradesLater: Bool { deferred && text.count > Self.alwaysFits }
+    private var showsAdaptive: Bool { !deferred || adaptive }
+    private var restsFaded: Bool { deferred && !adaptive && text.count > Self.certainlyLong }
 
     var body: some View {
-        Group {
-            if needsScrolling {
-                TmaxMarqueeText(text, font: font, color: color, forceActive: forceActive, kerning: kerning)
-            } else {
-                wrapped
-                    .background(TmaxHeightReader {
-                        visibleHeight = $0
-                        checkSqueeze()
-                    })
-            }
+        if deferred, text.count <= Self.alwaysFits {
+            plain
+        } else {
+            plain
+                .opacity(showsAdaptive || restsFaded ? 0 : 1)
+                .accessibilityHidden(showsAdaptive || restsFaded)
+                .overlay(alignment: .topLeading) {
+                    if showsAdaptive {
+                        ViewThatFits(in: .vertical) {
+                            full
+                            TmaxMarqueeText(text, font: font, color: color, forceActive: forceActive, kerning: kerning)
+                        }
+                    } else if restsFaded {
+                        resting
+                    }
+                }
+                .task {
+                    guard upgradesLater, !adaptive else { return }
+                    try? await Task.sleep(nanoseconds: 450_000_000)
+                    guard !Task.isCancelled else { return }
+                    var transaction = Transaction()
+                    transaction.disablesAnimations = true
+                    withTransaction(transaction) { adaptive = true }
+                }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(TmaxWidthReader { width = $0 })
-        .background(alignment: .topLeading) { measurement }
-        .onChange(of: width) { _ in squeezed = false }
-        .onChange(of: text) { _ in squeezed = false }
-        .onChange(of: idealHeight) { _ in checkSqueeze() }
-        .onChange(of: lineHeight) { _ in checkSqueeze() }
     }
 
     @ViewBuilder
-    private var wrapped: some View {
+    private var resting: some View {
+        Group {
+            if let color {
+                Text(text).font(font).kerning(kerning).foregroundStyle(color)
+            } else {
+                Text(text).font(font).kerning(kerning)
+            }
+        }
+        .lineLimit(1)
+        .fixedSize(horizontal: true, vertical: false)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .clipped()
+        .mask {
+            HStack(spacing: 0) {
+                Rectangle()
+                LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
+                    .frame(width: 22)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var plain: some View {
         if let color {
             Text(text).font(font).kerning(kerning).foregroundStyle(color).lineLimit(lines)
         } else {
@@ -127,37 +160,12 @@ struct TmaxFittingTitle: View {
         }
     }
 
-    private var measurement: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .topLeading) {
-                Text(text).font(font).kerning(kerning)
-                    .frame(width: max(1, proxy.size.width), alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .background(TmaxHeightReader { idealHeight = $0 })
-                Text("Ag").font(font).kerning(kerning)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .background(TmaxHeightReader { lineHeight = $0 })
-            }
-            .hidden()
-            .accessibilityHidden(true)
-        }
-    }
-
-    private func checkSqueeze() {
-        guard !needsScrolling, width > 1, lineHeight > 0, idealHeight > 0, visibleHeight > 0 else { return }
-        if visibleHeight + 1 < min(idealHeight, lineHeight * CGFloat(lines) + 2) { squeezed = true }
-    }
-}
-
-private struct TmaxHeightReader: View {
-    let update: (CGFloat) -> Void
-
-    var body: some View {
-        GeometryReader { proxy in
-            Color.clear
-                .onAppear { update(proxy.size.height) }
-                .onChange(of: proxy.size.height) { update($0) }
+    @ViewBuilder
+    private var full: some View {
+        if let color {
+            Text(text).font(font).kerning(kerning).foregroundStyle(color).fixedSize(horizontal: false, vertical: true)
+        } else {
+            Text(text).font(font).kerning(kerning).fixedSize(horizontal: false, vertical: true)
         }
     }
 }
