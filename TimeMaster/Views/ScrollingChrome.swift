@@ -134,7 +134,14 @@ struct ScrollingChromeHeader<Controls: View>: View {
 
 private struct ScrollingChromeTitleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.opacity(configuration.isPressed ? 0.55 : 1)
+        configuration.label
+            .opacity(configuration.isPressed ? 0.78 : 1)
+            .everBounce(
+                configuration.isPressed,
+                in: RoundedRectangle(cornerRadius: 14, style: .continuous),
+                kind: .lift(EverBounceMotion.compactLift),
+                pops: true
+            )
     }
 }
 

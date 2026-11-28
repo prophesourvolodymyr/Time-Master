@@ -438,10 +438,11 @@ struct DatabasePageBrowserSheet: View {
             }
             coverThumb(page)
             VStack(alignment: .leading, spacing: 2) {
-                Text(page.title)
-                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
-                    .foregroundColor(Theme.textPrimary)
-                    .lineLimit(1)
+                TmaxMarqueeText(
+                    page.title,
+                    font: TimeMasterFont.black(15, relativeTo: .subheadline),
+                    color: Theme.textPrimary
+                )
                 HStack(spacing: 6) {
                     if page.isContainer {
                         Text("\(page.totalChildCount) pages")
@@ -504,10 +505,11 @@ struct DatabasePageBrowserSheet: View {
             VStack(alignment: .leading, spacing: 8) {
                 if let page = previewPage {
                     HStack {
-                        Text(page.title)
-                            .font(TimeMasterFont.black(15, relativeTo: .subheadline))
-                            .foregroundColor(Theme.textPrimary)
-                            .lineLimit(1)
+                        TmaxMarqueeText(
+                            page.title,
+                            font: TimeMasterFont.black(15, relativeTo: .subheadline),
+                            color: Theme.textPrimary
+                        )
                         Spacer()
                         Button { previewPage = nil } label: {
                             Image(systemName: "xmark.circle.fill")

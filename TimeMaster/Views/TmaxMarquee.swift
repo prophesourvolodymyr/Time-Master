@@ -77,11 +77,11 @@ struct TmaxMarqueeText: View {
 }
 
 /// A name that may take up to `lines` lines. When it needs more, or the room it is given is too short for the lines it
-/// needs, it becomes one scrolling line instead of ending in three dots. Nothing is measured into state: a hidden copy
-/// of the text limited to `lines` fixes the room, and the full text is offered exactly that room, so the choice is made
-/// in the same layout pass. In a long list (`deferred`) the title is plain two-line text for its first moments and
-/// turns adaptive once it has been on screen, so a page of many cards opens without paying for all of them at once;
-/// a title short enough to always fit its lines never needs the upgrade.
+/// needs, it becomes one scrolling line instead of ending in three dots. The choice is made by a small layout in the
+/// same pass the title is placed in, with nothing measured into state. In a long list (`deferred`) a title is plain
+/// two-line text, or one faded line when it is far too long, for its first moments and turns adaptive once it has
+/// been on screen, so a page of many cards opens without paying for all of them at once; a title short enough to
+/// always fit its lines never needs the upgrade.
 struct TmaxFittingTitle: View {
     let text: String
     let font: Font
@@ -97,35 +97,30 @@ struct TmaxFittingTitle: View {
     /// Long enough that it cannot fit two lines on a phone: it rests as one faded line from the first frame.
     private static let certainlyLong = 46
 
-    private var upgradesLater: Bool { deferred && text.count > Self.alwaysFits }
-    private var showsAdaptive: Bool { !deferred || adaptive }
-    private var restsFaded: Bool { deferred && !adaptive && text.count > Self.certainlyLong }
+    private var needsAdaptive: Bool { !deferred || text.count > Self.alwaysFits }
+    private var showsAdaptive: Bool { needsAdaptive && (!deferred || adaptive) }
 
     var body: some View {
-        if deferred, text.count <= Self.alwaysFits {
-            plain
-        } else {
-            plain
-                .opacity(showsAdaptive || restsFaded ? 0 : 1)
-                .accessibilityHidden(showsAdaptive || restsFaded)
-                .overlay(alignment: .topLeading) {
-                    if showsAdaptive {
-                        ViewThatFits(in: .vertical) {
-                            full
-                            TmaxMarqueeText(text, font: font, color: color, forceActive: forceActive, kerning: kerning)
-                        }
-                    } else if restsFaded {
-                        resting
-                    }
+        Group {
+            if showsAdaptive {
+                TmaxFitLayout(lines: lines) {
+                    free
+                    TmaxMarqueeText(text, font: font, color: color, forceActive: forceActive, kerning: kerning)
+                        .accessibilityHidden(true)
                 }
-                .task {
-                    guard upgradesLater, !adaptive else { return }
-                    try? await Task.sleep(nanoseconds: 450_000_000)
-                    guard !Task.isCancelled else { return }
-                    var transaction = Transaction()
-                    transaction.disablesAnimations = true
-                    withTransaction(transaction) { adaptive = true }
-                }
+            } else if deferred, text.count > Self.certainlyLong {
+                resting
+            } else {
+                plain
+            }
+        }
+        .task {
+            guard deferred, needsAdaptive, !adaptive else { return }
+            try? await Task.sleep(nanoseconds: 450_000_000)
+            guard !Task.isCancelled else { return }
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { adaptive = true }
         }
     }
 
@@ -160,13 +155,62 @@ struct TmaxFittingTitle: View {
         }
     }
 
+    /// The text with no limit on its lines, which the layout measures and, when it fits, shows.
     @ViewBuilder
-    private var full: some View {
+    private var free: some View {
         if let color {
-            Text(text).font(font).kerning(kerning).foregroundStyle(color).fixedSize(horizontal: false, vertical: true)
+            Text(text).font(font).kerning(kerning).foregroundStyle(color)
         } else {
-            Text(text).font(font).kerning(kerning).fixedSize(horizontal: false, vertical: true)
+            Text(text).font(font).kerning(kerning)
         }
+    }
+}
+
+/// Shows its first child (the whole text, wrapping) when that fits `lines` lines and the height it is offered, and
+/// its second child (the one-line scrolling text) when it does not. The child that is not shown waits out of sight
+/// with a width so wide that it stays a plain line.
+private struct TmaxFitLayout: Layout {
+    let lines: Int
+
+    private struct Pick {
+        let wrapped: Bool
+        let size: CGSize
+    }
+
+    private func pick(proposal: ProposedViewSize, subviews: Subviews) -> Pick {
+        let text = subviews[0]
+        let oneLine = text.sizeThatFits(.unspecified)
+        guard let width = proposal.width, width.isFinite, oneLine.width > width + 0.5 else {
+            return Pick(wrapped: true, size: oneLine)
+        }
+        let wrapped = text.sizeThatFits(ProposedViewSize(width: width, height: nil))
+        let needed = (wrapped.height / max(1, oneLine.height)).rounded()
+        let heightFits = proposal.height.map { !$0.isFinite || wrapped.height <= $0 + oneLine.height / 2 } ?? true
+        if needed <= CGFloat(lines), heightFits {
+            return Pick(wrapped: true, size: wrapped)
+        }
+        return Pick(wrapped: false, size: CGSize(width: width, height: oneLine.height))
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard subviews.count == 2 else { return .zero }
+        return pick(proposal: proposal, subviews: subviews).size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard subviews.count == 2 else { return }
+        let choice = pick(proposal: ProposedViewSize(width: bounds.width, height: proposal.height), subviews: subviews)
+        let shown = choice.wrapped ? 0 : 1
+        subviews[shown].place(
+            at: bounds.origin,
+            anchor: .topLeading,
+            proposal: ProposedViewSize(width: bounds.width, height: choice.size.height)
+        )
+        subviews[1 - shown].place(
+            at: CGPoint(x: bounds.minX - 100_000, y: bounds.minY),
+            anchor: .topLeading,
+            proposal: ProposedViewSize(width: 100_000, height: nil)
+        )
     }
 }
 

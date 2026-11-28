@@ -291,6 +291,12 @@ extension EnvironmentValues {
     }
 }
 
+enum EverTouchEvent {
+    case down
+    case tap
+    case cancel
+}
+
 struct EverBounceModifier<Surface: InsettableShape>: ViewModifier {
     let isPressed: Bool
     let shape: Surface
@@ -309,6 +315,11 @@ struct EverBounceModifier<Surface: InsettableShape>: ViewModifier {
     @State private var settleTask: Task<Void, Never>?
     @State private var point: CGPoint?
     @State private var drag = CGSize.zero
+    @State private var early = false
+    @State private var pressedNow = false
+    @State private var poppedThisTouch = false
+    @State private var hapticAt: TimeInterval = 0
+    @State private var guardTask: Task<Void, Never>?
 
     func body(content: Content) -> some View {
         sampled(content)
@@ -335,15 +346,32 @@ struct EverBounceModifier<Surface: InsettableShape>: ViewModifier {
     }
 
     private func respond(_ pressed: Bool) {
+        pressedNow = pressed
         settleTask?.cancel()
         settleTask = nil
         if pressed {
             pressedAt = ProcessInfo.processInfo.systemUptime
-            if pops && popsAllowed { AppInteractionHaptics.shared.pressed() }
-            withAnimation(kind.press) { engaged = true }
-            if lights { withAnimation(EverBounceMotion.lightOn) { lit = true } }
+            pop()
+            if !engaged { withAnimation(kind.press) { engaged = true } }
+            if lights, !lit { withAnimation(EverBounceMotion.lightOn) { lit = true } }
             return
         }
+        guard !early else { return }
+        release()
+    }
+
+    private func pop() {
+        guard pops, popsAllowed, !poppedThisTouch else { return }
+        let now = ProcessInfo.processInfo.systemUptime
+        guard now - hapticAt > 0.25 else { return }
+        hapticAt = now
+        poppedThisTouch = true
+        AppInteractionHaptics.shared.pressed()
+    }
+
+    private func release() {
+        settleTask?.cancel()
+        poppedThisTouch = false
         let wait = EverBounceMotion.hold - (ProcessInfo.processInfo.systemUptime - pressedAt)
         guard wait > 0.01 else {
             settle()
@@ -358,6 +386,7 @@ struct EverBounceModifier<Surface: InsettableShape>: ViewModifier {
 
     private func settle() {
         settleTask = nil
+        endEarly()
         withAnimation(kind.release) {
             engaged = false
             drag = .zero
@@ -368,6 +397,9 @@ struct EverBounceModifier<Surface: InsettableShape>: ViewModifier {
     private func reset() {
         settleTask?.cancel()
         settleTask = nil
+        endEarly()
+        pressedNow = false
+        poppedThisTouch = false
         engaged = false
         lit = false
         drag = .zero
@@ -380,7 +412,7 @@ struct EverBounceModifier<Surface: InsettableShape>: ViewModifier {
             content.background(EverTouchSampler(
                 isActive: tracks && isEnabled && engaged && !reduceMotion,
                 onSample: sample,
-                onTap: pops && isEnabled ? tapped : nil
+                onTouch: pops && isEnabled ? touched : nil
             ))
         } else {
             content
@@ -388,6 +420,44 @@ struct EverBounceModifier<Surface: InsettableShape>: ViewModifier {
         #else
         content
         #endif
+    }
+
+    private func touched(_ event: EverTouchEvent) {
+        switch event {
+        case .down:
+            guard isEnabled, !engaged, !early else { return }
+            early = true
+            guardTask?.cancel()
+            guardTask = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                guard !Task.isCancelled, early else { return }
+                endEarly()
+                if !pressedNow { release() }
+            }
+            settleTask?.cancel()
+            settleTask = nil
+            pressedAt = ProcessInfo.processInfo.systemUptime
+            withAnimation(kind.press) { engaged = true }
+            if lights { withAnimation(EverBounceMotion.lightOn) { lit = true } }
+        case .tap:
+            guard early else {
+                tapped()
+                return
+            }
+            endEarly()
+            pop()
+            release()
+        case .cancel:
+            guard early else { return }
+            endEarly()
+            if !pressedNow { release() }
+        }
+    }
+
+    private func endEarly() {
+        guardTask?.cancel()
+        guardTask = nil
+        early = false
     }
 
     private func tapped() {
@@ -442,12 +512,17 @@ extension View {
 final class EverTouchTracker {
     static let shared = EverTouchTracker()
 
+    private static let slop: CGFloat = 12
+    private static let lightDelay: UInt64 = 45_000_000
+
     private(set) var origin: CGPoint?
     private(set) var location: CGPoint?
     private var startedAt: TimeInterval = 0
     private weak var window: UIWindow?
     private var recognizer: EverTouchRecognizer?
     private let anchors = NSHashTable<EverTouchSampler.Anchor>.weakObjects()
+    private weak var lit: EverTouchSampler.Anchor?
+    private var lightTask: Task<Void, Never>?
 
     func install(in candidate: UIWindow?) {
         guard let candidate, window !== candidate else { return }
@@ -470,35 +545,60 @@ final class EverTouchTracker {
         startedAt = ProcessInfo.processInfo.systemUptime
         AppInteractionHaptics.shared.preparePress()
         NotificationCenter.default.post(name: .tmaxTouchBegan, object: nil, userInfo: ["x": point.x, "y": point.y])
+        lightTask?.cancel()
+        lightTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: Self.lightDelay)
+            guard !Task.isCancelled else { return }
+            self?.lightUnderFinger()
+        }
+    }
+
+    private func lightUnderFinger() {
+        lightTask = nil
+        guard let origin, let location, let window,
+              hypot(location.x - origin.x, location.y - origin.y) < Self.slop,
+              let found = anchorUnder(origin, in: window) else { return }
+        lit = found
+        found.onTouch?(.down)
     }
 
     fileprivate func moved(to point: CGPoint) {
         location = point
+        guard let held = lit, let origin, hypot(point.x - origin.x, point.y - origin.y) >= Self.slop else { return }
+        lit = nil
+        held.onTouch?(.cancel)
     }
 
     fileprivate func finished(cancelled: Bool) {
+        lightTask?.cancel()
+        lightTask = nil
         let start = origin
         let end = location
         origin = nil
         location = nil
-        guard !cancelled, let start, let end, let window else { return }
-        guard hypot(end.x - start.x, end.y - start.y) < 12,
-              ProcessInfo.processInfo.systemUptime - startedAt < 0.6 else { return }
-        tapped(at: end, in: window)
+        let held = lit
+        lit = nil
+        guard !cancelled, let start, let end, let window,
+              hypot(end.x - start.x, end.y - start.y) < Self.slop,
+              ProcessInfo.processInfo.systemUptime - startedAt < 0.6 else {
+            held?.onTouch?(.cancel)
+            return
+        }
+        (held ?? anchorUnder(end, in: window))?.onTouch?(.tap)
     }
 
-    private func tapped(at point: CGPoint, in window: UIWindow) {
+    private func anchorUnder(_ point: CGPoint, in window: UIWindow) -> EverTouchSampler.Anchor? {
         let host = window.hitTest(point, with: nil).flatMap { Self.controller(of: $0) }
         var best: (anchor: EverTouchSampler.Anchor, area: CGFloat)?
         for anchor in anchors.allObjects {
-            guard anchor.window === window, anchor.onTap != nil, !anchor.isHiddenInTree else { continue }
+            guard anchor.window === window, anchor.onTouch != nil, !anchor.isHiddenInTree else { continue }
             let frame = anchor.convert(anchor.bounds, to: nil)
             guard frame.contains(point), Self.controller(of: anchor) === host else { continue }
             let area = frame.width * frame.height
             if let current = best, current.area <= area { continue }
             best = (anchor, area)
         }
-        best?.anchor.onTap?()
+        return best?.anchor
     }
 
     private static func controller(of view: UIView) -> UIViewController? {
@@ -573,7 +673,7 @@ private final class EverTouchRecognizer: UIGestureRecognizer, UIGestureRecognize
 struct EverTouchSampler: UIViewRepresentable {
     var isActive: Bool
     var onSample: (CGPoint, CGSize) -> Void
-    var onTap: (() -> Void)?
+    var onTouch: ((EverTouchEvent) -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -587,18 +687,18 @@ struct EverTouchSampler: UIViewRepresentable {
     }
 
     func updateUIView(_ view: Anchor, context: Context) {
-        view.onTap = onTap
+        view.onTouch = onTouch
         context.coordinator.onSample = onSample
         context.coordinator.setActive(isActive)
     }
 
     static func dismantleUIView(_ view: Anchor, coordinator: Coordinator) {
-        view.onTap = nil
+        view.onTouch = nil
         coordinator.setActive(false)
     }
 
     final class Anchor: UIView {
-        var onTap: (() -> Void)?
+        var onTouch: ((EverTouchEvent) -> Void)?
 
         var isHiddenInTree: Bool {
             var current: UIView? = self
